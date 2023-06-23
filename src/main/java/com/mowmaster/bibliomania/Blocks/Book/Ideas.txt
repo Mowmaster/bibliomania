@@ -1,0 +1,11 @@
+- Books are an item, similar to a bundle (can view contents using the tooltip)
+- The selected item/block can be interacted with (can place it in world if a block, or consume it if a food item.)
+- When placed on the ground, it becomes a book block
+- book block can be 'opened' at which point it renders a rotating item above it to show the currently selected item,
+and can be interacted with to insert/remove items
+(the pages need some way to be 'flipped' that noticeable to the player) interacting with the main 'content'
+is how to insert/remove items with similar controls to pedestals
+- the book can be placed into a lecturn or shelf at which point itll act like a block storage container and can be hoppered/piped in and out of, the back of the shelf is the way for pipes to access the books themselves,
+ the front face as well???, the other sides can be used to do automation
+
+
