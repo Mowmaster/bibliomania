@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "bibliomania:thread_spun_grass"
+    },
+    {
+      "item": "bibliomania:thread_spun_grass"
+    },
+    {
+      "item": "bibliomania:thread_spun_grass"
+    },
+    {
+      "item": "bibliomania:thread_spun_grass"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:woven_grass"
+  }
+}
