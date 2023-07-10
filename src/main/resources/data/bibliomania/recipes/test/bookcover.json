@@ -1,0 +1,17 @@
+{
+  "type": "mowlib:dualhandedcrafting",
+  "blockTarget": {
+    "item": "minecraft:obsidian"
+  },
+  "mainhandTool": {
+    "item": "bibliomania:book_starter"
+  },
+  "offhandTool": {
+    "item": "bibliomania:thread_spun_grass"
+  },
+  "modifyMainhandItem": true,
+  "resultNBTName": "bibliomania_book_cover",
+  "resultNBTValue": 1,
+  "resultNBTMinValue": 0,
+  "resultNBTMaxValue": 3
+}

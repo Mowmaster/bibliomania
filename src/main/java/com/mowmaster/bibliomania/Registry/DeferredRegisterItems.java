@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania.Registry;
 import com.mowmaster.bibliomania.Items.BaseFiberItem;
 import com.mowmaster.bibliomania.Items.BaseThreadItem;
 import com.mowmaster.bibliomania.Items.BaseWovenFiberItem;
+import com.mowmaster.bibliomania.Items.TestBookItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -29,6 +30,10 @@ public class DeferredRegisterItems
             () -> new BaseWovenFiberItem(new Item.Properties(),0));
     public static final RegistryObject<Item> WOVEN_GRASS = ITEMS.register("woven_grass",
             () -> new BaseWovenFiberItem(new Item.Properties(),1));
+
+
+    public static final RegistryObject<Item> STARTER_BOOK = ITEMS.register("book_starter",
+            () -> new TestBookItem(new Item.Properties()));
 
 
     public static void register(IEventBus eventBus) {

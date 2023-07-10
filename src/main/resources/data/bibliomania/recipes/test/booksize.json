@@ -1,0 +1,17 @@
+{
+  "type": "mowlib:dualhandedcrafting",
+  "blockTarget": {
+    "item": "minecraft:obsidian"
+  },
+  "mainhandTool": {
+    "item": "bibliomania:book_starter"
+  },
+  "offhandTool": {
+    "item": "minecraft:paper"
+  },
+  "modifyMainhandItem": true,
+  "resultNBTName": "bibliomania_book_storage",
+  "resultNBTValue": 1,
+  "resultNBTMinValue": 0,
+  "resultNBTMaxValue": 9
+}

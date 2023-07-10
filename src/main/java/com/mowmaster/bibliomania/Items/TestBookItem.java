@@ -1,35 +1,56 @@
-package com.mowmaster.bibliomania.Blocks.Book;
+package com.mowmaster.bibliomania.Items;
 
+import com.mowmaster.mowlib.MowLibUtils.MowLibCompoundTagUtils;
 import com.mowmaster.mowlib.MowLibUtils.MowLibItemUtils;
-import com.mowmaster.mowlib.api.Coloring.IColorable;
-import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 
 import java.util.List;
 
 import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
-public class BaseBookBlockItem extends BlockItem {
-    public BaseBookBlockItem(Block p_40565_, Properties p_40566_) {
-        super(p_40565_, p_40566_);
+public class TestBookItem extends Item {
+    public TestBookItem(Properties p_41383_) {
+        super(p_41383_);
     }
 
     public static int getBookThickness(ItemStack bookStack)
     {
-
+        int returner = MowLibCompoundTagUtils.readIntegerFromNBT(bookStack.getOrCreateTag(),MODID + "_book_storage");
         List<ItemStack> stackList = MowLibItemUtils.readListStackFromNBT(bookStack,MODID + "_book_storage");
 
-
-        return 0;
+        return returner;
     }
 
     public static int getBookCover(ItemStack bookStack)
     {
 
-
-        return 0;
+        int returner = MowLibCompoundTagUtils.readIntegerFromNBT(bookStack.getOrCreateTag(),MODID + "_book_cover");
+        /*
+            0: grass weave
+            1: grass woven
+            2: wool weave
+            3: wool woven
+        */
+        return returner;
     }
+
+    /*
+    Not in starter book
+    public static int getBookAccent(ItemStack bookStack)
+    {
+        *//*
+            0: none
+            1: copper
+            2: iron
+            3: gold
+            4: emerald
+            5: diamond
+            6: netherite
+        *//*
+        return 1;
+    }
+    */
 
     public static int getBookPage1Color(ItemStack bookStack)
     {
@@ -52,6 +73,4 @@ public class BaseBookBlockItem extends BlockItem {
     public static int getBookPage6Color(ItemStack bookStack) {return 43775;}
     public static int getBookPage7Color(ItemStack bookStack) {return 11163135;}
     public static int getBookPage8Color(ItemStack bookStack) {return 16755455;}
-
-
 }

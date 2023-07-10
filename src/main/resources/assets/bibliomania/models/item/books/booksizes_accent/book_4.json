@@ -2,7 +2,7 @@
 	"credit": "Made with Blockbench",
 	"textures": {
 		"0": "bibliomania:item/models/books/basebookcover",
-		"1": "bibliomania:item/models/books/basebookcoverfront",
+		"1": "bibliomania:item/weave/weave_grass",
 		"2": "bibliomania:item/models/books/basebookaccents",
 		"3": "bibliomania:item/models/books/basebookcover_binding",
 		"particle": "bibliomania:item/models/books/basebookcover_binding"
