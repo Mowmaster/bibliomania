@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "bibliomania:weave_grass"
+    },
+    {
+      "item": "bibliomania:weave_grass"
+    },
+    {
+      "item": "bibliomania:thread_twisted_grass"
+    },
+    {
+      "item": "bibliomania:bookblock_starter"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:block_book_starter",
+    "type": "forge:nbt",
+    "nbt": {
+      "bibliomania_bookcover": 0
+    }
+  }
+}

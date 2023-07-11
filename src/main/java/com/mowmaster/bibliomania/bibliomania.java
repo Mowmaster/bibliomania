@@ -2,8 +2,7 @@ package com.mowmaster.bibliomania;
 
 import com.mojang.logging.LogUtils;
 import com.mowmaster.bibliomania.Loot.LootModifierHandler;
-import com.mowmaster.bibliomania.Registry.DeferredCreativeTabRegistry;
-import com.mowmaster.bibliomania.Registry.DeferredRegisterItems;
+import com.mowmaster.bibliomania.Registry.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
@@ -46,11 +45,15 @@ public class bibliomania
 
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
+        modEventBus.addListener(this::clientSetup);
+
 
         // Register the Deferred Register to the mod event bus so blocks get registered
 
         // Register the Deferred Register to the mod event bus so items get registered
         DeferredRegisterItems.ITEMS.register(modEventBus);
+        DeferredRegisterTileBlocks.BLOCKS.register(modEventBus);
+        DeferredBlockEntityTypes.BLOCK_ENTITIES.register(modEventBus);
         //Register LootTable Modifiers
         LootModifierHandler.register(modEventBus);
 
@@ -66,6 +69,13 @@ public class bibliomania
         // Some common setup code
         LOGGER.info("HELLO FROM COMMON SETUP");
         //LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
+    }
+
+    private void clientSetup(final FMLClientSetupEvent event)
+    {
+        // Some client setup code
+        LOGGER.info("HELLO FROM Client SETUP");
+        BibliomainaClientRegistry.registerBlockEntityRenderers();
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call

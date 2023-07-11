@@ -1,8 +1,9 @@
 package com.mowmaster.bibliomania.Registry;
 
 
+import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockEntityRender;
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockItem;
-import com.mowmaster.mowlib.Registry.DeferredRegisterItems;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -15,7 +16,7 @@ public class BibliomainaClientRegistry
     @SubscribeEvent
     public static void registerItemColor(RegisterColorHandlersEvent.Item event) {
 
-        event.getItemColors().register((stack, color) ->
+        /*event.getItemColors().register((stack, color) ->
         {if (color == 1) {return BaseBookBlockItem.getBookPage1Color(stack);}
         else if (color == 2) {return BaseBookBlockItem.getBookPage1Color(stack);}
         else if (color == 3) {return BaseBookBlockItem.getBookPage1Color(stack);}
@@ -24,9 +25,10 @@ public class BibliomainaClientRegistry
         else if (color == 6) {return BaseBookBlockItem.getBookPage1Color(stack);}
         else if (color == 7) {return BaseBookBlockItem.getBookPage1Color(stack);}
         else if (color == 8) {return BaseBookBlockItem.getBookPage1Color(stack);}
-        else {return -1;}}, DeferredRegisterItems.COLOR_APPLICATOR.get());
+        else {return -1;}}, DeferredRegisterItems.COLOR_APPLICATOR.get());*/
 
-        BibliomaniaItemModelProperties.bibliomaniaItemModes(com.mowmaster.bibliomania.Registry.DeferredRegisterItems.STARTER_BOOK.get());
+        BibliomaniaItemModelProperties.bibliomaniaItemModes(DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get().asItem());
+        BibliomaniaItemModelProperties.bibliomaniaItemModes(DeferredRegisterItems.STARTER_BOOK_BLOCK.get());
 
 
 
@@ -57,6 +59,6 @@ public class BibliomainaClientRegistry
 
     public static void registerBlockEntityRenderers()
     {
-        //BlockEntityRenderers.register(DeferredBlockEntityTypes.PEDESTAL.get(), BasePedestalBlockEntityRenderer::new);
+        BlockEntityRenderers.register(DeferredBlockEntityTypes.BOOK_STARTER.get(), BaseBookBlockEntityRender::new);
     }
 }

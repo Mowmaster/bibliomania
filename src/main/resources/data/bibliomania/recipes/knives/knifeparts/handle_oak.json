@@ -1,0 +1,15 @@
+{
+  "type": "mowlib:dualhandedcrafting",
+  "blockTarget": {
+    "tag": "minecraft:oak_logs"
+  },
+  "mainhandTool": {
+    "item": "minecraft:flint"
+  },
+  "offhandTool": {
+    "item": "minecraft:flint"
+  },
+  "result": {
+    "item": "bibliomania:knifepart_handle_oak"
+  }
+}

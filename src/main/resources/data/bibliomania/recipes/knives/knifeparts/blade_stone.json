@@ -1,0 +1,15 @@
+{
+  "type": "mowlib:dualhandedcrafting",
+  "blockTarget": {
+    "tag": "forge:stone"
+  },
+  "mainhandTool": {
+    "item": "minecraft:flint"
+  },
+  "offhandTool": {
+    "item": "minecraft:flint"
+  },
+  "result": {
+    "item": "bibliomania:knifepart_blade_stone"
+  }
+}

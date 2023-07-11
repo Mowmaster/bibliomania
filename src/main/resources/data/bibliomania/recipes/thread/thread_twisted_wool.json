@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "bibliomania:fibers_wool"
+    },
+    {
+      "item": "bibliomania:fibers_wool"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:thread_twisted_wool"
+  }
+}

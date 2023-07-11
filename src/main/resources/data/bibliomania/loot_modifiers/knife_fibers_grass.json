@@ -8,7 +8,7 @@
     {
       "condition": "minecraft:match_tool",
       "predicate": {
-        "tag": "minecraft:swords"
+        "tag": "bibliomania:knives"
       }
     },
     {

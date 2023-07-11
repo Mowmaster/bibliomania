@@ -1,0 +1,13 @@
+{
+  "parent": "bibliomania:item/book_blocks/paper_1",
+  "overrides": [
+    { "predicate": { "bibliomania:paperstack": 1}, "model": "bibliomania:item/book_blocks/paper_1"},
+    { "predicate": { "bibliomania:paperstack": 2}, "model": "bibliomania:item/book_blocks/paper_2"},
+    { "predicate": { "bibliomania:paperstack": 3}, "model": "bibliomania:item/book_blocks/paper_3"},
+    { "predicate": { "bibliomania:paperstack": 4}, "model": "bibliomania:item/book_blocks/paper_4"},
+    { "predicate": { "bibliomania:paperstack": 5}, "model": "bibliomania:item/book_blocks/paper_5"},
+    { "predicate": { "bibliomania:paperstack": 6}, "model": "bibliomania:item/book_blocks/paper_6"},
+    { "predicate": { "bibliomania:paperstack": 7}, "model": "bibliomania:item/book_blocks/paper_7"},
+    { "predicate": { "bibliomania:paperstack": 8}, "model": "bibliomania:item/book_blocks/paper_8"}
+  ]
+}
