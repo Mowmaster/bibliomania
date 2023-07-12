@@ -1,36 +1,24 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
 import com.mowmaster.bibliomania.Registry.DeferredBlockEntityTypes;
+import com.mowmaster.bibliomania.Utils.BibliomaniaItemUtils;
 import com.mowmaster.mowlib.BlockEntities.MowLibBaseFilterableBlockEntity;
-import com.mowmaster.mowlib.Capabilities.Dust.CapabilityDust;
-import com.mowmaster.mowlib.Capabilities.Experience.CapabilityExperience;
 import com.mowmaster.mowlib.api.TransportAndStorage.IFilterItem;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.DiodeBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
-import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.DirectionProperty;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.mowmaster.bibliomania.Blocks.Book.BaseBookBlock.BOOK_THICKNESS;
 import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
 public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
@@ -41,8 +29,19 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     private int bookQuality = 0;
     private int bookCover = 0;
     private int currentPage = 0;
+    private int pagesCount = 0;
     private BaseBookBlockEntity getBookEntity() { return this; }
-    private int getBookQuality() { return this.bookQuality; }
+    public int getBookQuality() { return this.bookQuality; }
+    public int getBookBlockThickness()
+    {
+        BlockState thisBlock = getLevel().getBlockState(getPos());
+        if(thisBlock.hasProperty(BOOK_THICKNESS))
+        {
+            return thisBlock.getValue(BOOK_THICKNESS);
+        }
+
+        return 0;
+    }
 
     public BaseBookBlockEntity(BlockPos p_155229_, BlockState p_155230_) {
         super(DeferredBlockEntityTypes.BOOK_STARTER.get(), p_155229_, p_155230_);
@@ -163,21 +162,28 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
             @Override
             public ItemStack extractItem(int slot, int amount, boolean simulate) {
 
-                IFilterItem filter = getIFilterItem();
-                if(filter == null || !filter.getFilterDirection().extract())return super.extractItem((slot>getSlots())?(0):(slot), amount, simulate);
-                return super.extractItem((slot>getSlots())?(0):(slot), Math.min(amount, (filter == null)?(amount):((!filter.getFilterDirection().extract())?(amount):(filter.canAcceptCountItems(getBookEntity(),getFilterInBlockEntity(),  getStackInSlot((slot>getSlots())?(0):(slot)).getMaxStackSize(), getSlotSizeLimit(),getStackInSlot((slot>getSlots())?(0):(slot)))))), simulate);
+                if(slot == getCurrentSlot())
+                {
+                    IFilterItem filter = getIFilterItem();
+                    if(filter == null || !filter.getFilterDirection().extract())return super.extractItem((slot>getSlots())?(0):(slot), amount, simulate);
+                    return super.extractItem((slot>getSlots())?(0):(slot), Math.min(amount, (filter == null)?(amount):((!filter.getFilterDirection().extract())?(amount):(filter.canAcceptCountItems(getBookEntity(),getFilterInBlockEntity(),  getStackInSlot((slot>getSlots())?(0):(slot)).getMaxStackSize(), getSlotSizeLimit(),getStackInSlot((slot>getSlots())?(0):(slot)))))), simulate);
+
+                }
+
+                return ItemStack.EMPTY;
             }
         };
     }
 
-    @Nonnull
+    //TODO: Books will be manual ONLY, require lecterns to use automation
+    /*@Nonnull
     @Override
     public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ITEM_HANDLER) {
             return itemCapability.cast();
         }
         return super.getCapability(cap, side);
-    }
+    }*/
 
     /*============================================================================
     ==============================================================================
@@ -284,7 +290,6 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
 
     public void setCurrentSlot(int value)
     {
-        System.out.println("Value: "+ value);
         if((value < itemHandler.getSlots()) && (value >= 0))
         {
             this.currentPage = value;
@@ -388,6 +393,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
         this.bookQuality = p_155245_.getInt(MODID + "_bookquality");
         this.bookCover = p_155245_.getInt(MODID + "_bookcover");
         this.currentPage = p_155245_.getInt(MODID + "_currentpage");
+        this.pagesCount = p_155245_.getInt(MODID + "_bookpagescount");
     }
 
     @Override
@@ -397,7 +403,16 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
         p_58888_.putInt(MODID + "_bookquality", this.bookQuality);
         p_58888_.putInt(MODID + "_bookcover", this.bookCover);
         p_58888_.putInt(MODID + "_currentpage", this.currentPage);
+        p_58888_.putInt(MODID + "_bookpagescount", this.pagesCount);
         return p_58888_;
+    }
+
+    public CompoundTag saveToItem(CompoundTag p_58888_) {
+        super.save(p_58888_);
+        p_58888_.putInt(MODID + "_bookquality", this.bookQuality);
+        p_58888_.putInt(MODID + "_bookcover", this.bookCover);
+        p_58888_.putInt(MODID + "_currentpage", this.currentPage);
+        return BibliomaniaItemUtils.writeItemHandlerToNBT(p_58888_,itemHandler,MODID + "_bookstorage");
     }
 
     @Override

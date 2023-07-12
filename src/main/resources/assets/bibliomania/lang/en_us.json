@@ -1,0 +1,38 @@
+{
+  "itemGroup.bibliomania": "Bibliomania",
+
+  "item.bibliomania.fibers_grass": "Fibers (Grass)",
+  "jei.bibliomania.fibers_grass.description": "§5Obtained by breaking grass with a Knife.",
+  "item.bibliomania.fibers_wool": "Fibers (Wool)",
+  "jei.bibliomania.fibers_wool.description": "§5Obtained by crafting string or wool with a Knife",
+
+  "item.bibliomania.thread_twisted_grass": "Binding Thread (Twisted - Grass)",
+  "jei.bibliomania.thread_twisted_grass.description": "§5Made by crudely crafting (Grass) fibers together.",
+  "item.bibliomania.thread_twisted_wool": "Binding Thread (Twisted - Wool)",
+  "jei.bibliomania.thread_twisted_wool.description": "§5Made by crudely crafting (Wool) fibers together.",
+  "item.bibliomania.thread_spun_grass": "Binding Thread (Grass) [WIP]",
+  "jei.bibliomania.thread_spun_grass.description": "§5Made (Eventually) by Spinning (Grass) fibers on a Spinning Wheel.",
+
+  "item.bibliomania.weave_grass": "Book Cloth (Weave - Grass)",
+  "jei.bibliomania.weave_grass.description": "§5Made by crudely crafting (Grass) threads together.",
+  "item.bibliomania.weave_wool": "Book Cloth (Weave - Wool)",
+  "jei.bibliomania.weave_wool.description": "§5Made by crudely crafting (Wool) threads together.",
+  "item.bibliomania.woven_grass": "Book Cloth (Woven - Grass) [WIP]",
+  "jei.bibliomania.woven_grass.description": "§5Made (Eventually) by Weaving (Grass) thread on a Loom.",
+
+  "item.bibliomania.bookblock_starter": "Starter Book Block (8)",
+  "jei.bibliomania.bookblock_starter.description": "§5Made by crafting (8) paper together with a Knife [This can ONLY be used for the crafting table crafted Storage Book]",
+
+
+  "item.bibliomania.knifepart_blade_stone": "Knife Blade (Stone)",
+  "jei.bibliomania.knifepart_blade_stone.description": "§5By 'Knapping' 2 Flint against some Stone, you can create a Knife Blade",
+  "item.bibliomania.knifepart_handle_oak": "Knife Handle (Oak)",
+  "jei.bibliomania.knifepart_handle_oak.description": "§5By 'Knapping' 2 Flint against some Oak Logs, you can create a Knife Handle",
+
+  "item.bibliomania.knife_stone": "Stone Knife",
+  "jei.bibliomania.knife_stone.description": "§5Made by crafting a blade and a handle together, can give custom drops when its used to break some blocks or to kill some mobs",
+
+  "block.bibliomania.block_book_starter": "Storage Book",
+  "jei.bibliomania.block_book_starter.description": "§5Basic Storage Book, Can hold up to 8 different items with a very limited stack size. (Place on a Bibliomania Book lectern [WIP] to use automated ways to insert/withdrawl items.)",
+  "jei.bibliomania.block_book_starter.interaction": "§5Place on ground to begin storing items, Right Click items on book to store them, Left Click or Shift Left Click to remove items. Click on the Arrows to 'Turn' pages to access other slots. Crouch Right Click book to pick it up."
+}

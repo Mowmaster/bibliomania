@@ -29,16 +29,18 @@ public class BaseBookBlockEntityRender implements BlockEntityRenderer<BaseBookBl
             ItemStack stack = p_112307_.getItemInPedestal(p_112307_.getCurrentSlot());
             BlockPos pos = p_112307_.getPos();
             Level level = p_112307_.getLevel();
+            int thickness = p_112307_.getBookBlockThickness();
 
 
-            renderItemRotating(level,p_112309_,p_112310_,stack,p_112311_,p_112312_);
+            renderItemRotating(level,thickness,p_112309_,p_112310_,stack,p_112311_,p_112312_);
         }
     }
 
-    public static void renderItemRotating(Level worldIn, PoseStack p_112309_, MultiBufferSource p_112310_, ItemStack itemStack, int p_112311_, int p_112312_) {
+    public static void renderItemRotating(Level worldIn, int thickness, PoseStack p_112309_, MultiBufferSource p_112310_, ItemStack itemStack, int p_112311_, int p_112312_) {
         if (!itemStack.isEmpty()) {
             p_112309_.pushPose();
-            p_112309_.translate(0.5D, 0.25D, 0.5D);
+            double height = (thickness + 4) * 0.0625D;
+            p_112309_.translate(0.5D, height, 0.5D);
             p_112309_.scale(1.5F, 1.5F, 1.5F);
             long time = System.currentTimeMillis();
             float angle = (float)(time / 25L % 360L);

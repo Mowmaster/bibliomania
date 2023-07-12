@@ -1,20 +1,36 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.mowmaster.bibliomania.Utils.BibliomaniaItemUtils;
 import com.mowmaster.mowlib.MowLibUtils.MowLibCompoundTagUtils;
 import com.mowmaster.mowlib.MowLibUtils.MowLibItemUtils;
 import com.mowmaster.mowlib.api.Coloring.IColorable;
+import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.tooltip.BundleTooltip;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraftforge.items.ItemStackHandler;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
 public class BaseBookBlockItem extends BlockItem {
-    private static ItemStackHandler itemHandler;
 
     public BaseBookBlockItem(Block p_40565_, Properties p_40566_) {
         super(p_40565_, p_40566_);
@@ -30,9 +46,36 @@ public class BaseBookBlockItem extends BlockItem {
     {
         if(bookStack.getOrCreateTag().contains(MODID + "_bookstorage"))
         {
-            CompoundTag invTag = bookStack.getOrCreateTag().getCompound(MODID + "_bookstorage");
-            itemHandler.deserializeNBT(invTag);
-            //Some method to check storage capacity
+            ItemStackHandler handler = BibliomaniaItemUtils.readItemHandlerFromNBT(bookStack.getOrCreateTag(),MODID + "_bookstorage");
+            if(handler != null)
+            {
+
+                int space = 0;
+                int slotLimit = 4 + getBookQuality(bookStack);
+                int maxSpace = slotLimit * (handler.getSlots()-1);
+                for(int i=0;i< handler.getSlots();i++)
+                {
+                    ItemStack stack = handler.getStackInSlot(i);
+                    if(stack.getCount()<slotLimit)
+                    {
+                        space += (slotLimit-stack.getCount());
+                    }
+                }
+
+                int difference = maxSpace - space;
+                double div = (double)difference/maxSpace;
+
+                if(div < 0.1D){return 0;}
+                else if(div < 0.2D && div >= 0.1D){return 1;}
+                else if(div < 0.3D && div >= 0.2D){return 2;}
+                else if(div < 0.4D && div >= 0.3D){return 3;}
+                else if(div < 0.5D && div >= 0.4D){return 4;}
+                else if(div < 0.6D && div >= 0.5D){return 5;}
+                else if(div < 0.7D && div >= 0.6D){return 6;}
+                else if(div < 0.8D && div >= 0.7D){return 7;}
+                else if(div < 0.9D && div >= 0.8D){return 8;}
+                else if(div >= 0.9D){return 9;}
+            }
         }
 
         return 0;
@@ -57,6 +100,14 @@ public class BaseBookBlockItem extends BlockItem {
             0: grass weave
             2: wool weave
         */
+        return returner;
+    }
+
+    public int getPagesCount(ItemStack bookStack)
+    {
+
+        int returner = MowLibCompoundTagUtils.readIntegerFromNBT(bookStack.getOrCreateTag(),MODID + "_bookpagescount");
+
         return returner;
     }
 
@@ -101,5 +152,12 @@ public class BaseBookBlockItem extends BlockItem {
     public static int getBookPage7Color(ItemStack bookStack) {return 11163135;}
     public static int getBookPage8Color(ItemStack bookStack) {return 16755455;}
 
+    @Override
+    public @NotNull Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
+        List<ItemStack> stackList = BibliomaniaItemUtils.readItemListFromNBT(stack.getOrCreateTag(),MODID + "_bookstorage");
 
+        NonNullList<ItemStack> nonnulllist = NonNullList.create();
+        stackList.forEach(nonnulllist::add);
+        return Optional.of(new BundleTooltip(nonnulllist, nonnulllist.size()-1));
+    }
 }

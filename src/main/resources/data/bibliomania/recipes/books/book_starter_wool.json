@@ -18,7 +18,10 @@
     "item": "bibliomania:block_book_starter",
     "type": "forge:nbt",
     "nbt": {
-      "bibliomania_bookcover": 1
+      "bibliomania_bookcover": 1,
+      "bibliomania_bookpagescount": 8,
+      "bibliomania_bookquality": 3
+
     }
   }
 }
