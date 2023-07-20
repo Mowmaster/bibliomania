@@ -48,7 +48,7 @@ public class DeferredRegisterItems
     public static final RegistryObject<Item> KNIFEPART_HANDLE_OAK = ITEMS.register("knifepart_handle_oak",
             () -> new Item(new Item.Properties()));
     public static final RegistryObject<Item> KNIFE_STONE = ITEMS.register("knife_stone",
-            () -> new BaseKnifeItem(0.5F, -2.0F, Tiers.STONE, new Item.Properties()));
+            () -> new BaseKnifeItem(0.5F, -2.0F, Tiers.STONE, new Item.Properties().stacksTo(1)));
     /*public static final RegistryObject<Item> KNIFE_COPPER = ITEMS.register("knife_copper",
             () -> new BaseKnifeItem(0.5F, -2.0F, BibliomaniaMaterialsRegistry.COPPER, new Item.Properties()));
     public static final RegistryObject<Item> KNIFE_IRON = ITEMS.register("knife_iron",

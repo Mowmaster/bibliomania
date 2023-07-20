@@ -3,8 +3,7 @@
 	"parent": "block/cube_all",
 	"textures": {
 		"2": "bibliomania:item/models/bookcase/bookcase_rear",
-		"3": "bibliomania:item/models/bookcase/bookcase_top",
-		"particle": "bibliomania:item/models/lectern/lectern_top"
+		"3": "bibliomania:item/models/bookcase/bookcase_top"
 	},
 	"elements": [
 		{

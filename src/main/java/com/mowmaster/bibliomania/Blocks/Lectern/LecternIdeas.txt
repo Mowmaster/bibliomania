@@ -1,0 +1,5 @@
+- Right clicking book on lectern saves the books info to the lectern BE (similar to the book BE)
+- Lectern just renders book item, also need to take into account the arrows on the book for turning pages
+- Enables automation with hoppers
+- allows redstone output
+- allows redstone input (some way to allow hoppering in items when receiving a signal tho...)

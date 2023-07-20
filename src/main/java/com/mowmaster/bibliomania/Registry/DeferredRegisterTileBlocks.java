@@ -24,15 +24,26 @@ public class DeferredRegisterTileBlocks
     public static final RegistryObject<Block> TILE_BOOK_STARTER = registerBookBlock("block_book_starter",
             () -> new BaseBookBlock(BlockBehaviour.Properties.of().strength(2.0F).sound(SoundType.WOOD)));
 
+    private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
+        RegistryObject<T> toReturn = BLOCKS.register(name, block);
+        registerBlockItem(name, toReturn);
+        return toReturn;
+    }
+
     private static <T extends Block> RegistryObject<T> registerBookBlock(String name, Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);
         registerBookBlockItem(name, toReturn);
         return toReturn;
     }
 
+    private static <T extends Block> void registerBlockItem(String name, RegistryObject<T> block) {
+        DeferredRegisterItems.ITEMS.register(name, () -> new BlockItem(block.get(),
+                new Item.Properties()));
+    }
+
     private static <T extends Block> void registerBookBlockItem(String name, RegistryObject<T> block) {
         DeferredRegisterItems.ITEMS.register(name, () -> new BaseBookBlockItem(block.get(),
-                new Item.Properties()));
+                new Item.Properties().stacksTo(1)));
     }
 
     public static void register(IEventBus eventBus) {

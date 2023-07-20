@@ -52,29 +52,168 @@ public class BaseBookBlock extends Block implements SimpleWaterloggedBlock,Entit
     public static final IntegerProperty BOOK_THICKNESS = IntegerProperty.create("book_thickness", 0, 5);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-    protected final VoxelShape NORMAL;
-    protected final VoxelShape ALTNORMAL;
+    protected final VoxelShape NORTH0;
+    protected final VoxelShape SOUTH0;
+    protected final VoxelShape EAST0;
+    protected final VoxelShape WEST0;
+    protected final VoxelShape NORTH1;
+    protected final VoxelShape SOUTH1;
+    protected final VoxelShape EAST1;
+    protected final VoxelShape WEST1;
+    protected final VoxelShape NORTH2;
+    protected final VoxelShape SOUTH2;
+    protected final VoxelShape EAST2;
+    protected final VoxelShape WEST2;
+    protected final VoxelShape NORTH3;
+    protected final VoxelShape SOUTH3;
+    protected final VoxelShape EAST3;
+    protected final VoxelShape WEST3;
+    protected final VoxelShape NORTH4;
+    protected final VoxelShape SOUTH4;
+    protected final VoxelShape EAST4;
+    protected final VoxelShape WEST4;
+    protected final VoxelShape NORTH5;
+    protected final VoxelShape SOUTH5;
+    protected final VoxelShape EAST5;
+    protected final VoxelShape WEST5;
 
     public BaseBookBlock(Properties p_152915_) {
         super(p_152915_);
         this.registerDefaultState(this.stateDefinition.any().setValue(WATERLOGGED, Boolean.valueOf(false)).setValue(BOOK_COVER, 0).setValue(BOOK_THICKNESS, 0).setValue(FACING, Direction.NORTH));
-        this.NORMAL = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D));
-        this.ALTNORMAL = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D));
+        this.NORTH0 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 0.25D, 15.0D),
+        Block.box(-3.25D, 0.25D, 1.0D, 18.5D, 0.5D, 15.0D));
+        this.SOUTH0 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 0.25D, 15.0D),
+                Block.box(-2.0D, 0.25D, 1.0D, 19.0D, 0.5D, 15.0D));
+        this.EAST0 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 0.25D, 21.5D),
+                Block.box(1.0D, 0.25D, -3.0D, 15.0D, 0.5D, 18.5D));
+        this.WEST0 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 0.25D, 22.0D),
+                Block.box(1.0D, 0.25D, -2.5D, 15.0D, 0.5D, 19.0D));
+
+        this.NORTH1 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 1.0D, 15.0D),
+                Block.box(-3.25D, 1.0D, 1.0D, 18.5D, 1.5D, 15.0D));
+        this.SOUTH1 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D),
+                Block.box(-2.0D, 1.0D, 1.0D, 19.0D, 1.5D, 15.0D));
+        this.EAST1 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D),
+                Block.box(1.0D, 1.0D, -3.0D, 15.0D, 1.5D, 18.5D));
+        this.WEST1 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 1.0D, 22.0D),
+                Block.box(1.0D, 1.0D, -2.5D, 15.0D, 1.5D, 19.0D));
+
+        this.NORTH2 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 1.0D, 15.0D),
+                Block.box(-3.25D, 1.0D, 1.0D, 18.5D, 2.0D, 15.0D));
+        this.SOUTH2 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D),
+                Block.box(-2.0D, 1.0D, 1.0D, 19.0D, 2.0D, 15.0D));
+        this.EAST2 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D),
+                Block.box(1.0D, 1.0D, -3.0D, 15.0D, 2.0D, 18.5D));
+        this.WEST2 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 1.0D, 22.0D),
+                Block.box(1.0D, 1.0D, -2.5D, 15.0D, 2.0D, 19.0D));
+
+        this.NORTH3 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 1.0D, 15.0D),
+                Block.box(-3.25D, 1.0D, 1.0D, 18.5D, 3.0D, 15.0D));
+        this.SOUTH3 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D),
+                Block.box(-2.0D, 1.0D, 1.0D, 19.0D, 3.0D, 15.0D));
+        this.EAST3 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D),
+                Block.box(1.0D, 1.0D, -3.0D, 15.0D, 3.0D, 18.5D));
+        this.WEST3 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 1.0D, 22.0D),
+                Block.box(1.0D, 1.0D, -2.5D, 15.0D, 3.0D, 19.0D));
+
+        this.NORTH4 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 1.0D, 15.0D),
+                Block.box(-3.25D, 1.0D, 1.0D, 18.5D, 4.0D, 15.0D));
+        this.SOUTH4 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D),
+                Block.box(-2.0D, 1.0D, 1.0D, 19.0D, 4.0D, 15.0D));
+        this.EAST4 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D),
+                Block.box(1.0D, 1.0D, -3.0D, 15.0D, 4.0D, 18.5D));
+        this.WEST4 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 1.0D, 22.0D),
+                Block.box(1.0D, 1.0D, -2.5D, 15.0D, 4.0D, 19.0D));
+
+        this.NORTH5 = Shapes.or(Block.box(-6.0D, 0.0D, 1.0D, 21.0D, 1.0D, 15.0D),
+                Block.box(-3.25D, 1.0D, 1.0D, 18.5D, 5.0D, 15.0D));
+        this.SOUTH5 = Shapes.or(Block.box(-5.5D, 0.0D, 1.0D, 22.0D, 1.0D, 15.0D),
+                Block.box(-2.0D, 1.0D, 1.0D, 19.0D, 5.0D, 15.0D));
+        this.EAST5 = Shapes.or(Block.box(1.0D, 0.0D, -6.0D, 15.0D, 1.0D, 21.5D),
+                Block.box(1.0D, 1.0D, -3.0D, 15.0D, 5.0D, 18.5D));
+        this.WEST5 = Shapes.or(Block.box(1.0D, 0.0D, -5.5D, 15.0D, 1.0D, 22.0D),
+                Block.box(1.0D, 1.0D, -2.5D, 15.0D, 5.0D, 19.0D));
     }
 
     public VoxelShape getShape(BlockState p_152021_, BlockGetter p_152022_, BlockPos p_152023_, CollisionContext p_152024_) {
+
+        int thickness = (p_152021_.hasProperty(BOOK_THICKNESS))?(p_152021_.getValue(BOOK_THICKNESS)):(0);
         Direction direction = p_152021_.getValue(FACING);
         switch(direction) {
             case NORTH:
-                return this.NORMAL;
+                switch(thickness)
+                {
+                    case 0:
+                        return this.NORTH0;
+                    case 1:
+                        return this.NORTH1;
+                    case 2:
+                        return this.NORTH2;
+                    case 3:
+                        return this.NORTH3;
+                    case 4:
+                        return this.NORTH4;
+                    case 5:
+                        return this.NORTH5;
+                    default:
+                        return this.NORTH0;
+                }
             case SOUTH:
-                return this.NORMAL;
+                switch(thickness)
+                {
+                    case 0:
+                        return this.SOUTH0;
+                    case 1:
+                        return this.SOUTH1;
+                    case 2:
+                        return this.SOUTH2;
+                    case 3:
+                        return this.SOUTH3;
+                    case 4:
+                        return this.SOUTH4;
+                    case 5:
+                        return this.SOUTH5;
+                    default:
+                        return this.SOUTH0;
+                }
             case EAST:
-                return this.ALTNORMAL;
+                switch(thickness)
+                {
+                    case 0:
+                        return this.EAST0;
+                    case 1:
+                        return this.EAST1;
+                    case 2:
+                        return this.EAST2;
+                    case 3:
+                        return this.EAST3;
+                    case 4:
+                        return this.EAST4;
+                    case 5:
+                        return this.EAST5;
+                    default:
+                        return this.EAST0;
+                }
             case WEST:
-                return this.ALTNORMAL;
+                switch(thickness)
+                {
+                    case 0:
+                        return this.WEST0;
+                    case 1:
+                        return this.WEST1;
+                    case 2:
+                        return this.WEST2;
+                    case 3:
+                        return this.WEST3;
+                    case 4:
+                        return this.WEST4;
+                    case 5:
+                        return this.WEST5;
+                    default:
+                        return this.WEST0;
+                }
             default:
-                return this.NORMAL;
+                return this.NORTH0;
         }
     }
 

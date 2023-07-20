@@ -1,19 +1,25 @@
-package com.mowmaster.bibliomania.Blocks.Book;
+package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockItem;
 import com.mowmaster.bibliomania.Registry.DeferredBlockEntityTypes;
 import com.mowmaster.bibliomania.Utils.BibliomaniaItemUtils;
 import com.mowmaster.mowlib.BlockEntities.MowLibBaseFilterableBlockEntity;
 import com.mowmaster.mowlib.api.TransportAndStorage.IFilterItem;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.items.ItemStackHandler;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -21,16 +27,19 @@ import java.util.Optional;
 import static com.mowmaster.bibliomania.Blocks.Book.BaseBookBlock.BOOK_THICKNESS;
 import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
-public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
-
+public class BaseLecternBlockEntity  extends MowLibBaseFilterableBlockEntity
+{
     private ItemStackHandler itemHandler = createItemHandlerBookStarter();
     private LazyOptional<IItemHandler> itemCapability = LazyOptional.of(() -> this.itemHandler);
+    private ItemStackHandler itemHandlerBookSlot = createItemHandlerPrivateBookSlot();
+    private LazyOptional<IItemHandler> itemCapabilityBookSlot = LazyOptional.of(() -> this.itemHandlerBookSlot);
+
     private List<ItemStack> stacksList = new ArrayList<>();
     private int bookQuality = 0;
     private int bookCover = 0;
     private int currentPage = 0;
     private int pagesCount = 0;
-    private BaseBookBlockEntity getBookEntity() { return this; }
+    private BaseLecternBlockEntity getBookEntity() { return this; }
     public int getBookQuality() { return this.bookQuality; }
     public int getBookBlockThickness()
     {
@@ -43,7 +52,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
         return 0;
     }
 
-    public BaseBookBlockEntity(BlockPos p_155229_, BlockState p_155230_) {
+    public BaseLecternBlockEntity(BlockPos p_155229_, BlockState p_155230_) {
         super(DeferredBlockEntityTypes.BOOK_STARTER.get(), p_155229_, p_155230_);
     }
 
@@ -68,9 +77,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
 
             @Override
             public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
-                //Dont allow books to be inserted
-                if(stack.getItem() instanceof BaseBookBlockItem) return false;
-
+                //Run filter checks here(slot==0)?(true):(false)
                 if(slot == getCurrentSlot())
                 {
                     IFilterItem filter = getIFilterItem();
@@ -177,15 +184,119 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
         };
     }
 
-    //TODO: Books will be manual ONLY, require lecterns to use automation
-    /*@Nonnull
+    public ItemStackHandler createItemHandlerPrivateBookSlot() {
+        return new ItemStackHandler(1) {
+            @Override
+            public void onLoad() {
+                super.onLoad();
+            }
+
+            @Override
+            public void onContentsChanged(int slot) {
+                update();
+            }
+
+            @Override
+            public boolean isItemValid(int slot, @Nonnull ItemStack stack) {
+                //Run filter checks here(slot==0)?(true):(false)
+                if(stack.getItem() instanceof BaseBookBlockItem)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            @Override
+            public int getSlots() {
+                return 1;
+            }
+
+            @Override
+            public int getStackLimit(int slot, @Nonnull ItemStack stack) {
+                return 1;
+            }
+
+            @Override
+            public int getSlotLimit(int slot) {
+                return 1;
+            }
+
+            @Nonnull
+            @Override
+            public ItemStack getStackInSlot(int slot) {
+                return super.getStackInSlot((slot>getSlots())?(0):(slot));
+            }
+
+            /*
+                Inserts an ItemStack into the given slot and return the remainder. The ItemStack should not be modified in this function!
+                Note: This behaviour is subtly different from IFluidHandler.fill(FluidStack, IFluidHandler.FluidAction)
+                Params:
+                    slot – Slot to insert into.
+                    stack – ItemStack to insert. This must not be modified by the item handler.
+                    simulate – If true, the insertion is only simulated
+                Returns:
+                    The remaining ItemStack that was not inserted (if the entire stack is accepted, then return an empty ItemStack).
+                    May be the same as the input ItemStack if unchanged, otherwise a new ItemStack.
+                    The returned ItemStack can be safely modified after.
+            */
+
+            @Override
+            public @NotNull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+                ItemStack getStackToReturn = super.insertItem(slot, stack, simulate);
+                if(getStackToReturn.isEmpty())
+                {
+                    CompoundTag getTag = stack.getOrCreateTag();
+                    loadFromItem(getTag);
+                }
+                return getStackToReturn;
+            }
+
+            /*
+                            Extracts an ItemStack from the given slot.
+                            The returned value must be empty if nothing is extracted,
+                            otherwise its stack size must be less than or equal to amount and ItemStack.getMaxStackSize().
+                            Params:
+                                slot – Slot to extract from.
+                                amount – Amount to extract (may be greater than the current stack's max limit)
+                                simulate – If true, the extraction is only simulated
+                            Returns:
+                                ItemStack extracted from the slot, must be empty if nothing can be extracted.
+                                The returned ItemStack can be safely modified after, so item handlers should return a new or copied stack.
+                         */
+
+            @Override
+            public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
+                ItemStack getStackToReturn = super.extractItem(slot, amount, simulate);
+                if(!getStackToReturn.isEmpty())
+                {
+                    CompoundTag getTag = getStackToReturn.getOrCreateTag();
+                    getStackToReturn.setTag(saveToItem(getTag));
+                }
+                return getStackToReturn;
+            }
+        };
+    }
+
+    @Nonnull
     @Override
     public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
+        //Item automation in top/bottom
         if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return itemCapability.cast();
+            if(side.equals(Direction.UP) || side.equals(Direction.DOWN))
+            {
+                return itemCapability.cast();
+            }
+        }
+        //Book automation in sides
+        if (cap == ForgeCapabilities.ITEM_HANDLER) {
+            if(side.equals(Direction.NORTH) || side.equals(Direction.EAST) || side.equals(Direction.SOUTH) || side.equals(Direction.WEST))
+            {
+                return itemCapabilityBookSlot.cast();
+            }
         }
         return super.getCapability(cap, side);
-    }*/
+    }
 
     /*============================================================================
     ==============================================================================
@@ -382,14 +493,146 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     ==============================================================================
     ============================================================================*/
 
+    /*============================================================================
+    ==============================================================================
+    ===========================     Book START       =============================
+    ==============================================================================
+    ============================================================================*/
+
+    public boolean hasItemBook() {
+        int firstPartialOrNonEmptySlot = 0;
+        for (int i = 0; i < itemHandlerBookSlot.getSlots(); i++) {
+            ItemStack stackInSlot = itemHandlerBookSlot.getStackInSlot(i);
+            if(stackInSlot.getCount() < stackInSlot.getMaxStackSize() || stackInSlot.isEmpty()) {
+                firstPartialOrNonEmptySlot = i;
+                break;
+            }
+        }
+
+        return !itemHandlerBookSlot.getStackInSlot(firstPartialOrNonEmptySlot).isEmpty();
+    }
+
+    public Optional<Integer> maybeFirstNonEmptySlotBookStack() {
+        for (int i = 0; i < itemHandlerBookSlot.getSlots(); i++) {
+            if(!itemHandlerBookSlot.getStackInSlot(i).isEmpty()) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public boolean hasFirstBookStack() {
+        return maybeFirstNonEmptySlotBookStack().isPresent();
+    }
+
+    public Optional<Integer> maybeLastNonEmptySlotBookStack() {
+        for (int i = itemHandlerBookSlot.getSlots() - 1; i >= 0; i--) {
+            if(!itemHandlerBookSlot.getStackInSlot(i).isEmpty()) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Integer> maybeFirstSlotWithSpaceForMatchingItemBook(ItemStack stackToMatch) {
+        for (int i = 0; i < itemHandlerBookSlot.getSlots(); i++) {
+            ItemStack stackInSlot = itemHandlerBookSlot.getStackInSlot(i);
+            if (stackInSlot.isEmpty() || (stackInSlot.getCount() < stackInSlot.getMaxStackSize() && ItemHandlerHelper.canItemStacksStack(stackInSlot, stackToMatch))) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public ItemStack getBookStackInLectern() {
+        return maybeFirstNonEmptySlotBookStack().map(slot -> itemHandlerBookSlot.getStackInSlot(slot)).orElse(ItemStack.EMPTY);
+    }
+
+    public ItemStack getBookStackInLecternFirst() {
+        return maybeFirstNonEmptySlotBookStack().map(slot -> itemHandlerBookSlot.getStackInSlot(slot)).orElse(ItemStack.EMPTY);
+
+    }
+
+    public int getLecternNumberOfBookSlots() { return itemHandlerBookSlot.getSlots(); }
+
+    public List<ItemStack> getItemStackListOfLecternBooks() {
+        List<ItemStack> listed = new ArrayList<>();
+        for (int i = 0; i < itemHandlerBookSlot.getSlots(); i++) {
+            if (!itemHandlerBookSlot.getStackInSlot(i).isEmpty()) {
+                listed.add(itemHandlerBookSlot.getStackInSlot(i));
+            }
+        }
+        return listed;
+    }
+
+
+
+    public ItemStack getBookStackInLectern(int slot) {
+        if (itemHandlerBookSlot.getSlots() > slot) {
+            return itemHandlerBookSlot.getStackInSlot(slot);
+        } else {
+            return ItemStack.EMPTY;
+        }
+    }
+
+    public ItemStack removeBookStackFromLectern(boolean simulate) {
+        return maybeLastNonEmptySlot().map(slot -> {
+            ItemStack stack = itemHandlerBookSlot.extractItem(slot, itemHandlerBookSlot.getStackInSlot(slot).getCount(), simulate);
+            //update();
+            return stack;
+        }).orElse(ItemStack.EMPTY);
+    }
+
+    //If resulting insert stack is empty it means the full stack was inserted
+    public boolean addBookStackToLectern(ItemStack itemFromBlock, boolean simulate) {
+        return addItemStack(itemFromBlock, simulate).isEmpty();
+    }
+
+    //Return result not inserted, if all inserted return empty stack
+    public ItemStack addBookStackToLecternWithValidation(ItemStack itemFromBlock, boolean simulate) {
+        return maybeFirstSlotWithSpaceForMatchingItem(itemFromBlock).map(slot -> {
+            if (itemHandlerBookSlot.isItemValid(slot, itemFromBlock)) {
+                ItemStack returner = itemHandlerBookSlot.insertItem(slot, itemFromBlock.copy(), simulate);
+                if (!simulate) update();
+                return returner;
+            }
+            return itemFromBlock;
+        }).orElse(itemFromBlock);
+    }
+
+    public int getLecternBookStackSlotLimit() {
+        return maybeFirstNonEmptySlot().map(slot -> itemHandlerBookSlot.getSlotLimit(slot)).orElse(itemHandlerBookSlot.getSlotLimit(0));
+    }
+
+    /*============================================================================
+    ==============================================================================
+    ===========================      Book END        =============================
+    ==============================================================================
+    ============================================================================*/
+
+
+
     public void triggerNeighborChange()
     {
         setCurrentSlot(getBookEntity().getRedstonePower());
     }
 
+
+
     @Override
     public void load(CompoundTag p_155245_) {
         super.load(p_155245_);
+        CompoundTag invTag = p_155245_.getCompound(MODID + "_bookstorage");
+        itemHandler.deserializeNBT(invTag);
+        CompoundTag invTagPrivate = p_155245_.getCompound(MODID + "_bookslotstorage");
+        itemHandlerBookSlot.deserializeNBT(invTag);
+        this.bookQuality = p_155245_.getInt(MODID + "_bookquality");
+        this.bookCover = p_155245_.getInt(MODID + "_bookcover");
+        this.currentPage = p_155245_.getInt(MODID + "_currentpage");
+        this.pagesCount = p_155245_.getInt(MODID + "_bookpagescount");
+    }
+
+    public void loadFromItem(CompoundTag p_155245_) {
         CompoundTag invTag = p_155245_.getCompound(MODID + "_bookstorage");
         itemHandler.deserializeNBT(invTag);
         this.bookQuality = p_155245_.getInt(MODID + "_bookquality");
@@ -402,6 +645,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     public CompoundTag save(CompoundTag p_58888_) {
         super.save(p_58888_);
         p_58888_.put(MODID + "_bookstorage", itemHandler.serializeNBT());
+        p_58888_.put(MODID + "_bookslotstorage", itemHandlerBookSlot.serializeNBT());
         p_58888_.putInt(MODID + "_bookquality", this.bookQuality);
         p_58888_.putInt(MODID + "_bookcover", this.bookCover);
         p_58888_.putInt(MODID + "_currentpage", this.currentPage);
@@ -421,6 +665,6 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     public void setRemoved() {
         super.setRemoved();
         itemCapability.invalidate();
+        itemCapabilityBookSlot.invalidate();
     }
-
 }
