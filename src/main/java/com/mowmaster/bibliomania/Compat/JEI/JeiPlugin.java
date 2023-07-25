@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Compat.JEI;
 
 import com.mowmaster.bibliomania.Registry.DeferredRegisterItems;
 import com.mowmaster.bibliomania.Registry.DeferredRegisterTileBlocks;
+import com.mowmaster.mowlib.Compat.JEI.JEISettings;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.helpers.IStackHelper;
@@ -43,6 +44,8 @@ public class JeiPlugin implements IModPlugin
     public void registerRecipes(IRecipeRegistration registration) {
         ClientLevel level = Minecraft.getInstance().level;
 
+        this.registerIngredientDescription(registration, DeferredRegisterItems.ADDIN_SODAASH.get());
+        this.registerIngredientDescription(registration, DeferredRegisterItems.ADDIN_SODAASH_WET.get());
         this.registerIngredientDescription(registration, DeferredRegisterItems.FIBERS_GRASS.get());
         this.registerIngredientDescription(registration, DeferredRegisterItems.FIBERS_WOOL.get());
         this.registerIngredientDescription(registration, DeferredRegisterItems.THREAD_TWISTED_GRASS.get());

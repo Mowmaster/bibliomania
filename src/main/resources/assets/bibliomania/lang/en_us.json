@@ -1,6 +1,11 @@
 {
   "itemGroup.bibliomania": "Bibliomania",
 
+  "item.bibliomania.addin_sodaash_wet": "Soda Ash (Wet)",
+  "jei.bibliomania.addin_sodaash_wet.description": "§5Dry out by smelting/blasting",
+  "item.bibliomania.addin_sodaash": "Soda Ash",
+  "jei.bibliomania.addin_sodaash.description": "§5Can be used to break down the fibers of various materials",
+
   "item.bibliomania.fibers_grass": "Fibers (Grass)",
   "jei.bibliomania.fibers_grass.description": "§5Obtained by breaking grass with a Knife.",
   "item.bibliomania.fibers_wool": "Fibers (Wool)",

@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smelting",
+  "cookingtime": 100,
+  "experience": 0.1,
+  "ingredient": {
+    "item": "bibliomania:addin_sodaash_wet"
+  },
+  "result": "bibliomania:addin_sodaash"
+}
