@@ -4,6 +4,8 @@ import com.mojang.logging.LogUtils;
 import com.mowmaster.bibliomania.Loot.LootModifierHandler;
 import com.mowmaster.bibliomania.Registry.*;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ItemBlockRenderTypes;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -52,8 +54,11 @@ public class bibliomania
 
         // Register the Deferred Register to the mod event bus so items get registered
         DeferredRegisterItems.ITEMS.register(modEventBus);
+        DeferredRegisterBlocks.BLOCKS.register(modEventBus);
         DeferredRegisterTileBlocks.BLOCKS.register(modEventBus);
         DeferredBlockEntityTypes.BLOCK_ENTITIES.register(modEventBus);
+        DeferredRegisterFluidTypes.FLUID_TYPES.register(modEventBus);
+        DeferredRegisterFluids.FLUIDS.register(modEventBus);
         //Register LootTable Modifiers
         LootModifierHandler.register(modEventBus);
 
@@ -76,6 +81,9 @@ public class bibliomania
         // Some client setup code
         LOGGER.info("HELLO FROM Client SETUP");
         BibliomainaClientRegistry.registerBlockEntityRenderers();
+
+        ItemBlockRenderTypes.setRenderLayer(DeferredRegisterFluids.SOURCE_COLORABLE_PAPER_PULP_FLUID.get(), RenderType.translucent());
+        ItemBlockRenderTypes.setRenderLayer(DeferredRegisterFluids.FLOWING_COLORABLE_PAPER_PULP_FLUID.get(), RenderType.translucent());
     }
 
     // You can use SubscribeEvent and let the Event Bus discover methods to call

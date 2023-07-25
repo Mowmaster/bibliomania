@@ -1,7 +1,9 @@
 package com.mowmaster.bibliomania.Registry;
 
 import com.mowmaster.bibliomania.Items.*;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Tiers;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -15,6 +17,17 @@ public class DeferredRegisterItems
 {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
+
+    public static final RegistryObject<Item> ADDIN_SODAASH_WET = ITEMS.register("addin_sodaash_wet",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> ADDIN_SODAASH = ITEMS.register("addin_sodaash",
+        () -> new Item(new Item.Properties()));
+
+
+
+    public static final RegistryObject<BucketItem> COLORABLE_PAPER_PULP_FLUID_BUCKET = ITEMS.register("colorable_paper_pulp_fluid_bucket",
+            () -> new BucketItem(DeferredRegisterFluids.SOURCE_COLORABLE_PAPER_PULP_FLUID,new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
+
 
     public static final RegistryObject<Item> FIBERS_GRASS = ITEMS.register("fibers_grass",
             () -> new BaseFiberItem(new Item.Properties()));
