@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Registry;
 
 
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Book.DeathBook.DeathBookBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -17,6 +18,10 @@ public class DeferredBlockEntityTypes
     public static final RegistryObject<BlockEntityType<BaseBookBlockEntity>> BOOK_STARTER = BLOCK_ENTITIES.register(
             "block_entity_book_starter",
             () -> BlockEntityType.Builder.of(BaseBookBlockEntity::new, DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get()).build(null));
+
+    public static final RegistryObject<BlockEntityType<DeathBookBlockEntity>> BOOK_DEATH = BLOCK_ENTITIES.register(
+            "block_entity_deathbook",
+            () -> BlockEntityType.Builder.of(DeathBookBlockEntity::new, DeferredRegisterTileBlocks.TILE_BOOK_DEATH.get()).build(null));
 
     private DeferredBlockEntityTypes() {
     }

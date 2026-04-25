@@ -29,6 +29,7 @@
   "jei.bibliomania.bookblock_starter.description": "§5Made by crafting (8) paper together with a Knife [This can ONLY be used for the crafting table crafted Storage Book]",
 
 
+
   "item.bibliomania.knifepart_blade_stone": "Knife Blade (Stone)",
   "jei.bibliomania.knifepart_blade_stone.description": "§5By 'Knapping' 2 Flint against some Stone, you can create a Knife Blade",
   "item.bibliomania.knifepart_handle_oak": "Knife Handle (Oak)",
@@ -37,7 +38,14 @@
   "item.bibliomania.knife_stone": "Stone Knife",
   "jei.bibliomania.knife_stone.description": "§5Made by crafting a blade and a handle together, can give custom drops when its used to break some blocks or to kill some mobs",
 
+
+
   "block.bibliomania.block_book_starter": "Storage Book",
   "jei.bibliomania.block_book_starter.description": "§5Basic Storage Book, Can hold up to 8 different items with a very limited stack size. (Place on a Bibliomania Book lectern [WIP] to use automated ways to insert/withdrawl items.)",
-  "jei.bibliomania.block_book_starter.interaction": "§5Place on ground to begin storing items, Right Click items on book to store them, Left Click or Shift Left Click to remove items. Click on the Arrows to 'Turn' pages to access other slots. Crouch Right Click book to pick it up."
+  "jei.bibliomania.block_book_starter.interaction": "§5Place on ground to begin storing items, Right Click items on book to store them, Left Click or Shift Left Click to remove items. Click on the Arrows to 'Turn' pages to access other slots. Crouch Right Click book to pick it up.",
+
+  "block.bibliomania.block_book_death": "Book of Death",
+  "block.bibliomania.block_book_death.deathbook_description": "When in inventory, upon death, will collect all possible drops into book and place in world.",
+  "jei.bibliomania.block_book_starter.description": "§5While in inventory, Will trigger on death by collecting all the items that would normally drop, then placing itsself in world (Its a 'Grave')",
+  "jei.bibliomania.block_book_starter.interaction": "§5Left Click or Shift Left Click to remove items. Click on the Arrows to 'Turn' pages to access other slots. Crouch Right Click book to pick it up (drops all items in world)"
 }

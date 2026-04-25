@@ -32,6 +32,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     private int pagesCount = 0;
     private BaseBookBlockEntity getBookEntity() { return this; }
     public int getBookQuality() { return this.bookQuality; }
+    public int getBookPages() { return this.pagesCount; }
     public int getBookBlockThickness()
     {
         BlockState thisBlock = getLevel().getBlockState(getPos());
@@ -55,7 +56,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
     }
 
     public ItemStackHandler createItemHandlerBookStarter() {
-        return new ItemStackHandler(8) {
+        return new ItemStackHandler(64) {
             @Override
             public void onLoad() {
                 super.onLoad();
@@ -83,8 +84,12 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
 
             @Override
             public int getSlots() {
-                //hardcode for starter book
-                return 8;
+                //origionally hardcoded to 8 but should def do more
+                //int baseSlots = PedestalConfig.COMMON.pedestal_baseItemStacks.get();
+                //int additionalSlots = getItemSlotIncreaseFromStorage();
+                //return baseSlots + additionalSlots;
+                int slotsInBook = (getBookPages()<=0)?(0):(getBookPages());
+                return slotsInBook;
             }
 
             @Override
@@ -99,7 +104,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
             @Override
             public int getSlotLimit(int slot) {
 
-                int baseStackLimit = 4;
+                int baseStackLimit = 8;
                 if(getBookQuality()>0)
                 {
                     return baseStackLimit+getBookQuality();
@@ -414,6 +419,7 @@ public class BaseBookBlockEntity extends MowLibBaseFilterableBlockEntity {
         p_58888_.putInt(MODID + "_bookquality", this.bookQuality);
         p_58888_.putInt(MODID + "_bookcover", this.bookCover);
         p_58888_.putInt(MODID + "_currentpage", this.currentPage);
+        p_58888_.putInt(MODID + "_bookpagescount", this.pagesCount);
         return BibliomaniaItemUtils.writeItemHandlerToNBT(p_58888_,itemHandler,MODID + "_bookstorage");
     }
 

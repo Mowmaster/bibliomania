@@ -3,6 +3,8 @@ package com.mowmaster.bibliomania.Registry;
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockItem;
+import com.mowmaster.bibliomania.Blocks.Book.DeathBook.DeathBookBlock;
+import com.mowmaster.bibliomania.Blocks.Book.DeathBook.DeathBookBlockItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -23,6 +25,8 @@ public class DeferredRegisterTileBlocks
 
     public static final RegistryObject<Block> TILE_BOOK_STARTER = registerBookBlock("block_book_starter",
             () -> new BaseBookBlock(BlockBehaviour.Properties.of().strength(2.0F).sound(SoundType.WOOD)));
+    public static final RegistryObject<Block> TILE_BOOK_DEATH = registerBookDeathBlock("block_book_death",
+            () -> new DeathBookBlock(BlockBehaviour.Properties.of().strength(2.0F).sound(SoundType.SOUL_SAND)));
 
     private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);
@@ -35,6 +39,11 @@ public class DeferredRegisterTileBlocks
         registerBookBlockItem(name, toReturn);
         return toReturn;
     }
+    private static <T extends Block> RegistryObject<T> registerBookDeathBlock(String name, Supplier<T> block) {
+    RegistryObject<T> toReturn = BLOCKS.register(name, block);
+    registerBookDeathBlockItem(name, toReturn);
+    return toReturn;
+}
 
     private static <T extends Block> void registerBlockItem(String name, RegistryObject<T> block) {
         DeferredRegisterItems.ITEMS.register(name, () -> new BlockItem(block.get(),
@@ -45,6 +54,10 @@ public class DeferredRegisterTileBlocks
         DeferredRegisterItems.ITEMS.register(name, () -> new BaseBookBlockItem(block.get(),
                 new Item.Properties().stacksTo(1)));
     }
+    private static <T extends Block> void registerBookDeathBlockItem(String name, RegistryObject<T> block) {
+    DeferredRegisterItems.ITEMS.register(name, () -> new DeathBookBlockItem(block.get(),
+            new Item.Properties().stacksTo(1)));
+}
 
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);

@@ -3,6 +3,8 @@ package com.mowmaster.bibliomania.Registry;
 
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockEntityRender;
 import com.mowmaster.bibliomania.Blocks.Book.BaseBookBlockItem;
+import com.mowmaster.bibliomania.Blocks.Book.DeathBook.DeathBookBlockEntityRender;
+import com.mowmaster.mowlib.MowLibUtils.MowLibColorReference;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
@@ -30,6 +32,8 @@ public class BibliomainaClientRegistry
         BibliomaniaItemModelProperties.bibliomaniaItemModes(DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get().asItem());
         BibliomaniaItemModelProperties.bibliomaniaItemModes(DeferredRegisterItems.STARTER_BOOK_BLOCK.get());
 
+        BibliomaniaItemModelProperties.bibliomaniaItemModes(DeferredRegisterTileBlocks.TILE_BOOK_DEATH.get().asItem());
+
 
 
 
@@ -41,13 +45,17 @@ public class BibliomainaClientRegistry
         *
          */
 
+        /*event.register((stack, color) ->
+        {if (color == 1) {return MowLibColorReference.getColorFromItemStackInt(stack);} else {return -1;}}, DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get());
+*/
+
     }
 
     @SubscribeEvent
     public static void registerBlockColor(RegisterColorHandlersEvent.Block event) {
-/*
-        event.register((blockstate, blockReader, blockPos, color) ->
-        {if (color == 1) {return MowLibColorReference.getColorFromStateInt(blockstate);} else {return -1;}}, DeferredRegisterTileBlocks.BLOCK_PEDESTAL.get());*/
+
+        /*event.register((blockstate, blockReader, blockPos, color) ->
+        {if (color == 1) {return MowLibColorReference.getColorFromStateInt(blockstate);} else {return -1;}}, DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get());*/
     }
 
     @SubscribeEvent
@@ -60,5 +68,7 @@ public class BibliomainaClientRegistry
     public static void registerBlockEntityRenderers()
     {
         BlockEntityRenderers.register(DeferredBlockEntityTypes.BOOK_STARTER.get(), BaseBookBlockEntityRender::new);
+
+        BlockEntityRenderers.register(DeferredBlockEntityTypes.BOOK_DEATH.get(), DeathBookBlockEntityRender::new);
     }
 }

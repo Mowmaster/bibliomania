@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.machinezoo.noexception.optional.OptionalIntBinaryOperator;
 import com.mowmaster.bibliomania.Utils.BibliomaniaItemUtils;
 import com.mowmaster.mowlib.MowLibUtils.MowLibCompoundTagUtils;
 import com.mowmaster.mowlib.MowLibUtils.MowLibItemUtils;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
@@ -87,7 +89,8 @@ public class BaseBookBlockItem extends BlockItem {
         int returner = MowLibCompoundTagUtils.readIntegerFromNBT(bookStack.getOrCreateTag(),MODID + "_bookcover");
         /*
             0: grass weave
-            2: wool weave
+            1: wool weave
+            2: leather
         */
         return returner;
     }
@@ -155,9 +158,14 @@ public class BaseBookBlockItem extends BlockItem {
     @Override
     public @NotNull Optional<TooltipComponent> getTooltipImage(ItemStack stack) {
         List<ItemStack> stackList = BibliomaniaItemUtils.readItemListFromNBT(stack.getOrCreateTag(),MODID + "_bookstorage");
+        int pages = getPagesCount(stack);
+        int actualSize = (stackList.size()>pages)?(pages):(2);
 
+        OptionalInt maxSize = OptionalInt.of(actualSize);
         NonNullList<ItemStack> nonnulllist = NonNullList.create();
-        stackList.forEach(nonnulllist::add);
+        stackList.stream()
+                .limit(maxSize.orElse(2))
+                .forEach(nonnulllist::add);
         return Optional.of(new BundleTooltip(nonnulllist, nonnulllist.size()-1));
     }
 }

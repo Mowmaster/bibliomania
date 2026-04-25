@@ -48,7 +48,7 @@ import static com.mowmaster.bibliomania.Registry.BibliomaniaReferences.MODID;
 
 public class BaseBookBlock extends Block implements SimpleWaterloggedBlock,EntityBlock
 {
-    public static final IntegerProperty BOOK_COVER = IntegerProperty.create("book_cover", 0, 1);
+    public static final IntegerProperty BOOK_COVER = IntegerProperty.create("book_cover", 0, 2);
     public static final IntegerProperty BOOK_THICKNESS = IntegerProperty.create("book_thickness", 0, 5);
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
@@ -382,7 +382,7 @@ public class BaseBookBlock extends Block implements SimpleWaterloggedBlock,Entit
         return InteractionResult.SUCCESS;
     }
 
-    private static void putInPlayersHandAndRemove(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand) {
+    public static void putInPlayersHandAndRemove(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand) {
         //ItemStack backpack = WorldHelper.getBlockEntity(world, pos, BackpackBlockEntity.class).map(te -> te.getBackpackWrapper().getBackpack()).orElse(ItemStack.EMPTY);
         ItemStack book = new ItemStack(DeferredRegisterTileBlocks.TILE_BOOK_STARTER.get().asItem());
         if(level.getBlockEntity(pos) instanceof BaseBookBlockEntity bookBlockEntity)
@@ -400,7 +400,7 @@ public class BaseBookBlock extends Block implements SimpleWaterloggedBlock,Entit
         }
     }
 
-    private static int getHitValue(Vec3 vec3, Direction blockPlacementDirection) {
+    public static int getHitValue(Vec3 vec3, Direction blockPlacementDirection) {
         /*System.out.println("BlockDirection: " + blockPlacementDirection.getName());
         System.out.println("HitXCord: " + vec3.x);
         System.out.println("HitYCord: " + vec3.y);
