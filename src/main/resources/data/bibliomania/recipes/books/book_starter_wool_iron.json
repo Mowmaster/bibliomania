@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "bibliomania:weave_wool"
+    },
+    {
+      "item": "bibliomania:weave_wool"
+    },
+    {
+      "item": "bibliomania:thread_twisted_wool"
+    },
+    {
+      "item": "bibliomania:bookblock_starter"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:block_book_starter",
+    "type": "forge:nbt",
+    "nbt": {
+      "bibliomania_bookcover": 1,
+      "bibliomania_bookpagescount": 16,
+      "bibliomania_bookquality": 8
+
+    }
+  }
+}

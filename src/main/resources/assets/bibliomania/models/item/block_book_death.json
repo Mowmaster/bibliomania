@@ -1,0 +1,39 @@
+{
+  "parent": "bibliomania:item/books/booksizes_default_grass_weave/book_00",
+  "overrides": [
+    { "predicate": { "bibliomania:book_thickness": 0, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_00"},
+    { "predicate": { "bibliomania:book_thickness": 1, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_0"},
+    { "predicate": { "bibliomania:book_thickness": 2, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_1"},
+    { "predicate": { "bibliomania:book_thickness": 3, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_2"},
+    { "predicate": { "bibliomania:book_thickness": 4, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_3"},
+    { "predicate": { "bibliomania:book_thickness": 5, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_4"},
+    { "predicate": { "bibliomania:book_thickness": 6, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_5"},
+    { "predicate": { "bibliomania:book_thickness": 7, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_6"},
+    { "predicate": { "bibliomania:book_thickness": 8, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_7"},
+    { "predicate": { "bibliomania:book_thickness": 9, "bibliomania:book_cover": 0}, "model": "bibliomania:item/books/booksizes_death/book_8"},
+
+    { "predicate": { "bibliomania:book_thickness": 0, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_00"},
+    { "predicate": { "bibliomania:book_thickness": 1, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_0"},
+    { "predicate": { "bibliomania:book_thickness": 2, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_1"},
+    { "predicate": { "bibliomania:book_thickness": 3, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_2"},
+    { "predicate": { "bibliomania:book_thickness": 4, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_3"},
+    { "predicate": { "bibliomania:book_thickness": 5, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_4"},
+    { "predicate": { "bibliomania:book_thickness": 6, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_5"},
+    { "predicate": { "bibliomania:book_thickness": 7, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_6"},
+    { "predicate": { "bibliomania:book_thickness": 8, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_7"},
+    { "predicate": { "bibliomania:book_thickness": 9, "bibliomania:book_cover": 1}, "model": "bibliomania:item/books/booksizes_death/book_8"},
+
+    { "predicate": { "bibliomania:book_thickness": 0, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_00"},
+    { "predicate": { "bibliomania:book_thickness": 1, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_0"},
+    { "predicate": { "bibliomania:book_thickness": 2, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_1"},
+    { "predicate": { "bibliomania:book_thickness": 3, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_2"},
+    { "predicate": { "bibliomania:book_thickness": 4, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_3"},
+    { "predicate": { "bibliomania:book_thickness": 5, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_4"},
+    { "predicate": { "bibliomania:book_thickness": 6, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_5"},
+    { "predicate": { "bibliomania:book_thickness": 7, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_6"},
+    { "predicate": { "bibliomania:book_thickness": 8, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_7"},
+    { "predicate": { "bibliomania:book_thickness": 9, "bibliomania:book_cover": 2}, "model": "bibliomania:item/books/booksizes_death/book_8"}
+
+
+  ]
+}

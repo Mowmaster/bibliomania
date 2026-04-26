@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:leather"
+    },
+    {
+      "item": "minecraft:leather"
+    },
+    {
+      "item": "bibliomania:thread_twisted_wool"
+    },
+    {
+      "item": "bibliomania:bookblock_starter"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:block_book_starter",
+    "type": "forge:nbt",
+    "nbt": {
+      "bibliomania_bookcover": 2,
+      "bibliomania_bookpagescount": 8,
+      "bibliomania_bookquality": 24
+
+    }
+  }
+}

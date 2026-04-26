@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "minecraft:black_dye"
+    },
+    {
+      "item": "bibliomania:block_book_starter"
+    }
+  ],
+  "result": {
+    "item": "bibliomania:block_book_death",
+    "type": "forge:nbt",
+    "nbt": {
+      "bibliomania_bookcover": 0
+    }
+  }
+}
