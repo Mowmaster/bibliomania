@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
-import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookContents;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 public class DataComponentRegistry
 {
     public static final DeferredRegister.DataComponents COMPONENTS =
-            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, BiblioReferences.MODID);
+            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, BibliomaniaReferences.MODID);
 
     // persistent = saved with the item; with no networkSynchronized codec, the same codec is used to sync it to
     // clients (they need it for the item model's thickness)

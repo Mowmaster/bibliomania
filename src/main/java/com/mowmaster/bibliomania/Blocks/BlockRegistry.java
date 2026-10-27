@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
-import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 public class BlockRegistry
 {
-    public static final DeferredRegister.Blocks BCBLOCKS = DeferredRegister.createBlocks(BiblioReferences.MODID);
+    public static final DeferredRegister.Blocks BCBLOCKS = DeferredRegister.createBlocks(BibliomaniaReferences.MODID);
 
     // ---- Books: items per page by cover (as in 1.20), 8 pages unless the recipe gives more ----
 
@@ -39,7 +39,7 @@ public class BlockRegistry
     // aren't pushed by pistons, and don't hide the faces of blocks next to them (noOcclusion)
     private static BlockBehaviour.Properties bookProperties(BlockBehaviour.Properties properties, SoundType sound)
     {
-        return properties.strength(-1f, 3600000f).sound(sound).noOcclusion().pushReaction(PushReaction.BLOCK);
+        return properties.strength(-1f, 3600000f).sound(sound).noOcclusion().pushReaction(PushReaction.PUSH_PULL);
     }
 
     private static <T extends Block> DeferredBlock<T> registerBlock(String name, Function<BlockBehaviour.Properties, T> function)

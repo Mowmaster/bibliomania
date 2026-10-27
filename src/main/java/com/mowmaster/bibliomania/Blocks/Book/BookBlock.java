@@ -307,7 +307,7 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         if (taken.isEmpty()) return;
 
         // Into the inventory, or dropped at the player's feet if it doesn't fit
-        player.getInventory().placeItemBackInInventory(taken);
+        player.getInventory().add(taken);
         level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.3f, 1f);
     }
 }

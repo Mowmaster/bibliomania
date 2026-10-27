@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
-import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.Book.BookContents;
 import net.minecraft.core.registries.Registries;
@@ -16,7 +16,7 @@ import java.util.List;
 
 public class CreativeTabRegistry
 {
-    public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BiblioReferences.MODID);
+    public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BibliomaniaReferences.MODID);
 
     // Every book in each size its recipes make (8 pages plain; copper 12, iron 16, gold 24, as in 1.20)
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BIBLIOMANIA_TAB = TABS.register("bibliomania", () -> CreativeModeTab.builder()

@@ -74,6 +74,6 @@ public class BibliomaniaClient {
     @SubscribeEvent
     public static void registerRangeProperties(RegisterRangeSelectItemModelPropertyEvent event)
     {
-        event.register(Identifier.fromNamespaceAndPath(BiblioReferences.MODID, "book_fullness"), BookFullnessProperty.MAP_CODEC);
+        event.register(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "book_fullness"), BookFullnessProperty.MAP_CODEC);
     }
 }

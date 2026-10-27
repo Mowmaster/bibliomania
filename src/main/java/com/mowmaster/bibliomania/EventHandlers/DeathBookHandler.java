@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.EventHandlers;
 
-import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
@@ -36,7 +36,7 @@ import java.util.List;
 // it, along with their head (its lore is the death message). Whatever doesn't fit is dropped as normal.
 // @EventBusSubscriber registers every static @SubscribeEvent method here; NeoForge picks the game event bus because
 // LivingDropsEvent is a game event, not a mod lifecycle event.
-@EventBusSubscriber(modid = BiblioReferences.MODID)
+@EventBusSubscriber(modid = BibliomaniaReferences.MODID)
 public class DeathBookHandler
 {
     // How far up from where the player died to look for room for the book

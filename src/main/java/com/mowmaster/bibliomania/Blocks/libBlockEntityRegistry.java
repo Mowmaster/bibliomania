@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
-import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
 import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 public class libBlockEntityRegistry
 {
     public static final DeferredRegister<BlockEntityType<?>> CBBLOCKENTITIES =
-            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BiblioReferences.MODID);
+            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BibliomaniaReferences.MODID);
 
     public static final Supplier<BlockEntityType<libTintBlockEntity>> TINT_BLOCK_ENTITY = CBBLOCKENTITIES.register("tint_block_entity",
             () -> new BlockEntityType<>(libTintBlockEntity::new, colorableBlocks()));
