@@ -1,8 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.TintHandler.ITintHolder;
 import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
-import com.mowmaster.crystalblocks.Blocks.Colorable.CBTintBlockEntity;
-import com.mowmaster.crystalblocks.Blocks.Colorable.ITintHolder;
 import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.client.renderer.block.BlockAndTintGetter;
 import net.minecraft.core.BlockPos;

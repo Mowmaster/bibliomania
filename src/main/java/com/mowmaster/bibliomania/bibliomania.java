@@ -28,6 +28,9 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import com.mowmaster.bibliomania.Blocks.BlockRegistry;
+import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
+import com.mowmaster.bibliomania.Items.ItemRegistry;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(Bibliomania.MODID)

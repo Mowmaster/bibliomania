@@ -1,0 +1,122 @@
+diff --git a/src/main/java/com/mowmaster/bibliomania/Bibliomania.java b/src/main/java/com/mowmaster/bibliomania/Bibliomania.java
+index a2122b5..775b47f 100644
+--- a/src/main/java/com/mowmaster/bibliomania/Bibliomania.java
++++ b/src/main/java/com/mowmaster/bibliomania/Bibliomania.java
+@@ -1,5 +1,8 @@
+ package com.mowmaster.bibliomania;
+ 
++import com.mowmaster.bibliomania.Blocks.BlockRegistry;
++import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
++import com.mowmaster.bibliomania.Items.ItemRegistry;
+ import org.slf4j.Logger;
+ 
+ import com.mojang.logging.LogUtils;
+@@ -71,6 +74,11 @@ public class Bibliomania {
+         BLOCKS.register(modEventBus);
+         // Register the Deferred Register to the mod event bus so items get registered
+         ITEMS.register(modEventBus);
++
++        // Our own registers (blocks, their items, block entities)
++        ItemRegistry.register(modEventBus);
++        BlockRegistry.register(modEventBus);
++        libBlockEntityRegistry.register(modEventBus);
+         // Register the Deferred Register to the mod event bus so tabs get registered
+         CREATIVE_MODE_TABS.register(modEventBus);
+ 
+diff --git a/src/main/java/com/mowmaster/bibliomania/BibliomaniaClient.java b/src/main/java/com/mowmaster/bibliomania/BibliomaniaClient.java
+index d44421f..1f48a65 100644
+--- a/src/main/java/com/mowmaster/bibliomania/BibliomaniaClient.java
++++ b/src/main/java/com/mowmaster/bibliomania/BibliomaniaClient.java
+@@ -1,5 +1,6 @@
+ package com.mowmaster.bibliomania;
+ 
++import com.mowmaster.bibliomania.Blocks.BlockRegistry;
+ import com.mowmaster.bibliomania.ClientSide.libBlockEntityTintSource;
+ import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
+ import net.minecraft.client.Minecraft;
+@@ -41,7 +42,7 @@ public class BibliomaniaClient {
+     @SubscribeEvent
+     public static void registerTintBlocks(RegisterColorHandlersEvent.BlockTintSources event)
+     {
+-        for (var holder : CBBlockRegistry.BCBLOCKS.getEntries())
++        for (var holder : BlockRegistry.BCBLOCKS.getEntries())
+         {
+             Block block = holder.get();
+             if (block instanceof IColorableBlock colorable)
+diff --git a/src/main/java/com/mowmaster/bibliomania/Blocks/libBlockEntityRegistry.java b/src/main/java/com/mowmaster/bibliomania/Blocks/libBlockEntityRegistry.java
+index ad10682..5cf268f 100644
+--- a/src/main/java/com/mowmaster/bibliomania/Blocks/libBlockEntityRegistry.java
++++ b/src/main/java/com/mowmaster/bibliomania/Blocks/libBlockEntityRegistry.java
+@@ -1,12 +1,8 @@
+ package com.mowmaster.bibliomania.Blocks;
+ 
+-import com.mowmaster.crystalblocks.Blocks.Colorable.CBTintBlockEntity;
+-import com.mowmaster.crystalblocks.Blocks.Colorable.CBTintableBarrelBlockEntity;
+-import com.mowmaster.crystalblocks.Blocks.Colorable.CBTintableChestBlockEntity;
+-import com.mowmaster.crystalblocks.Blocks.Colorable.IColorableBlock;
+-import com.mowmaster.crystalblocks.Blocks.Storage.CBBulkStorageBlock;
+-import com.mowmaster.crystalblocks.Blocks.Storage.CBBulkStorageBlockEntity;
+-import com.mowmaster.crystalblocks.CBReferences;
++import com.mowmaster.bibliomania.BiblioReferences;
++import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
++import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.entity.BlockEntityType;
+@@ -20,16 +16,16 @@ import java.util.function.Supplier;
+ public class libBlockEntityRegistry
+ {
+     public static final DeferredRegister<BlockEntityType<?>> CBBLOCKENTITIES =
+-            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, CBReferences.MODID);
++            DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BiblioReferences.MODID);
+ 
+-    public static final Supplier<BlockEntityType<CBTintBlockEntity>> TINT_BLOCK_ENTITY = CBBLOCKENTITIES.register("tint_block_entity",
+-            () -> new BlockEntityType<>(CBTintBlockEntity::new, colorableBlocks()));
++    public static final Supplier<BlockEntityType<libTintBlockEntity>> TINT_BLOCK_ENTITY = CBBLOCKENTITIES.register("tint_block_entity",
++            () -> new BlockEntityType<>(libTintBlockEntity::new, colorableBlocks()));
+ 
+     // Every block in our register that implements IColorableBlock
+     private static Block[] colorableBlocks()
+     {
+         List<Block> blocks = new ArrayList<>();
+-        for (var holder : CBBlockRegistry.BCBLOCKS.getEntries())
++        for (var holder : BlockRegistry.BCBLOCKS.getEntries())
+         {
+             if (holder.get() instanceof IColorableBlock colorable && colorable.usesTintBlockEntity()) blocks.add(holder.get());
+         }
+@@ -40,19 +36,4 @@ public class libBlockEntityRegistry
+     {
+         CBBLOCKENTITIES.register(eventBus);
+     }
+-
+-    // Shared by every bulk storage block (the ingot pile and later ones); the block decides capacity and filter
+-    public static final Supplier<BlockEntityType<CBBulkStorageBlockEntity>> BULK_STORAGE = CBBLOCKENTITIES.register("bulk_storage",
+-            () -> new BlockEntityType<>(CBBulkStorageBlockEntity::new, bulkStorageBlocks()));
+-
+-    // Every CBBulkStorageBlock in our register, so new ones are picked up automatically
+-    private static Block[] bulkStorageBlocks()
+-    {
+-        List<Block> blocks = new ArrayList<>();
+-        for (var holder : CBBlockRegistry.BCBLOCKS.getEntries())
+-        {
+-            if (holder.get() instanceof CBBulkStorageBlock) blocks.add(holder.get());
+-        }
+-        return blocks.toArray(new Block[0]);
+-    }
+-}
+\ No newline at end of file
++}
+diff --git a/src/main/java/com/mowmaster/bibliomania/ClientSide/libBlockEntityTintSource.java b/src/main/java/com/mowmaster/bibliomania/ClientSide/libBlockEntityTintSource.java
+index 7a73bef..2bfdd49 100644
+--- a/src/main/java/com/mowmaster/bibliomania/ClientSide/libBlockEntityTintSource.java
++++ b/src/main/java/com/mowmaster/bibliomania/ClientSide/libBlockEntityTintSource.java
+@@ -1,8 +1,7 @@
+ package com.mowmaster.bibliomania.ClientSide;
+ 
+ import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
+-import com.mowmaster.crystalblocks.Blocks.Colorable.CBTintBlockEntity;
+-import com.mowmaster.crystalblocks.Blocks.Colorable.ITintHolder;
++import com.mowmaster.bibliomania.TintHandler.ITintHolder;
+ import net.minecraft.client.color.block.BlockTintSource;
+ import net.minecraft.client.renderer.block.BlockAndTintGetter;
+ import net.minecraft.core.BlockPos;

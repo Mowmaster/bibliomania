@@ -14,6 +14,7 @@ import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
+import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,7 @@ public class BibliomaniaClient {
     @SubscribeEvent
     public static void registerTintBlocks(RegisterColorHandlersEvent.BlockTintSources event)
     {
-        for (var holder : CBBlockRegistry.BCBLOCKS.getEntries())
+        for (var holder : BlockRegistry.BCBLOCKS.getEntries())
         {
             Block block = holder.get();
             if (block instanceof IColorableBlock colorable)
