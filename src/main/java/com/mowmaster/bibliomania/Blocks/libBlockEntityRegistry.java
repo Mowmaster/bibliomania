@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Blocks;
 
 import com.mowmaster.bibliomania.BiblioReferences;
+import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
 import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
 import net.minecraft.core.registries.Registries;
@@ -31,6 +32,11 @@ public class libBlockEntityRegistry
         }
         return blocks.toArray(new Block[0]);
     }
+
+    // Shared by every book (grass, wool, leather, death); the block decides pages, capacity and colours
+    public static final Supplier<BlockEntityType<BookBlockEntity>> BOOK = CBBLOCKENTITIES.register("book",
+            () -> new BlockEntityType<>(BookBlockEntity::new,
+                    BlockRegistry.BOOKS.stream().map(book -> (Block) book.get()).toArray(Block[]::new)));
 
     public static void register(IEventBus eventBus)
     {

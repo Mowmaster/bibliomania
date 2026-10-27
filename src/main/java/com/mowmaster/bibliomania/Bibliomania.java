@@ -30,9 +30,10 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
+import com.mowmaster.bibliomania.Items.CreativeTabRegistry;
+import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
-
-import static net.minecraft.data.AtlasIds.ITEMS;
+import com.mowmaster.bibliomania.Recipes.RecipeRegistry;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(Bibliomania.MODID)
@@ -49,12 +50,14 @@ public class Bibliomania {
     public Bibliomania(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
-        // Register the Deferred Register to the mod event bus so items get registered
 
-        // Our own registers (blocks, their items, block entities)
+        // Our own registers (blocks, their items, block entities, item data, recipes, the creative tab)
         ItemRegistry.register(modEventBus);
         BlockRegistry.register(modEventBus);
         libBlockEntityRegistry.register(modEventBus);
+        DataComponentRegistry.register(modEventBus);
+        RecipeRegistry.register(modEventBus);
+        CreativeTabRegistry.register(modEventBus);
 
 
         // Register ourselves for server and other game events we are interested in.

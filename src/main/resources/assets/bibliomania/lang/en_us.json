@@ -1,8 +1,9 @@
 {
-  "itemGroup.bibliomania": "Example Mod Tab",
-  "block.bibliomania.example_block": "Example Block",
-  "item.bibliomania.example_item": "Example Item",
-
+  "itemGroup.bibliomania": "Bibliomania",
+  "block.bibliomania.grass_book": "Woven Grass Book",
+  "block.bibliomania.wool_book": "Woven Wool Book",
+  "block.bibliomania.leather_book": "Leather Book",
+  "block.bibliomania.death_book": "Book of Death",
   "bibliomania.configuration.title": "bibliomania Configs",
   "bibliomania.configuration.section.bibliomania.common.toml": "bibliomania Configs",
   "bibliomania.configuration.section.bibliomania.common.toml.title": "bibliomania Configs",

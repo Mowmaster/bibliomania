@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania;
 
+import com.mowmaster.bibliomania.Blocks.BlockRegistry;
+import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
+import com.mowmaster.bibliomania.ClientSide.BookFullnessProperty;
+import com.mowmaster.bibliomania.ClientSide.BookRenderer;
 import com.mowmaster.bibliomania.ClientSide.libBlockEntityTintSource;
 import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
 import net.minecraft.client.Minecraft;
@@ -11,10 +15,12 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.minecraft.resources.Identifier;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.client.event.RegisterRangeSelectItemModelPropertyEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,5 +61,19 @@ public class BibliomaniaClient {
                 event.register(sources, block);
             }
         }
+    }
+
+    // The spinning item above an open book
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
+    {
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), BookRenderer::new);
+    }
+
+    // "bibliomania:book_fullness", used by the book item models to get thicker as they fill
+    @SubscribeEvent
+    public static void registerRangeProperties(RegisterRangeSelectItemModelPropertyEvent event)
+    {
+        event.register(Identifier.fromNamespaceAndPath(BiblioReferences.MODID, "book_fullness"), BookFullnessProperty.MAP_CODEC);
     }
 }
