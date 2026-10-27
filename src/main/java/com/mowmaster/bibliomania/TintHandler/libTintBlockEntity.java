@@ -36,7 +36,8 @@ public class libTintBlockEntity extends BlockEntity implements ITintHolder
 
     public libTintBlockEntity(BlockPos pos, BlockState state)
     {
-        super(libBlockEntityRegistry.TINT_BLOCK_ENTITY.get(), pos, state);
+        //super(libBlockEntityRegistry.TINT_BLOCK_ENTITY.get(), pos, state);
+        super(null, pos, state);
         int regions = state.getBlock() instanceof IColorableBlock colorable ? colorable.getTintRegionCount() : 1;
         this.colors = new int[regions];
         Arrays.fill(colors, UNDYED);

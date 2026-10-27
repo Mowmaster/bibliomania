@@ -24,13 +24,13 @@ public interface IColorableBlock extends EntityBlock
 {
     // Returned when there is no region to report
     int NO_REGION = -1;
-
+/*
     @Override
     default BlockEntity newBlockEntity(BlockPos pos, BlockState state)
     {
         return new libTintBlockEntity(pos, state);
     }
-
+*/
     // ---- Tint regions: override these for blocks with more than one colour ----
 
     // How many independently coloured regions this block has

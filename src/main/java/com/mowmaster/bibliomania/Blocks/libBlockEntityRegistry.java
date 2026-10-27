@@ -19,8 +19,8 @@ public class libBlockEntityRegistry
     public static final DeferredRegister<BlockEntityType<?>> CBBLOCKENTITIES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, BibliomaniaReferences.MODID);
 
-    public static final Supplier<BlockEntityType<libTintBlockEntity>> TINT_BLOCK_ENTITY = CBBLOCKENTITIES.register("tint_block_entity",
-            () -> new BlockEntityType<>(libTintBlockEntity::new, colorableBlocks()));
+    /*public static final Supplier<BlockEntityType<libTintBlockEntity>> TINT_BLOCK_ENTITY = CBBLOCKENTITIES.register("tint_block_entity",
+            () -> new BlockEntityType<>(libTintBlockEntity::new, colorableBlocks()));*/
 
     // Every block in our register that implements IColorableBlock
     private static Block[] colorableBlocks()
