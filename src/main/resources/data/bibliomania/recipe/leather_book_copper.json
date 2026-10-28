@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:leather",
+    "minecraft:leather",
+    "bibliomania:thread_twisted_wool",
+    "bibliomania:bookblock_starter",
+    "minecraft:copper_ingot"
+  ],
+  "result": {
+    "id": "bibliomania:leather_book",
+    "components": {
+      "bibliomania:book_contents": {
+        "pages": 12
+      }
+    }
+  }
+}

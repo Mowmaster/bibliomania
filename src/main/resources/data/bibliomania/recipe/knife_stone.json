@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "bibliomania:knifepart_handle_oak",
+    "bibliomania:knifepart_blade_stone"
+  ],
+  "result": {
+    "id": "bibliomania:knife_stone"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "bibliomania:weave_grass",
+    "bibliomania:weave_grass",
+    "bibliomania:thread_twisted_grass",
+    "bibliomania:bookblock_starter",
+    "minecraft:copper_ingot"
+  ],
+  "result": {
+    "id": "bibliomania:grass_book",
+    "components": {
+      "bibliomania:book_contents": {
+        "pages": 12
+      }
+    }
+  }
+}

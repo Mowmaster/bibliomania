@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:black_dye",
+    "#bibliomania:storage_books"
+  ],
+  "result": {
+    "id": "bibliomania:death_book"
+  }
+}

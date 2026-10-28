@@ -1,0 +1,9 @@
+{
+  "values": [
+    "bibliomania:knife_stone",
+    {
+      "id": "#c:tools/knife",
+      "required": false
+    }
+  ]
+}

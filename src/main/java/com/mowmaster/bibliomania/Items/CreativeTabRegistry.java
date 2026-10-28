@@ -18,7 +18,8 @@ public class CreativeTabRegistry
 {
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BibliomaniaReferences.MODID);
 
-    // Every book in each size its recipes make (8 pages plain; copper 12, iron 16, gold 24, as in 1.20)
+    // Every book in each size its recipes make, then the crafting materials.
+    // Books: (8 pages plain; copper 12, iron 16, gold 24, as in 1.20)
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BIBLIOMANIA_TAB = TABS.register("bibliomania", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.bibliomania"))
             .icon(() -> new ItemStack(BlockRegistry.LEATHER_BOOK.get()))
@@ -27,6 +28,8 @@ public class CreativeTabRegistry
                 for (int pages : List.of(8, 12, 16)) output.accept(book(BlockRegistry.WOOL_BOOK.get(), pages));
                 for (int pages : List.of(8, 12, 16, 24)) output.accept(book(BlockRegistry.LEATHER_BOOK.get(), pages));
                 output.accept(BlockRegistry.DEATH_BOOK.get());
+                // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
+                for (var item : ItemRegistry.MATERIALS) output.accept(item.get());
             }).build());
 
     private static ItemStack book(ItemLike book, int pages)

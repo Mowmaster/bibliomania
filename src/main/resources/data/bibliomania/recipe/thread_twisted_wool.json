@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "bibliomania:fibers_wool",
+    "bibliomania:fibers_wool"
+  ],
+  "result": {
+    "id": "bibliomania:thread_twisted_wool"
+  }
+}

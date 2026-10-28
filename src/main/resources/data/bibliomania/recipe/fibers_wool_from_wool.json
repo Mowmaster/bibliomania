@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#minecraft:wool",
+    "#bibliomania:knives"
+  ],
+  "result": {
+    "id": "bibliomania:fibers_wool",
+    "count": 4
+  }
+}
