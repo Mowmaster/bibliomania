@@ -7,18 +7,14 @@ import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.Slot;
-import net.minecraft.world.inventory.tooltip.BundleTooltip;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStackTemplate;
-import net.minecraft.world.item.component.BundleContents;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +22,7 @@ import java.util.Optional;
 // - Holding the book, left-click an item in a slot: stores it.      Holding an item, left-click the book: stores it.
 // - Holding the book, right-click an empty slot: takes the selected page out into it.
 //   Empty-handed, right-click the book: takes the selected page out onto your cursor.
-// - Hover the book and scroll: selects a page (see BookScrollHandler); the tooltip shows the contents like a bundle.
+// - Hover the book and scroll: selects a page (see BookScrollHandler); the tooltip shows every page (BookTooltip).
 // Items go onto pages already holding the same item first, then empty pages. Each take-out is at most one stack.
 // The death book can be emptied this way but not filled. In the world the book is placed and used as a block.
 public class BookItem extends BlockItem
@@ -206,18 +202,12 @@ public class BookItem extends BlockItem
 
     // ---- Page selection (scrolling over the book) ----
 
-    // The next page holding something, forward (+1) or back (-1) from the selected one, wrapping round.
-    // Returns the current page if no other page holds anything.
-    public int nextFilledPage(ItemStack book, int direction)
+    // The next page forward (+1) or back (-1) from the selected one, empty or not, wrapping round
+    // (the same as the arrows on a placed book)
+    public int nextPage(ItemStack book, int direction)
     {
         BookContents contents = contents(book);
-        List<ResourceStack<ItemResource>> stacks = contents.stacks();
-        for (int step = 1; step <= contents.pages(); step++)
-        {
-            int page = Math.floorMod(contents.page() + direction * step, contents.pages());
-            if (page < stacks.size() && !stacks.get(page).isEmpty()) return page;
-        }
-        return contents.page();
+        return Math.floorMod(contents.page() + direction, contents.pages());
     }
 
     public void setPage(ItemStack book, int page)
@@ -227,26 +217,11 @@ public class BookItem extends BlockItem
                 new BookContents(contents.pages(), Math.floorMod(page, contents.pages()), contents.stacks()));
     }
 
-    // ---- Tooltip: the vanilla bundle tooltip, built from the pages that hold something ----
+    // ---- Tooltip: every page, drawn by ClientBookTooltip ----
 
     @Override
     public Optional<TooltipComponent> getTooltipImage(ItemStack stack)
     {
-        BookContents contents = contents(stack);
-        List<ItemStackTemplate> items = new ArrayList<>();
-        int selected = -1;
-        for (int index = 0; index < contents.stacks().size(); index++)
-        {
-            ResourceStack<ItemResource> page = contents.stacks().get(index);
-            if (page.isEmpty()) continue;
-            if (index == contents.page()) selected = items.size();
-            items.add(ItemStackTemplate.fromNonEmptyStack(page.resource().toStack(page.amount())));
-        }
-        if (items.isEmpty()) return Optional.empty();
-
-        BundleContents.Mutable bundle = new BundleContents(items).asMutable();
-        // Highlights the selected page's item and shows its name, like a bundle's selected item
-        if (selected >= 0) bundle.toggleSelectedItem(selected);
-        return Optional.of(new BundleTooltip(bundle.toImmutable()));
+        return Optional.of(new BookTooltip(contents(stack), book().pageCapacity()));
     }
 }

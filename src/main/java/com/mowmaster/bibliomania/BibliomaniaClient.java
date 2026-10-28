@@ -16,7 +16,10 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraft.resources.Identifier;
+import com.mowmaster.bibliomania.Blocks.Book.BookTooltip;
+import com.mowmaster.bibliomania.ClientSide.ClientBookTooltip;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterRangeSelectItemModelPropertyEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
@@ -68,6 +71,13 @@ public class BibliomaniaClient {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), BookRenderer::new);
+    }
+
+    // A book's tooltip data -> the class that draws it
+    @SubscribeEvent
+    public static void registerTooltips(RegisterClientTooltipComponentFactoriesEvent event)
+    {
+        event.register(BookTooltip.class, ClientBookTooltip::new);
     }
 
     // "bibliomania:book_fullness", used by the book item models to get thicker as they fill
