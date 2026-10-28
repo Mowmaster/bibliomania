@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Blocks;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.Book.BookItem;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
@@ -54,11 +55,11 @@ public class BlockRegistry
         ItemRegistry.CBITEMS.registerItem(name, properties -> new BlockItem(block.get(), properties.useBlockDescriptionPrefix()));
     }
 
-    // Book items don't stack (each carries its own contents)
+    // Book items don't stack (each carries its own contents), and work like bundles in inventories (BookItem)
     private static <T extends Block> DeferredBlock<T> registerBook(String name, Function<BlockBehaviour.Properties, T> function)
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
-        ItemRegistry.CBITEMS.registerItem(name, properties -> new BlockItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new BookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

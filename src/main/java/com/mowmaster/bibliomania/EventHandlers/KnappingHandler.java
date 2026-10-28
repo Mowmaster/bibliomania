@@ -12,6 +12,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -21,9 +22,9 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.jetbrains.annotations.Nullable;
 
 // Replaces 1.20's mowlib "dual handed crafting" for the knife parts: hold flint in both hands and right-click
-//   - any stone (#c:stones)       -> a stone knife blade
-//   - any oak log (#minecraft:oak_logs) -> an oak knife handle
-// Each knap uses up the offhand flint; the mainhand flint is the tool.
+//   - any stone (#minecraft:base_stone_overworld) -> a stone knife blade
+//   - any log (#minecraft:logs)                    -> an oak knife handle
+// Each knap uses up one flint from each hand.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
 public class KnappingHandler
 {
@@ -43,8 +44,13 @@ public class KnappingHandler
 
         if (level instanceof ServerLevel)
         {
-            offhand.consume(1, player); // creative players keep it
-            player.getInventory().add(new ItemStack(result));
+            // Knapping uses up both flints (2 per part, as in 1.20). consume() leaves creative players' stacks alone,
+            // like vanilla does; use shrink(1) instead if you want creative to use them up too.
+            player.getMainHandItem().consume(1, player);
+            offhand.consume(1, player);
+            ItemStack part = new ItemStack(result);
+            // add() returns false (and keeps what didn't fit) when the inventory is full: drop the rest on the block
+            if (!player.getInventory().add(part)) Block.popResource(level, event.getPos().above(), part);
             SoundType sound = state.getSoundType();
             level.playSound(null, event.getPos(), sound.getHitSound(), SoundSource.BLOCKS, 1f, 0.8f);
         }

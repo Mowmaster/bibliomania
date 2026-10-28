@@ -306,8 +306,9 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         ItemStack taken = book.extractFromOpenPage(player.isShiftKeyDown() ? SHIFT_EXTRACT : 1);
         if (taken.isEmpty()) return;
 
-        // Into the inventory, or dropped at the player's feet if it doesn't fit
-        player.getInventory().add(taken);
+        // Into the inventory
+        // add() keeps whatever didn't fit when the inventory is full: drop that on top of the book
+        if (!player.getInventory().add(taken)) Block.popResource(level, pos.above(), taken);
         level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.3f, 1f);
     }
 }
