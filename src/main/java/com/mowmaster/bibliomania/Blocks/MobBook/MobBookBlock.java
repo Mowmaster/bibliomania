@@ -31,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 // - Right-click with the mobs' breeding food: breeds them (see MobBookContents for the rules)
 // - Left-click with a sword: kills one; sneak + left-click: kills 10% (at least one). Drops and XP land on the book.
 // - Right-click with a dye: recolours dyeable mobs (sheep); with shears: shears them, drops on the book;
-//   with a bucket/bowl: milks them (cows, mooshrooms, goats; see MobBookMilking), filled ones to the player
+//   (mooshrooms: shearing one kills it, mushrooms + its death drops on the book); with a bucket/bowl: milks them (cows, mooshrooms, goats; see MobBookMilking), filled ones to the player
 // - Sneak + right-click with an empty hand: picks the book up, mobs and all
 // - Chickens and other egg layers drop their eggs on the book every 7.5 minutes (MobBookDrops)
 // Mobs go in with the book item (right-click an animal with it, see MobBookItem).
@@ -121,6 +121,18 @@ public class MobBookBlock extends BookBlock
         // Shears: shears every adult, the drops land on the book; then they grow back (ServerConfig.shearRegrowth)
         if (MobBookActions.isShears(stack))
         {
+            // Mooshrooms (the shear_kills data map): one is sheared for its mushrooms and killed, drops on the book
+            if (MobBookDrops.shearKillFor(contents) != null && contents.adults() > 0)
+            {
+                if (level instanceof ServerLevel serverLevel)
+                {
+                    Vec3 at = Vec3.atCenterOf(pos).add(0, 0.2, 0);
+                    book.setContents(MobBookActions.shearKill(serverLevel, contents, player, stack, at, false));
+                    book.markKilled(); // the red flash
+                    stack.hurtAndBreak(1, player, hand);
+                }
+                return InteractionResult.SUCCESS;
+            }
             if (MobBookActions.canShear(level, contents))
             {
                 if (level instanceof ServerLevel serverLevel)

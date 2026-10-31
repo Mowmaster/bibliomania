@@ -23,6 +23,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -130,8 +131,9 @@ public final class MobBookActions
     }
 
     // Whether the book's mobs can be sheared now: they're shearable (NeoForge's IShearable, which every vanilla and most
-    // modded shearable mobs have), not growing back, and not in #bibliomania:mob_book_no_shear (mooshrooms: shearing
-    // one turns it into a cow, which would spawn a real cow into the world)
+    // modded shearable mobs have), not growing back, and not in #bibliomania:mob_book_no_shear (mobs whose shearing
+    // turns them into something else, which would spawn into the world). Mooshrooms are in that tag, and are handled
+    // by shearKill instead (the shear_kills data map), which callers check first.
     public static boolean canShear(Level level, MobBookContents contents)
     {
         if (contents.adults() <= 0 || contents.type().isEmpty() || contents.regrowing(level.getGameTime())) return false;
@@ -157,6 +159,25 @@ public final class MobBookActions
         // The mob's own shear sound doesn't reach anyone (it isn't in the world), so play one at the book/player
         level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.PLAYERS, 1f, 1f);
         return items;
+    }
+
+    // Shears on mobs in #shear_kills (mooshrooms): one is sheared and killed. Its shearing drops (mushrooms) and its
+    // death drops and XP go to the player (toPlayer, from the inventory) or land at `at` (a placed book).
+    // Returns the book's contents with that mob gone.
+    public static MobBookContents shearKill(ServerLevel level, MobBookContents contents, Player player, ItemStack shears,
+                                            Vec3 at, boolean toPlayer)
+    {
+        MobBookDrops.MobDrop drop = MobBookDrops.shearKillFor(contents);
+        if (drop == null || contents.adults() <= 0) return contents;
+        BlockPos pos = BlockPos.containing(at);
+        for (ItemStack item : MobBookDrops.rollShear(level, contents, drop, 1, at, shears))
+        {
+            if (toPlayer) StorageInteractions.giveToPlayer(player, item);
+            else Block.popResource(level, pos, item);
+        }
+        level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.PLAYERS, 1f, 1f);
+        int killed = kill(level, contents, 1, player, at, toPlayer);
+        return contents.withKilled(killed);
     }
 
     // ---- Killing ----

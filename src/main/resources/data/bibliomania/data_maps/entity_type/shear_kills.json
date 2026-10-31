@@ -1,0 +1,7 @@
+{
+  "values": {
+    "minecraft:mooshroom": {
+      "loot_table": "minecraft:shearing/mooshroom"
+    }
+  }
+}

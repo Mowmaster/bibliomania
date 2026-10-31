@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 //     a dye, left-click:         recolours dyeable mobs (sheep)
 //     a sword, right-click:      kills one; the drops go into your inventory and the XP to you
 //     shears, right-click:       shears every adult; the drops go into your inventory
+//                                (mooshrooms: shears and kills one, mushrooms + death drops and XP to you)
 //     a bucket/bowl, right-click: milks (one filled per adult) into your inventory (MobBookMilking)
 //   Clicking the book with anything else on the cursor plays the bundle "can't" sound; clicking the book (on the
 //   cursor) onto anything else just swaps them as normal.
@@ -189,6 +190,18 @@ public class MobBookItem extends BlockItem
                     StorageInteractions.giveToPlayer(player, filled);
                 }
                 setContents(self, contents.withMilked(level.getGameTime()));
+            }
+            return true;
+        }
+
+        // Shears, right-click, on mooshrooms (the shear_kills data map): shear and kill one, everything to the player
+        if (clickAction == ClickAction.SECONDARY && MobBookActions.isShears(other)
+                && MobBookDrops.shearKillFor(contents) != null && contents.adults() > 0)
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                setContents(self, MobBookActions.shearKill(serverLevel, contents, player, other, player.position(), true));
+                other.hurtAndBreak(1, serverLevel, player, broken -> {});
             }
             return true;
         }

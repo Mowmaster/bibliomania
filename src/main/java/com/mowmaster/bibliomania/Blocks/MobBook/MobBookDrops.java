@@ -65,6 +65,10 @@ public final class MobBookDrops
 
     public static final DataMapType<EntityType<?>, MobDrop> INTERVAL_DROPS = dataMap("interval_drops");
     public static final DataMapType<EntityType<?>, MobDrop> GROW_UP_DROPS = dataMap("grow_up_drops");
+    // Mobs that shearing in a book kills instead of the usual shear and regrow: shearing a mooshroom turns it into a
+    // cow, so the book gives its mushrooms (this drop, rolled as a shearing with the shears as the tool) and kills it
+    // (its death drops and XP). data/<any namespace>/data_maps/entity_type/shear_kills.json
+    public static final DataMapType<EntityType<?>, MobDrop> SHEAR_KILLS = dataMap("shear_kills");
 
     private static DataMapType<EntityType<?>, MobDrop> dataMap(String name)
     {
@@ -80,6 +84,7 @@ public final class MobBookDrops
     {
         event.register(INTERVAL_DROPS);
         event.register(GROW_UP_DROPS);
+        event.register(SHEAR_KILLS);
     }
 
     // The mob's entry in a data map, or null if it has none. wrapAsHolder gives the registry entry for the type,
@@ -94,6 +99,21 @@ public final class MobBookDrops
     public static boolean hasDrops(MobBookContents contents)
     {
         return contents.type().isPresent() && dropFor(INTERVAL_DROPS, contents.type().get()) != null;
+    }
+
+    // The book's mob's shear-kill drop, or null if shearing doesn't kill it
+    @Nullable
+    public static MobDrop shearKillFor(MobBookContents contents)
+    {
+        return contents.type().isPresent() ? dropFor(SHEAR_KILLS, contents.type().get()) : null;
+    }
+
+    // `times` of the book's mobs sheared with `shears`: their shearing drops (a loot table rolled with the shears)
+    public static List<ItemStack> rollShear(ServerLevel level, MobBookContents contents, MobDrop drop, int times, Vec3 at, ItemStack shears)
+    {
+        List<ItemStack> items = new ArrayList<>();
+        roll(level, contents, drop, times, at, shears, items);
+        return items;
     }
 
     // The result of a tick: the contents to keep (null = unchanged) and the items made (often none)
@@ -114,7 +134,7 @@ public final class MobBookDrops
         if (updated.grown() > 0)
         {
             MobDrop drop = dropFor(GROW_UP_DROPS, type);
-            if (drop != null) roll(level, updated, drop, updated.grown(), at, items);
+            if (drop != null) roll(level, updated, drop, updated.grown(), at, null, items);
             updated = updated.withGrownPaid();
         }
 
@@ -133,7 +153,7 @@ public final class MobBookDrops
         }
         else if (now >= updated.nextDrop())
         {
-            roll(level, updated, drop, updated.adults(), at, items);
+            roll(level, updated, drop, updated.adults(), at, null, items);
             updated = updated.withNextDrop(now + ServerConfig.dropInterval());
         }
 
@@ -141,8 +161,11 @@ public final class MobBookDrops
         return updated == contents ? NOTHING : new Result(updated, items);
     }
 
-    // `times` mobs of `type` at `at` each drop once; the items are merged into `into` (as few stacks as possible)
-    private static void roll(ServerLevel level, MobBookContents contents, MobDrop drop, int times, Vec3 at, List<ItemStack> into)
+    // `times` of the book's mobs at `at` each drop once; the items are merged into `into` (as few stacks as possible).
+    // With a `tool`, the loot table is rolled as a shearing (vanilla's shearing tables can check the tool), otherwise
+    // as a gift (vanilla's context for eggs and scutes).
+    private static void roll(ServerLevel level, MobBookContents contents, MobDrop drop, int times, Vec3 at,
+                             @Nullable ItemStack tool, List<ItemStack> into)
     {
         // A fixed item: count per mob
         drop.item().ifPresent(item -> {
@@ -154,13 +177,15 @@ public final class MobBookDrops
         Entity mob = MobBookActions.createFor(contents, level); // with the book's look: a cold chicken lays blue eggs
         if (mob == null) return;
         mob.setPos(at.x, at.y, at.z);
-        // The same calls vanilla's fishing hook makes. "Gift" is the loot context vanilla uses for chicken eggs and
-        // armadillo scutes: the place (ORIGIN) and the mob (THIS_ENTITY).
+        // The same calls vanilla's fishing hook makes: the place (ORIGIN), the mob (THIS_ENTITY, so e.g. a brown
+        // mooshroom gives brown mushrooms), and for shearing the shears (TOOL)
         LootTable table = level.getServer().reloadableRegistries().getLootTable(drop.lootTable().get());
-        LootParams params = new LootParams.Builder(level)
+        LootParams.Builder builder = new LootParams.Builder(level)
                 .withParameter(LootContextParams.ORIGIN, at)
-                .withParameter(LootContextParams.THIS_ENTITY, mob)
-                .create(LootContextParamSets.GIFT);
+                .withParameter(LootContextParams.THIS_ENTITY, mob);
+        LootParams params = tool != null
+                ? builder.withParameter(LootContextParams.TOOL, tool).create(LootContextParamSets.SHEARING)
+                : builder.create(LootContextParamSets.GIFT);
         for (int i = 0; i < times; i++)
         {
             for (ItemStack stack : table.getRandomItems(params)) merge(into, stack);
