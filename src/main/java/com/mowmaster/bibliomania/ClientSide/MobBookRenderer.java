@@ -3,8 +3,7 @@ package com.mowmaster.bibliomania.ClientSide;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
-import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlockEntity;
-import com.mowmaster.bibliomania.Blocks.MobBook.MobBookContents;
+import com.mowmaster.bibliomania.Blocks.MobBook.IMobBookDisplay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -17,19 +16,23 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-// Draws a placed Bestiary's mob spinning above it, with the mob's own model (like a mob spawner does):
-// - normally the adult
-// - during a breeding cooldown, a baby that grows to adult size as the cooldown runs out
-// - a brief red flash after a kill (the same red as a hurt mob: it sets hurtTime on the display mob)
+// Draws a placed mob book's mob spinning above it, with the mob's own model (like a mob spawner does). The block
+// entity (IMobBookDisplay) picks the mob and its scale: a Bestiary shows a growing baby during a breeding cooldown,
+// a Book of Essence grows its mob as the essence fills. After a kill there's a brief red flash (the same red as a hurt
+// mob: it sets hurtTime on the display mob).
 // The mob drawn is a fake copy kept by the block entity; the entity renderer turns it into a render state each frame.
 // (A candidate for MowLib later, as a SpinningEntityRenderer next to its SpinningItemRenderer.)
-public class MobBookRenderer implements BlockEntityRenderer<MobBookBlockEntity, MobBookRenderer.State>
+// Generic: <T extends BlockEntity & IMobBookDisplay> means "any block entity that also implements IMobBookDisplay",
+// so the same renderer draws the Bestiary and the Book of Essence (registered once for each in BibliomaniaClient).
+public class MobBookRenderer<T extends BlockEntity & IMobBookDisplay> implements BlockEntityRenderer<T, MobBookRenderer.State>
 {
     // Degrees per tick, the same as the item books
     private static final float SPIN_SPEED = 2f;
@@ -49,7 +52,7 @@ public class MobBookRenderer implements BlockEntityRenderer<MobBookBlockEntity, 
     }
 
     @Override
-    public void extractRenderState(MobBookBlockEntity book, State state, float partialTick, Vec3 cameraPos,
+    public void extractRenderState(T book, State state, float partialTick, Vec3 cameraPos,
                                    ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay)
     {
         BlockEntityRenderer.super.extractRenderState(book, state, partialTick, cameraPos, crumblingOverlay);
@@ -57,13 +60,9 @@ public class MobBookRenderer implements BlockEntityRenderer<MobBookBlockEntity, 
         Level level = book.getLevel();
         if (level == null) return;
         long now = level.getGameTime();
-        MobBookContents contents = book.getContents();
-        if (contents.isEmpty() || contents.type().isEmpty()) return;
-
-        // Babies growing: show one, growing; otherwise the adult
-        boolean baby = contents.growing() > 0 && contents.onCooldown(now);
-        Entity mob = book.getDisplayMob(baby);
-        if (mob == null) return;
+        Entity mob = book.getDisplayMob();
+        EntityType<?> type = book.getDisplayType();
+        if (mob == null || type == null) return;
 
         // The hurt flash: a living mob with hurtTime above 0 is drawn tinted red
         if (mob instanceof LivingEntity living)
@@ -75,12 +74,9 @@ public class MobBookRenderer implements BlockEntityRenderer<MobBookBlockEntity, 
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         state.mob = dispatcher.extractEntity(mob, partialTick);
 
-        // Fit by the adult's size, so the baby and the adult line up
-        EntityDimensions size = contents.type().get().getDimensions();
-        float scale = DISPLAY_SIZE / Math.max(1f, Math.max(size.width(), size.height()));
-        // The baby model is about half size: scale it up from x1 to x2 as it grows
-        if (baby) scale *= 1f + contents.growProgress(now);
-        state.scale = scale;
+        // Fit by the full-grown size, so a baby and the adult line up; then the book's own scale on top
+        EntityDimensions size = type.getDimensions();
+        state.scale = DISPLAY_SIZE / Math.max(1f, Math.max(size.width(), size.height())) * book.getDisplayScale();
 
         state.height = (book.getBlockState().getValue(BookBlock.THICKNESS) + 2) / 16.0;
         state.angle = ((now % 360) + partialTick) * SPIN_SPEED % 360f;
@@ -102,7 +98,7 @@ public class MobBookRenderer implements BlockEntityRenderer<MobBookBlockEntity, 
 
     // The mob reaches above the block, so it must still be drawn when only it is on screen (NeoForge culls by this box)
     @Override
-    public AABB getRenderBoundingBox(MobBookBlockEntity book)
+    public AABB getRenderBoundingBox(T book)
     {
         BlockPos pos = book.getBlockPos();
         return new AABB(pos.getX() - 1.0, pos.getY(), pos.getZ() - 1.0, pos.getX() + 2.0, pos.getY() + 2.0, pos.getZ() + 2.0);

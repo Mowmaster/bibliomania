@@ -2,8 +2,10 @@ package com.mowmaster.bibliomania.Blocks.MobBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.BibliomaniaTags;
+import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
@@ -37,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 // What a Bestiary does to the mobs in it, shared by the placed book and the item.
 //
@@ -77,10 +80,17 @@ public final class MobBookActions
     public static Entity createFor(MobBookContents contents, Level level)
     {
         if (contents.type().isEmpty()) return null;
-        Entity mob = createTemporary(contents.type().get(), level, EntitySpawnReason.TRIGGERED);
-        if (mob == null) return null;
-        MobAppearance.apply(mob, contents.appearance());
+        Entity mob = createFor(contents.type().get(), contents.appearance(), level);
         if (mob instanceof Sheep sheep && contents.regrowing(level.getGameTime())) sheep.setSheared(true);
+        return mob;
+    }
+
+    // A temporary mob of `type` with `look` (MobAppearance)
+    @Nullable
+    public static Entity createFor(EntityType<?> type, DataComponentMap look, Level level)
+    {
+        Entity mob = createTemporary(type, level, EntitySpawnReason.TRIGGERED);
+        if (mob != null) MobAppearance.apply(mob, look);
         return mob;
     }
 
@@ -187,34 +197,66 @@ public final class MobBookActions
     // The first kill plays the mob's own death sound. Returns how many were killed.
     public static int kill(ServerLevel level, MobBookContents contents, int count, Player player, Vec3 at, boolean toPlayer)
     {
+        if (contents.type().isEmpty()) return 0;
+        return kill(level, count, player, at, toPlayer, () -> createFor(contents, level));
+    }
+
+    // The same for any book: `type` mobs with `look` (the Book of Essence)
+    public static int kill(ServerLevel level, EntityType<?> type, DataComponentMap look, int count, Player player, Vec3 at, boolean toPlayer)
+    {
+        return kill(level, count, player, at, toPlayer, () -> createFor(type, look, level));
+    }
+
+    // Whether a book kill is running right now: those deaths aren't real kills (EssenceActions doesn't count them)
+    public static boolean isBookKill()
+    {
+        return bookKill;
+    }
+    private static boolean bookKill = false;
+
+    // Supplier<Entity>: a function with no arguments that returns a new temporary mob each time it's called (get())
+    private static int kill(ServerLevel level, int count, Player player, Vec3 at, boolean toPlayer, Supplier<Entity> factory)
+    {
         DamageSource source = level.damageSources().playerAttack(player);
         int killed = 0;
-        for (int i = 0; i < count; i++)
+        bookKill = true;
+        try
         {
-            Entity created = createFor(contents, level);
-            if (!(created instanceof LivingEntity mob)) break;
-            mob.setPos(at.x, at.y, at.z);
-            // Counts as killed by the player: player-only drops and XP happen, and Looting applies
-            mob.setLastHurtByPlayer(player, 100);
-
-            if (toPlayer) redirect = new Redirect(mob, player);
-            try
+            for (int i = 0; i < count; i++)
             {
-                if (i == 0)
-                {
-                    // A lethal hit, so vanilla plays this mob's death sound (and then calls die)
-                    mob.hurtServer(level, source, Float.MAX_VALUE);
-                }
-                if (mob.isAlive()) mob.die(source); // later kills, or a mob that shrugged off the hit
+                if (killOne(level, factory.get(), i == 0, source, player, at, toPlayer)) killed++;
+                else break;
             }
-            finally
-            {
-                redirect = null;
-            }
-            mob.remove(Entity.RemovalReason.KILLED);
-            killed++;
+        }
+        finally
+        {
+            bookKill = false;
         }
         return killed;
+    }
+
+    // One kill. `first`: a lethal hit, so vanilla plays this mob's death sound (and then calls die); later kills just
+    // die, so a big sneak-kill isn't a wall of sound. Returns false if the mob couldn't be made.
+    private static boolean killOne(ServerLevel level, @Nullable Entity created, boolean first, DamageSource source,
+                                   Player player, Vec3 at, boolean toPlayer)
+    {
+        if (!(created instanceof LivingEntity mob)) return false;
+        mob.setPos(at.x, at.y, at.z);
+        // Counts as killed by the player: player-only drops and XP happen, and Looting applies
+        mob.setLastHurtByPlayer(player, 100);
+
+        if (toPlayer) redirect = new Redirect(mob, player);
+        try
+        {
+            if (first) mob.hurtServer(level, source, Float.MAX_VALUE);
+            if (mob.isAlive()) mob.die(source); // later kills, or a mob that shrugged off the hit
+        }
+        finally
+        {
+            redirect = null;
+        }
+        mob.remove(Entity.RemovalReason.KILLED);
+        return true;
     }
 
     // ---- Left-clicking a placed book with a sword ----
@@ -228,11 +270,14 @@ public final class MobBookActions
     {
         if (event.getAction() != PlayerInteractEvent.LeftClickBlock.Action.START) return;
         Level level = event.getLevel();
-        if (!(level.getBlockState(event.getPos()).getBlock() instanceof MobBookBlock)) return;
+        Block block = level.getBlockState(event.getPos()).getBlock();
+        if (!(block instanceof MobBookBlock) && !(block instanceof EssenceBookBlock)) return;
         Player player = event.getEntity();
         if (!isKillWeapon(player.getMainHandItem())) return;
         event.setCanceled(true);
-        if (level instanceof ServerLevel serverLevel) MobBookBlock.killAction(serverLevel, event.getPos(), player);
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        if (block instanceof MobBookBlock) MobBookBlock.killAction(serverLevel, event.getPos(), player);
+        else EssenceBookBlock.killAction(serverLevel, event.getPos(), player);
     }
 
     // ---- Inventory kills: drops and XP to the player ----

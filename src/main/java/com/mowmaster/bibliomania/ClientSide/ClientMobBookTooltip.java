@@ -1,6 +1,5 @@
 package com.mowmaster.bibliomania.ClientSide;
 
-import com.mowmaster.bibliomania.Blocks.MobBook.MobBookContents;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -15,14 +14,14 @@ public class ClientMobBookTooltip implements ClientTooltipComponent
 {
     private static final int ICON = 18; // the egg's square, like an inventory slot
 
-    private final MobBookContents contents;
+    private final int count;
     // The mob's spawn egg, if it has one (a mod's mob might not): byId gives an Optional holder of the egg item
     private final ItemStack egg;
 
     public ClientMobBookTooltip(MobBookTooltip tooltip)
     {
-        this.contents = tooltip.contents();
-        this.egg = contents.type().flatMap(SpawnEggItem::byId).map(ItemStack::new).orElse(ItemStack.EMPTY);
+        this.count = tooltip.count();
+        this.egg = SpawnEggItem.byId(tooltip.type()).map(ItemStack::new).orElse(ItemStack.EMPTY);
     }
 
     @Override
@@ -42,6 +41,6 @@ public class ClientMobBookTooltip implements ClientTooltipComponent
     {
         if (egg.isEmpty()) return;
         graphics.item(egg, x + 1, y + 1);
-        graphics.itemDecorations(font, egg, x + 1, y + 1, String.valueOf(contents.adults()));
+        graphics.itemDecorations(font, egg, x + 1, y + 1, String.valueOf(count));
     }
 }

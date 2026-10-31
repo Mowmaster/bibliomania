@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Blocks;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
+import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.Block;
@@ -26,6 +27,10 @@ public class libBlockEntityRegistry
     // The Bestiary
     public static final Supplier<BlockEntityType<MobBookBlockEntity>> MOB_BOOK = CBBLOCKENTITIES.register("mob_book",
             () -> new BlockEntityType<>(MobBookBlockEntity::new, BlockRegistry.MOB_BOOK.get()));
+
+    // The Book of Essence
+    public static final Supplier<BlockEntityType<EssenceBookBlockEntity>> ESSENCE_BOOK = CBBLOCKENTITIES.register("essence_book",
+            () -> new BlockEntityType<>(EssenceBookBlockEntity::new, BlockRegistry.ESSENCE_BOOK.get()));
 
     public static void register(IEventBus eventBus)
     {

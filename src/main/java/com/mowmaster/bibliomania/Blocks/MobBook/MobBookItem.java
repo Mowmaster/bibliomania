@@ -312,6 +312,6 @@ public class MobBookItem extends BlockItem
     {
         MobBookContents contents = contents(stack);
         if (contents.isEmpty()) return Optional.empty();
-        return Optional.of(new MobBookTooltip(contents));
+        return Optional.of(new MobBookTooltip(contents.type().get(), contents.adults()));
     }
 }

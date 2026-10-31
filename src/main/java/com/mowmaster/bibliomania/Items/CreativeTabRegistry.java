@@ -30,6 +30,7 @@ public class CreativeTabRegistry
                 for (int pages : List.of(8, 12, 16, 24)) output.accept(book(BlockRegistry.LEATHER_BOOK.get(), pages));
                 output.accept(BlockRegistry.DEATH_BOOK.get());
                 output.accept(BlockRegistry.MOB_BOOK.get());
+                output.accept(BlockRegistry.ESSENCE_BOOK.get());
                 // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
                 for (var item : ItemRegistry.MATERIALS) output.accept(item.get());
             }).build());

@@ -46,9 +46,11 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), SpinningItemRenderer::new);
         // The Bestiary's spinning mob
         event.registerBlockEntityRenderer(libBlockEntityRegistry.MOB_BOOK.get(), MobBookRenderer::new);
+        // The Book of Essence's mob (the same renderer: both block entities are IMobBookDisplay)
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.ESSENCE_BOOK.get(), MobBookRenderer::new);
     }
 
-    // The Bestiary's tooltip data -> the class that draws it
+    // The Bestiary's and Book of Essence's tooltip data -> the class that draws it
     @SubscribeEvent
     public static void registerTooltips(RegisterClientTooltipComponentFactoriesEvent event)
     {

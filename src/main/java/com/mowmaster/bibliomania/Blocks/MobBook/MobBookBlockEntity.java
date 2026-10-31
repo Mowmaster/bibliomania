@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 // A placed Bestiary: the mobs (MobBookContents) and when one was last killed (for the red flash on the display).
 // On the client it also keeps the two display mobs MobBookRenderer draws: fake copies that are never added to the
 // world and never tick, made once and reused every frame (like a mob spawner's spinning mob).
-public class MobBookBlockEntity extends BlockEntity
+public class MobBookBlockEntity extends BlockEntity implements IMobBookDisplay
 {
     private static final String TAG_MOBS = "mobs";
     private static final String TAG_LAST_KILL = "last_kill";
@@ -66,6 +66,7 @@ public class MobBookBlockEntity extends BlockEntity
         changed();
     }
 
+    @Override
     public long getLastKill()
     {
         return lastKill;
@@ -108,6 +109,32 @@ public class MobBookBlockEntity extends BlockEntity
     }
 
     // ---- Display mobs (client) ----
+
+    // IMobBookDisplay: during a breeding cooldown with babies, a baby growing from x1 to x2 (adult size); otherwise the adult
+    private boolean showBaby()
+    {
+        if (level == null) return false;
+        MobBookContents now = getContents();
+        return now.growing() > 0 && now.onCooldown(level.getGameTime());
+    }
+
+    @Override
+    public @Nullable Entity getDisplayMob()
+    {
+        return getDisplayMob(showBaby());
+    }
+
+    @Override
+    public @Nullable EntityType<?> getDisplayType()
+    {
+        return contents.type().orElse(null);
+    }
+
+    @Override
+    public float getDisplayScale()
+    {
+        return showBaby() && level != null ? 1f + getContents().growProgress(level.getGameTime()) : 1f;
+    }
 
     // The fake adult or baby to draw, made the first time it's needed (and again if the type or look changed),
     // with the book's look (variant, colour) and, for sheep, sheared while the wool grows back

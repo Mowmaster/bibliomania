@@ -5,6 +5,8 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookItem;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
+import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
+import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookItem;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
@@ -38,6 +40,9 @@ public class BlockRegistry
     // The Bestiary: holds mobs, not items (its own block entity type and item, so not in BOOKS)
     public static final DeferredBlock<MobBookBlock> MOB_BOOK = registerMobBook("mob_book",
             properties -> new MobBookBlock(bookProperties(properties, SoundType.WOOD)));
+    // The Book of Essence: for the mobs a Bestiary can't hold
+    public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
+            properties -> new EssenceBookBlock(bookProperties(properties, SoundType.WOOD)));
 
     // Every item book, for the creative tab and the block entity type
     public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK);
@@ -74,6 +79,13 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new MobBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    private static <T extends Block> DeferredBlock<T> registerEssenceBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new EssenceBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

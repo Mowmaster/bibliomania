@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceContents;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookContents;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -29,6 +30,10 @@ public class DataComponentRegistry
     // networkSynchronized = sent to clients (the tooltip and the placed book's display need it).
     public static final Supplier<DataComponentType<MobBookContents>> MOB_CONTENTS = COMPONENTS.registerComponentType(
             "mob_contents", builder -> builder.persistent(MobBookContents.CODEC).networkSynchronized(MobBookContents.STREAM_CODEC));
+
+    // What a Book of Essence holds (EssenceContents)
+    public static final Supplier<DataComponentType<EssenceContents>> ESSENCE_CONTENTS = COMPONENTS.registerComponentType(
+            "essence_contents", builder -> builder.persistent(EssenceContents.CODEC).networkSynchronized(EssenceContents.STREAM_CODEC));
 
     public static void register(IEventBus eventBus)
     {
