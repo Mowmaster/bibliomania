@@ -1,0 +1,14 @@
+{
+  "values": {
+    "minecraft:cow": [
+      { "input": "minecraft:bucket", "result": "minecraft:milk_bucket", "sound": "minecraft:entity.cow.milk" }
+    ],
+    "minecraft:mooshroom": [
+      { "input": "minecraft:bucket", "result": "minecraft:milk_bucket", "sound": "minecraft:entity.cow.milk" },
+      { "input": "minecraft:bowl", "result": "minecraft:mushroom_stew", "sound": "minecraft:entity.mooshroom.milk" }
+    ],
+    "minecraft:goat": [
+      { "input": "minecraft:bucket", "result": "minecraft:milk_bucket", "sound": "minecraft:entity.goat.milk" }
+    ]
+  }
+}

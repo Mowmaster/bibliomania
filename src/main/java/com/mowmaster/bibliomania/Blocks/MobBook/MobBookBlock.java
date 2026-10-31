@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Blocks.MobBook;
 
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
+import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -29,7 +30,8 @@ import org.jetbrains.annotations.Nullable;
 // BookBlock), but holds mobs instead of items, so the clicks are different:
 // - Right-click with the mobs' breeding food: breeds them (see MobBookContents for the rules)
 // - Left-click with a sword: kills one; sneak + left-click: kills 10% (at least one). Drops and XP land on the book.
-// - Right-click with a dye: recolours dyeable mobs (sheep); with shears: shears them, drops on the book
+// - Right-click with a dye: recolours dyeable mobs (sheep); with shears: shears them, drops on the book;
+//   with a bucket/bowl: milks them (cows, mooshrooms, goats; see MobBookMilking), filled ones to the player
 // - Sneak + right-click with an empty hand: picks the book up, mobs and all
 // - Chickens and other egg layers drop their eggs on the book every 7.5 minutes (MobBookDrops)
 // Mobs go in with the book item (right-click an animal with it, see MobBookItem).
@@ -88,6 +90,30 @@ public class MobBookBlock extends BookBlock
                 book.setContents(contents.withAppearance(MobAppearance.dyed(contents.appearance(), MobBookActions.dyeColor(stack))));
                 stack.consume(1, player);
                 level.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.PLAYERS, 1f, 1f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // An empty container (bucket, bowl...): milking. One filled per adult, into the player's inventory
+        // (at their feet if it's full), like milking a cow. Then the configured wait (none by default).
+        MobBookMilking.Milking milking = MobBookMilking.milkingFor(contents, stack);
+        if (milking != null && contents.adults() > 0)
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                if (contents.milkWaiting(level.getGameTime()))
+                {
+                    level.playSound(null, pos, SoundEvents.BUNDLE_INSERT_FAIL, SoundSource.BLOCKS, 1f, 1f);
+                }
+                else
+                {
+                    int count = MobBookMilking.amount(contents, stack);
+                    for (ItemStack filled : MobBookMilking.milk(serverLevel, milking, stack, count, player, pos))
+                    {
+                        StorageInteractions.giveToPlayer(player, filled);
+                    }
+                    book.setContents(contents.withMilked(level.getGameTime()));
+                }
             }
             return InteractionResult.SUCCESS;
         }

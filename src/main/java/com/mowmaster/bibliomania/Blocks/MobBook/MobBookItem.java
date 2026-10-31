@@ -40,6 +40,7 @@ import java.util.function.Consumer;
 //     a dye, left-click:         recolours dyeable mobs (sheep)
 //     a sword, right-click:      kills one; the drops go into your inventory and the XP to you
 //     shears, right-click:       shears every adult; the drops go into your inventory
+//     a bucket/bowl, right-click: milks (one filled per adult) into your inventory (MobBookMilking)
 //   Clicking the book with anything else on the cursor plays the bundle "can't" sound; clicking the book (on the
 //   cursor) onto anything else just swaps them as normal.
 // - Egg layers (chickens...) lay into your inventory every ServerConfig.dropInterval() ticks while the book is in it (MobBookDrops).
@@ -176,6 +177,22 @@ public class MobBookItem extends BlockItem
             return true;
         }
 
+        // An empty container (bucket, bowl...), right-click: milk, one filled per adult, into the player's inventory
+        if (clickAction == ClickAction.SECONDARY && MobBookMilking.canMilk(level, contents, other))
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                MobBookMilking.Milking milking = MobBookMilking.milkingFor(contents, other);
+                int count = MobBookMilking.amount(contents, other);
+                for (ItemStack filled : MobBookMilking.milk(serverLevel, milking, other, count, player, player.blockPosition()))
+                {
+                    StorageInteractions.giveToPlayer(player, filled);
+                }
+                setContents(self, contents.withMilked(level.getGameTime()));
+            }
+            return true;
+        }
+
         // Shears, right-click: shear every adult, drops to the player, one durability used
         if (clickAction == ClickAction.SECONDARY && MobBookActions.isShears(other) && MobBookActions.canShear(level, contents))
         {
@@ -250,6 +267,11 @@ public class MobBookItem extends BlockItem
         if (contents.regrowing(now))
         {
             tooltip.accept(line("regrow_in", time(contents.regrowLeft(now))).withStyle(ChatFormatting.GRAY));
+        }
+        // "Can be milked in: 0:45" (only with a milking wait set in the config)
+        if (contents.milkWaiting(now))
+        {
+            tooltip.accept(line("milk_in", time(contents.milkLeft(now))).withStyle(ChatFormatting.GRAY));
         }
         // "Next drops in: 6:02" for egg layers (the timer starts on the first tick after capture)
         if (contents.nextDrop() > 0 && MobBookDrops.hasDrops(contents))

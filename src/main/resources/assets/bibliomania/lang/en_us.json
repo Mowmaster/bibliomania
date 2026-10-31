@@ -13,6 +13,7 @@
   "tooltip.bibliomania.mob_book.drop_in": "Next drops in: %s",
   "tooltip.bibliomania.mob_book.color": "Colour: %s",
   "tooltip.bibliomania.mob_book.regrow_in": "Regrows in: %s",
+  "tooltip.bibliomania.mob_book.milk_in": "Can be milked in: %s",
   "item.bibliomania.fibers_grass": "Fibers (Grass)",
   "item.bibliomania.fibers_wool": "Fibers (Wool)",
   "item.bibliomania.thread_twisted_grass": "Binding Thread (Twisted - Grass)",

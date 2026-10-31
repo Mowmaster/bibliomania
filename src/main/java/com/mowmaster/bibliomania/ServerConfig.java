@@ -2,9 +2,9 @@ package com.mowmaster.bibliomania;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-// Gameplay settings, one file per world: <world>/serverconfig/bibliomania-server.toml.
-// A SERVER config is read by the server and sent to players when they join, so everyone uses the same values.
-// Registered in the Bibliomania constructor (modContainer.registerConfig(ModConfig.Type.SERVER, ...)).
+// Gameplay settings, one file per world: <world>/syncedconfig/bibliomania-server.toml.
+// A SYNCED config is read by the server and sent to players when they join, so everyone uses the same values.
+// Registered in the Bibliomania constructor (modContainer.registerConfig(ModConfig.Type.SYNCED, ...)).
 // All times are in ticks (20 ticks = 1 second).
 public final class ServerConfig
 {
@@ -25,6 +25,10 @@ public final class ServerConfig
             .comment("Ticks for sheared mobs in a Bestiary (sheep...) to grow back. Default 2400 = 2 minutes.")
             .defineInRange("shearRegrowth", 2400, 20, Integer.MAX_VALUE);
 
+    private static final ModConfigSpec.IntValue MILK_COOLDOWN = BUILDER
+            .comment("Ticks before mobs in a Bestiary can be milked again (cows, mooshrooms, goats...). Default 0 = no wait, like vanilla.")
+            .defineInRange("milkCooldown", 0, 0, Integer.MAX_VALUE);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -42,6 +46,11 @@ public final class ServerConfig
     public static int shearRegrowth()
     {
         return get(SHEAR_REGROWTH);
+    }
+
+    public static int milkCooldown()
+    {
+        return get(MILK_COOLDOWN);
     }
 
     private static int get(ModConfigSpec.IntValue value)

@@ -28,17 +28,18 @@ import java.util.Optional;
 // - grown:         babies that have grown up but whose grow-up drops (turtle scutes...) haven't been given yet.
 //                  settle() counts them; MobBookDrops pays them out on the next tick and sets it back to 0.
 // - regrowEnds:    the game tick the adults' wool (or other shearable part) has grown back (0 = not sheared)
+// - milkReadyAt:   the game tick the adults can be milked again (0 = now; with the default config there's no wait)
 // Times are absolute game ticks (Level#getGameTime), so they run out wherever the book is: placed, in an
 // inventory or in a chest. settle(now) moves the grown babies into the adults when read.
 // Lengths of time come from the server config (ServerConfig).
 // Records are immutable, so every change returns a new copy (data components must never change in place).
 public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap appearance, int adults, int growing, int fed,
-                              long breedingEnds, long nextDrop, int grown, long regrowEnds)
+                              long breedingEnds, long nextDrop, int grown, long regrowEnds, long milkReadyAt)
 {
     // Most mobs a book holds (adults + growing)
     public static final int MAX_MOBS = 256;
 
-    public static final MobBookContents EMPTY = new MobBookContents(Optional.empty(), DataComponentMap.EMPTY, 0, 0, 0, 0L, 0L, 0, 0L);
+    public static final MobBookContents EMPTY = new MobBookContents(Optional.empty(), DataComponentMap.EMPTY, 0, 0, 0, 0L, 0L, 0, 0L, 0L);
 
     // Saved as {"type": "minecraft:sheep", "appearance": {"minecraft:sheep/color": "red"}, "adults": 12, ...};
     // missing fields mean an empty book. DataComponentMap.CODEC saves components the same way item stacks do.
@@ -51,7 +52,8 @@ public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap app
                     Codec.LONG.optionalFieldOf("breeding_ends", 0L).forGetter(MobBookContents::breedingEnds),
                     Codec.LONG.optionalFieldOf("next_drop", 0L).forGetter(MobBookContents::nextDrop),
                     Codec.INT.optionalFieldOf("grown", 0).forGetter(MobBookContents::grown),
-                    Codec.LONG.optionalFieldOf("regrow_ends", 0L).forGetter(MobBookContents::regrowEnds))
+                    Codec.LONG.optionalFieldOf("regrow_ends", 0L).forGetter(MobBookContents::regrowEnds),
+                    Codec.LONG.optionalFieldOf("milk_ready_at", 0L).forGetter(MobBookContents::milkReadyAt))
             .apply(instance, MobBookContents::new));
 
     // Sent to clients through the codec ("WithRegistries" because the type and variants are registry entries)
@@ -129,7 +131,7 @@ public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap app
     {
         if (breedingEnds > 0 && now >= breedingEnds)
         {
-            return new MobBookContents(type, appearance, adults + growing, 0, 0, 0L, nextDrop, grown + growing, regrowEnds);
+            return new MobBookContents(type, appearance, adults + growing, 0, 0, 0L, nextDrop, grown + growing, regrowEnds, milkReadyAt);
         }
         return this;
     }
@@ -143,8 +145,8 @@ public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap app
     // otherwise the look stays the first mob's.
     public MobBookContents withCaptured(EntityType<?> mob, DataComponentMap look)
     {
-        if (total() == 0) return new MobBookContents(Optional.of(mob), look, 1, 0, 0, 0L, 0L, 0, 0L);
-        return new MobBookContents(type, appearance, adults + 1, growing, fed, breedingEnds, nextDrop, grown, regrowEnds);
+        if (total() == 0) return new MobBookContents(Optional.of(mob), look, 1, 0, 0, 0L, 0L, 0, 0L, 0L);
+        return new MobBookContents(type, appearance, adults + 1, growing, fed, breedingEnds, nextDrop, grown, regrowEnds, milkReadyAt);
     }
 
     // How many breeding items can be eaten now: one per adult that hasn't eaten, and no more than would fit
@@ -161,7 +163,7 @@ public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap app
     {
         int newFed = fed + eaten;
         return new MobBookContents(type, appearance, adults, newFed / 2, newFed, now + ServerConfig.breedingCooldown(),
-                nextDrop, grown, regrowEnds);
+                nextDrop, grown, regrowEnds, milkReadyAt);
     }
 
     // `killed` adults removed. An emptied book forgets its type, so it can hold another kind.
@@ -169,32 +171,50 @@ public record MobBookContents(Optional<EntityType<?>> type, DataComponentMap app
     {
         int left = Math.max(0, adults - killed);
         if (left == 0 && growing == 0) return EMPTY;
-        return new MobBookContents(type, appearance, left, growing, Math.min(fed, left), breedingEnds, nextDrop, grown, regrowEnds);
+        return new MobBookContents(type, appearance, left, growing, Math.min(fed, left), breedingEnds, nextDrop, grown, regrowEnds, milkReadyAt);
     }
 
     // The egg/shed timer set to `tick` (0 stops it)
     public MobBookContents withNextDrop(long tick)
     {
-        return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, tick, grown, regrowEnds);
+        return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, tick, grown, regrowEnds, milkReadyAt);
     }
 
     // The grown-up babies' drops have been given (or the mob has none)
     public MobBookContents withGrownPaid()
     {
-        return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, nextDrop, 0, regrowEnds);
+        return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, nextDrop, 0, regrowEnds, milkReadyAt);
     }
 
     // Sheared at `now`: grows back after the configured time
     public MobBookContents withSheared(long now)
     {
         return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, nextDrop, grown,
-                now + ServerConfig.shearRegrowth());
+                now + ServerConfig.shearRegrowth(), milkReadyAt);
+    }
+
+    // Milked at `now`: can be milked again after the configured time (0 by default = straight away)
+    public MobBookContents withMilked(long now)
+    {
+        int cooldown = ServerConfig.milkCooldown();
+        return new MobBookContents(type, appearance, adults, growing, fed, breedingEnds, nextDrop, grown, regrowEnds,
+                cooldown > 0 ? now + cooldown : 0L);
+    }
+
+    public boolean milkWaiting(long now)
+    {
+        return milkReadyAt > 0 && now < milkReadyAt;
+    }
+
+    public long milkLeft(long now)
+    {
+        return milkWaiting(now) ? milkReadyAt - now : 0;
     }
 
     // A new look (dyed)
     public MobBookContents withAppearance(DataComponentMap look)
     {
-        return new MobBookContents(type, look, adults, growing, fed, breedingEnds, nextDrop, grown, regrowEnds);
+        return new MobBookContents(type, look, adults, growing, fed, breedingEnds, nextDrop, grown, regrowEnds, milkReadyAt);
     }
 
     // Ticks until the next eggs/shed (0 when not started)
