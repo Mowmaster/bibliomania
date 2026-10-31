@@ -1,0 +1,94 @@
+{
+  "variants": {
+    "facing=north,thickness=0": {
+      "model": "bibliomania:block/book/experience_book/thickness_0"
+    },
+    "facing=north,thickness=1": {
+      "model": "bibliomania:block/book/experience_book/thickness_1"
+    },
+    "facing=north,thickness=2": {
+      "model": "bibliomania:block/book/experience_book/thickness_2"
+    },
+    "facing=north,thickness=3": {
+      "model": "bibliomania:block/book/experience_book/thickness_3"
+    },
+    "facing=north,thickness=4": {
+      "model": "bibliomania:block/book/experience_book/thickness_4"
+    },
+    "facing=north,thickness=5": {
+      "model": "bibliomania:block/book/experience_book/thickness_5"
+    },
+    "facing=east,thickness=0": {
+      "model": "bibliomania:block/book/experience_book/thickness_0",
+      "y": 90
+    },
+    "facing=east,thickness=1": {
+      "model": "bibliomania:block/book/experience_book/thickness_1",
+      "y": 90
+    },
+    "facing=east,thickness=2": {
+      "model": "bibliomania:block/book/experience_book/thickness_2",
+      "y": 90
+    },
+    "facing=east,thickness=3": {
+      "model": "bibliomania:block/book/experience_book/thickness_3",
+      "y": 90
+    },
+    "facing=east,thickness=4": {
+      "model": "bibliomania:block/book/experience_book/thickness_4",
+      "y": 90
+    },
+    "facing=east,thickness=5": {
+      "model": "bibliomania:block/book/experience_book/thickness_5",
+      "y": 90
+    },
+    "facing=south,thickness=0": {
+      "model": "bibliomania:block/book/experience_book/thickness_0",
+      "y": 180
+    },
+    "facing=south,thickness=1": {
+      "model": "bibliomania:block/book/experience_book/thickness_1",
+      "y": 180
+    },
+    "facing=south,thickness=2": {
+      "model": "bibliomania:block/book/experience_book/thickness_2",
+      "y": 180
+    },
+    "facing=south,thickness=3": {
+      "model": "bibliomania:block/book/experience_book/thickness_3",
+      "y": 180
+    },
+    "facing=south,thickness=4": {
+      "model": "bibliomania:block/book/experience_book/thickness_4",
+      "y": 180
+    },
+    "facing=south,thickness=5": {
+      "model": "bibliomania:block/book/experience_book/thickness_5",
+      "y": 180
+    },
+    "facing=west,thickness=0": {
+      "model": "bibliomania:block/book/experience_book/thickness_0",
+      "y": 270
+    },
+    "facing=west,thickness=1": {
+      "model": "bibliomania:block/book/experience_book/thickness_1",
+      "y": 270
+    },
+    "facing=west,thickness=2": {
+      "model": "bibliomania:block/book/experience_book/thickness_2",
+      "y": 270
+    },
+    "facing=west,thickness=3": {
+      "model": "bibliomania:block/book/experience_book/thickness_3",
+      "y": 270
+    },
+    "facing=west,thickness=4": {
+      "model": "bibliomania:block/book/experience_book/thickness_4",
+      "y": 270
+    },
+    "facing=west,thickness=5": {
+      "model": "bibliomania:block/book/experience_book/thickness_5",
+      "y": 270
+    }
+  }
+}

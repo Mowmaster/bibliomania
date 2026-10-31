@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:leather",
+    "minecraft:leather",
+    "bibliomania:thread_twisted_wool",
+    "bibliomania:bookblock_starter",
+    "minecraft:bucket"
+  ],
+  "result": {
+    "id": "bibliomania:fluid_book"
+  }
+}

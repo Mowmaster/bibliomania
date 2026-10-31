@@ -31,6 +31,9 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.DEATH_BOOK.get());
                 output.accept(BlockRegistry.MOB_BOOK.get());
                 output.accept(BlockRegistry.ESSENCE_BOOK.get());
+                output.accept(BlockRegistry.FLUID_BOOK.get());
+                output.accept(BlockRegistry.EXPERIENCE_BOOK.get());
+                output.accept(BlockRegistry.ENERGY_BOOK.get());
                 // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
                 for (var item : ItemRegistry.MATERIALS) output.accept(item.get());
             }).build());

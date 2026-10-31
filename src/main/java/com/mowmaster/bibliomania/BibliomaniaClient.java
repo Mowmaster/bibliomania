@@ -4,6 +4,7 @@ import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
 import com.mowmaster.bibliomania.ClientSide.ClientMobBookTooltip;
 import com.mowmaster.bibliomania.ClientSide.MobBookRenderer;
+import com.mowmaster.bibliomania.ClientSide.StorageBookRenderer;
 import com.mowmaster.mowlib.client.SpinningItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -48,6 +49,8 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.MOB_BOOK.get(), MobBookRenderer::new);
         // The Book of Essence's mob (the same renderer: both block entities are IMobBookDisplay)
         event.registerBlockEntityRenderer(libBlockEntityRegistry.ESSENCE_BOOK.get(), MobBookRenderer::new);
+        // The fill sphere above the Books of Fluids, Experience and Energy
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_BOOK.get(), StorageBookRenderer::new);
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it

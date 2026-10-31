@@ -8,6 +8,11 @@ import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBlock;
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
+import com.mowmaster.bibliomania.ServerConfig;
+import com.mowmaster.mowlib.transport.TransportType;
+import com.mowmaster.mowlib.transport.TransportTypes;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookItem;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
 import net.minecraft.world.item.BlockItem;
@@ -21,6 +26,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 public class BlockRegistry
 {
@@ -40,6 +47,11 @@ public class BlockRegistry
     // The Bestiary: holds mobs, not items (its own block entity type and item, so not in BOOKS)
     public static final DeferredBlock<MobBookBlock> MOB_BOOK = registerMobBook("mob_book",
             properties -> new MobBookBlock(bookProperties(properties, SoundType.WOOD)));
+    // Books that store one MowLib transport type each (see StorageBookBlock / StorageBookBehaviours)
+    public static final DeferredBlock<StorageBookBlock> FLUID_BOOK = registerStorageBook("fluid_book", TransportTypes.FLUIDS, ServerConfig::fluidCapacity);
+    public static final DeferredBlock<StorageBookBlock> EXPERIENCE_BOOK = registerStorageBook("experience_book", TransportTypes.EXPERIENCE, ServerConfig::experienceCapacity);
+    public static final DeferredBlock<StorageBookBlock> ENERGY_BOOK = registerStorageBook("energy_book", TransportTypes.ENERGY, ServerConfig::energyCapacity);
+
     // The Book of Essence: for the mobs a Bestiary can't hold
     public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
             properties -> new EssenceBookBlock(bookProperties(properties, SoundType.WOOD)));
@@ -86,6 +98,17 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new EssenceBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    // A storage book for any transport type: the block, and its StorageBookItem. Another type (from another mod)
+    // gets a book the same way, plus a StorageBookBehaviours.register for what its clicks do.
+    // IntSupplier: a function returning an int, here the capacity, read from the config each time
+    public static DeferredBlock<StorageBookBlock> registerStorageBook(String name, Supplier<? extends TransportType<?>> type, IntSupplier capacity)
+    {
+        DeferredBlock<StorageBookBlock> toReturn = BCBLOCKS.registerBlock(name,
+                properties -> new StorageBookBlock(bookProperties(properties, SoundType.WOOD), type, capacity));
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new StorageBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

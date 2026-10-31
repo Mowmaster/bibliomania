@@ -87,6 +87,32 @@ public final class ServerConfig
             .comment("How much each size item raises the most mobs per spawn. Default 4.")
             .defineInRange("maxIncrease", 4, 0, Integer.MAX_VALUE);
 
+    // ---- [storage_books] Books of Fluids, Experience and Energy ----
+    static
+    {
+        BUILDER.pop().push("storage_books");
+    }
+
+    private static final ModConfigSpec.IntValue FLUID_CAPACITY = BUILDER
+            .comment("How much a Book of Fluids holds, in mB (1000 = a bucket). Default 64000.")
+            .defineInRange("fluidCapacity", 64000, 1000, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue EXPERIENCE_CAPACITY = BUILDER
+            .comment("How much a Book of Experience holds, in experience points (level 30 is 1395 points). Default 100000.")
+            .defineInRange("experienceCapacity", 100000, 1, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue EXPERIENCE_PULL_RANGE = BUILDER
+            .comment("How far (in blocks) a placed Book of Experience pulls experience orbs from. 0 = it doesn't. Default 8.")
+            .defineInRange("experiencePullRange", 8, 0, 32);
+
+    private static final ModConfigSpec.IntValue ENERGY_CAPACITY = BUILDER
+            .comment("How much a Book of Energy holds, in FE. Default 1000000.")
+            .defineInRange("energyCapacity", 1000000, 1, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue ENERGY_CHARGE_RATE = BUILDER
+            .comment("How much a Book of Energy in your inventory charges your other items, in FE a tick (all items together). Default 2000.")
+            .defineInRange("energyChargeRate", 2000, 0, Integer.MAX_VALUE);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -121,6 +147,12 @@ public final class ServerConfig
     public static double essenceSpeedPercent() { return get(ESSENCE_SPEED_PERCENT); }
     public static int essenceMinIncrease()     { return get(ESSENCE_MIN_INCREASE); }
     public static int essenceMaxIncrease()     { return get(ESSENCE_MAX_INCREASE); }
+
+    public static int fluidCapacity()          { return get(FLUID_CAPACITY); }
+    public static int experienceCapacity()     { return get(EXPERIENCE_CAPACITY); }
+    public static int experiencePullRange()    { return get(EXPERIENCE_PULL_RANGE); }
+    public static int energyCapacity()         { return get(ENERGY_CAPACITY); }
+    public static int energyChargeRate()       { return get(ENERGY_CHARGE_RATE); }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)
     {
