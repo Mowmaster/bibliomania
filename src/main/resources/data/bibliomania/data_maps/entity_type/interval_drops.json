@@ -1,0 +1,10 @@
+{
+  "values": {
+    "minecraft:chicken": {
+      "loot_table": "minecraft:gameplay/chicken_lay"
+    },
+    "minecraft:armadillo": {
+      "loot_table": "minecraft:gameplay/armadillo_shed"
+    }
+  }
+}

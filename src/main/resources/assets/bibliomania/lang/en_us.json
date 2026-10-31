@@ -10,6 +10,7 @@
   "tooltip.bibliomania.mob_book.growing": "+%1$s growing (%2$s)",
   "tooltip.bibliomania.mob_book.can_breed": "Can breed: %s",
   "tooltip.bibliomania.mob_book.breed_in": "Can breed in: %s",
+  "tooltip.bibliomania.mob_book.drop_in": "Next drops in: %s",
   "item.bibliomania.fibers_grass": "Fibers (Grass)",
   "item.bibliomania.fibers_wool": "Fibers (Wool)",
   "item.bibliomania.thread_twisted_grass": "Binding Thread (Twisted - Grass)",

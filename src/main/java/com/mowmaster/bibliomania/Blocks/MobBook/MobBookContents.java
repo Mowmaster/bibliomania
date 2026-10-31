@@ -16,17 +16,19 @@ import java.util.Optional;
 // - growing:       babies from the current breeding cycle; they become adults when the cooldown ends
 // - fed:           breeding items eaten this cycle (each adult eats at most one); babies = fed / 2
 // - breedingEnds:  the game tick the cooldown ends at (0 = no cooldown)
+// - nextDrop:      the game tick the adults next lay eggs/shed (0 = not started; only for mobs in
+//                  the bibliomania:interval_drops data map, see MobBookDrops)
 // Times are absolute game ticks (Level#getGameTime), so the cooldown runs out wherever the book is: placed, in an
 // inventory or in a chest. Nothing has to tick: settle(now) moves the grown babies into the adults when read.
 // Records are immutable, so every change returns a new copy (data components must never change in place).
-public record MobBookContents(Optional<EntityType<?>> type, int adults, int growing, int fed, long breedingEnds)
+public record MobBookContents(Optional<EntityType<?>> type, int adults, int growing, int fed, long breedingEnds, long nextDrop)
 {
     // Most mobs a book holds (adults + growing)
     public static final int MAX_MOBS = 256;
     // Breeding cooldown: 5 minutes (20 ticks a second)
     public static final int BREEDING_COOLDOWN = 5 * 60 * 20;
 
-    public static final MobBookContents EMPTY = new MobBookContents(Optional.empty(), 0, 0, 0, 0L);
+    public static final MobBookContents EMPTY = new MobBookContents(Optional.empty(), 0, 0, 0, 0L, 0L);
 
     // Saved as {"type": "minecraft:cow", "adults": 12, ...}; missing fields mean an empty book
     public static final Codec<MobBookContents> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -34,7 +36,8 @@ public record MobBookContents(Optional<EntityType<?>> type, int adults, int grow
                     Codec.INT.optionalFieldOf("adults", 0).forGetter(MobBookContents::adults),
                     Codec.INT.optionalFieldOf("growing", 0).forGetter(MobBookContents::growing),
                     Codec.INT.optionalFieldOf("fed", 0).forGetter(MobBookContents::fed),
-                    Codec.LONG.optionalFieldOf("breeding_ends", 0L).forGetter(MobBookContents::breedingEnds))
+                    Codec.LONG.optionalFieldOf("breeding_ends", 0L).forGetter(MobBookContents::breedingEnds),
+                    Codec.LONG.optionalFieldOf("next_drop", 0L).forGetter(MobBookContents::nextDrop))
             .apply(instance, MobBookContents::new));
 
     // Sent to clients through the codec ("WithRegistries" because the type is a registry entry)
@@ -86,7 +89,7 @@ public record MobBookContents(Optional<EntityType<?>> type, int adults, int grow
     // Once the cooldown has run out: babies are adults, and everyone can eat again
     public MobBookContents settle(long now)
     {
-        if (breedingEnds > 0 && now >= breedingEnds) return new MobBookContents(type, adults + growing, 0, 0, 0L);
+        if (breedingEnds > 0 && now >= breedingEnds) return new MobBookContents(type, adults + growing, 0, 0, 0L, nextDrop);
         return this;
     }
 
@@ -98,8 +101,8 @@ public record MobBookContents(Optional<EntityType<?>> type, int adults, int grow
     public MobBookContents withCaptured(EntityType<?> mob)
     {
         // An empty book takes on the new type (a book emptied of cows can hold sheep)
-        if (total() == 0) return new MobBookContents(Optional.of(mob), 1, 0, 0, 0L);
-        return new MobBookContents(type, adults + 1, growing, fed, breedingEnds);
+        if (total() == 0) return new MobBookContents(Optional.of(mob), 1, 0, 0, 0L, 0L);
+        return new MobBookContents(type, adults + 1, growing, fed, breedingEnds, nextDrop);
     }
 
     // How many breeding items can be eaten now: one per adult that hasn't eaten, and no more than would fit
@@ -115,7 +118,7 @@ public record MobBookContents(Optional<EntityType<?>> type, int adults, int grow
     public MobBookContents withFed(int eaten, long now)
     {
         int newFed = fed + eaten;
-        return new MobBookContents(type, adults, newFed / 2, newFed, now + BREEDING_COOLDOWN);
+        return new MobBookContents(type, adults, newFed / 2, newFed, now + BREEDING_COOLDOWN, nextDrop);
     }
 
     // `killed` adults removed. An emptied book forgets its type, so it can hold another kind.
@@ -123,6 +126,18 @@ public record MobBookContents(Optional<EntityType<?>> type, int adults, int grow
     {
         int left = Math.max(0, adults - killed);
         if (left == 0 && growing == 0) return EMPTY;
-        return new MobBookContents(type, left, growing, Math.min(fed, left), breedingEnds);
+        return new MobBookContents(type, left, growing, Math.min(fed, left), breedingEnds, nextDrop);
+    }
+
+    // The egg/shed timer set to `tick` (0 stops it)
+    public MobBookContents withNextDrop(long tick)
+    {
+        return new MobBookContents(type, adults, growing, fed, breedingEnds, tick);
+    }
+
+    // Ticks until the next eggs/shed (0 when not started)
+    public long dropLeft(long now)
+    {
+        return nextDrop > 0 ? Math.max(0, nextDrop - now) : 0;
     }
 }

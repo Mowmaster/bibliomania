@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -13,18 +14,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 // The Bestiary placed on the ground. It looks and sits like the other books (shape, facing, thickness from
 // BookBlock), but holds mobs instead of items, so the clicks are different:
 // - Right-click with the mobs' breeding food: breeds them (see MobBookContents for the rules)
 // - Left-click with a sword: kills one; sneak + left-click: kills 10% (at least one). Drops and XP land on the book.
 // - Sneak + right-click with an empty hand: picks the book up, mobs and all
+// - Chickens and other egg layers drop their eggs on the book every 7.5 minutes (MobBookDrops)
 // Mobs go in with the book item (right-click an animal with it, see MobBookItem).
 public class MobBookBlock extends BookBlock
 {
@@ -38,6 +43,17 @@ public class MobBookBlock extends BookBlock
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state)
     {
         return new MobBookBlockEntity(pos, state);
+    }
+
+    // Placed books tick on the server only (for egg laying, see MobBookBlockEntity#serverTick).
+    // getTicker is asked once when the block entity loads; returning null means it never ticks.
+    // <T extends BlockEntity> is a generic method: T is whatever block entity type the game asks about. We only
+    // return a ticker when it's ours, so the cast inside the lambda is safe.
+    @Override
+    public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type)
+    {
+        if (level.isClientSide() || type != libBlockEntityRegistry.MOB_BOOK.get()) return null;
+        return (tickLevel, pos, tickState, blockEntity) -> ((MobBookBlockEntity) blockEntity).serverTick((ServerLevel) tickLevel);
     }
 
     // No items go in

@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Blocks.MobBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -11,6 +12,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
@@ -24,6 +27,8 @@ import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -34,6 +39,7 @@ import java.util.function.Consumer;
 //     a sword, right-click:      kills one; the drops go into your inventory and the XP to you
 //   Clicking the book with anything else on the cursor plays the bundle "can't" sound; clicking the book (on the
 //   cursor) onto anything else just swaps them as normal.
+// - Egg layers (chickens...) lay into your inventory every 7.5 minutes while the book is in it (MobBookDrops).
 // - Tooltip: text lines (appendHoverText) for the mob, count, babies and breeding; the mob's spawn egg as a picture.
 public class MobBookItem extends BlockItem
 {
@@ -83,6 +89,22 @@ public class MobBookItem extends BlockItem
             target.discard(); // gone from the world, now a count in the book
         }
         return InteractionResult.SUCCESS;
+    }
+
+    // ---- Egg laying / shedding in a player's inventory (see MobBookDrops) ----
+
+    // Called every tick on the server for each item in an entity's inventory (26.x: only on the server, hence the
+    // ServerLevel; slot is the armour/hand slot it's in, or null for the rest of the inventory)
+    @Override
+    public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot)
+    {
+        super.inventoryTick(stack, level, entity, slot);
+        if (!(entity instanceof Player player) || stack.getCount() != 1) return;
+        MobBookDrops.Result result = MobBookDrops.tick(level, settled(stack, level), player.position());
+        if (result.contents() == null) return; // nothing changed (almost every tick)
+        setContents(stack, result.contents());
+        // Into the inventory; what doesn't fit drops at the player's feet
+        for (ItemStack item : result.items()) StorageInteractions.giveToPlayer(player, item);
     }
 
     // ---- Inventory clicks ----
@@ -185,6 +207,11 @@ public class MobBookItem extends BlockItem
         else if (contents.onCooldown(now))
         {
             tooltip.accept(line("breed_in", time(contents.cooldownLeft(now))).withStyle(ChatFormatting.GRAY));
+        }
+        // "Next drops in: 6:02" for egg layers (the timer starts on the first tick after capture)
+        if (contents.nextDrop() > 0 && MobBookDrops.hasDrops(contents))
+        {
+            tooltip.accept(line("drop_in", time(contents.dropLeft(now))).withStyle(ChatFormatting.GRAY));
         }
     }
 

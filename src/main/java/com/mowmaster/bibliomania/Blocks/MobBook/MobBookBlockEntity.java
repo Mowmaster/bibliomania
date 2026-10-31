@@ -11,6 +11,8 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
@@ -22,6 +24,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -85,6 +88,21 @@ public class MobBookBlockEntity extends BlockEntity
             // Sends getUpdatePacket() to nearby clients
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
         }
+    }
+
+    // ---- Egg laying / shedding (server, every tick; see MobBookDrops) ----
+
+    public void serverTick(ServerLevel serverLevel)
+    {
+        MobBookDrops.Result result = MobBookDrops.tick(serverLevel, getContents(), Vec3.atCenterOf(worldPosition));
+        if (result.contents() == null) return; // nothing changed (almost every tick)
+        // popResource drops an item in the block space with a little random spread, like a broken block's drops
+        for (ItemStack stack : result.items()) Block.popResource(serverLevel, worldPosition, stack);
+        if (!result.items().isEmpty())
+        {
+            serverLevel.playSound(null, worldPosition, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 0.8f, 1.2f);
+        }
+        setContents(result.contents());
     }
 
     // ---- Display mobs (client) ----
