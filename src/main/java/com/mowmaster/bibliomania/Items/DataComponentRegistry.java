@@ -11,6 +11,7 @@ import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+import java.util.List;
 import java.util.function.Supplier;
 
 // Bibliomania's data components. The item books use MowLib's mowlib:paged_contents; this register also keeps old
@@ -41,6 +42,12 @@ public class DataComponentRegistry
     // Codec.BOOL saves it as true/false; ByteBufCodecs.BOOL sends it as one byte.
     public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
             "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+
+    // The Breakfast Club: for each slot, the uses left of the cake (or other edible block) being eaten there;
+    // 0 = none started. A list of whole numbers: saved as [5, 0, 0, ...]; sent as a list of variable-length ints.
+    public static final Supplier<DataComponentType<List<Integer>>> USES_LEFT = COMPONENTS.registerComponentType(
+            "uses_left", builder -> builder.persistent(Codec.INT.listOf())
+                    .networkSynchronized(ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list())));
 
     public static void register(IEventBus eventBus)
     {
