@@ -1,0 +1,8 @@
+{
+  "values": {
+    "minecraft:turtle": {
+      "item": "minecraft:turtle_scute",
+      "count": 1
+    }
+  }
+}

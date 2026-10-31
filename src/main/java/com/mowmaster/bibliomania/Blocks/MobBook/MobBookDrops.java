@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania.Blocks.MobBook;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -11,6 +12,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -25,16 +27,16 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-// Mobs that lay eggs or shed something on their own (chickens, armadillos...) keep doing it in a Bestiary:
-// every DROP_INTERVAL ticks, each stored adult rolls its loot table once. A placed book drops the items on itself;
-// a book in a player's inventory puts them in the inventory (see MobBookBlockEntity#serverTick, MobBookItem#inventoryTick).
-//
-// Which mobs, and which loot table, comes from a NeoForge "data map": a JSON file that attaches a value to registry
-// entries, here entity types. Ours is data/<any namespace>/data_maps/entity_type/interval_drops.json:
-//   { "values": { "minecraft:chicken": { "loot_table": "minecraft:gameplay/chicken_lay" } } }
-// Datapacks and other mods can add their own mobs to it without code. The tables are vanilla's own egg/scute tables,
-// so a chicken's egg follows the same rules as a real chicken's.
+// Mobs that make items on their own keep doing it in a Bestiary. Two kinds, each a NeoForge "data map" (a JSON file
+// that attaches a value to registry entries, here entity types), so datapacks and other mods can add mobs without code:
+// - interval_drops: every DROP_INTERVAL ticks, each stored adult drops once (chickens lay eggs, armadillos shed scutes).
+//     data/<any namespace>/data_maps/entity_type/interval_drops.json
+// - grow_up_drops:  each baby that grows into an adult drops once (turtles drop a turtle scute).
+//     data/<any namespace>/data_maps/entity_type/grow_up_drops.json
+// A placed book drops the items on itself; a book in a player's inventory puts them in the inventory
+// (MobBookBlockEntity#serverTick, MobBookItem#inventoryTick both call tick() below).
 //
 // @EventBusSubscriber: NeoForge sees that RegisterDataMapTypesEvent is a mod bus event and puts it there.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
@@ -45,44 +47,56 @@ public final class MobBookDrops
     // 7.5 minutes (20 ticks a second)
     public static final int DROP_INTERVAL = 9000;
 
-    // The data map's value: the loot table to roll
-    public record IntervalDrop(ResourceKey<LootTable> lootTable)
+    // What one mob drops: a loot table, an item, or both. In JSON:
+    //   {"loot_table": "minecraft:gameplay/chicken_lay"}
+    //   {"item": "minecraft:turtle_scute", "count": 1}       (count is optional, default 1)
+    //   "minecraft:gameplay/chicken_lay"                      (just a loot table id)
+    // Optional<...> fields: optionalFieldOf leaves them empty when the key isn't in the JSON.
+    public record MobDrop(Optional<ResourceKey<LootTable>> lootTable, Optional<Holder<Item>> item, int count)
     {
-        // {"loot_table": "minecraft:gameplay/chicken_lay"}, or just the id as a string
-        // (Codec.withAlternative tries the first form, then the second; NeoForge's RaidHeroGift does the same)
-        public static final Codec<IntervalDrop> ID_CODEC = ResourceKey.codec(Registries.LOOT_TABLE)
-                .xmap(IntervalDrop::new, IntervalDrop::lootTable);
-        public static final Codec<IntervalDrop> CODEC = Codec.withAlternative(
-                RecordCodecBuilder.create(instance -> instance.group(
-                                ResourceKey.codec(Registries.LOOT_TABLE).fieldOf("loot_table").forGetter(IntervalDrop::lootTable))
-                        .apply(instance, IntervalDrop::new)),
-                ID_CODEC);
+        private static final Codec<MobDrop> FULL_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                        ResourceKey.codec(Registries.LOOT_TABLE).optionalFieldOf("loot_table").forGetter(MobDrop::lootTable),
+                        BuiltInRegistries.ITEM.holderByNameCodec().optionalFieldOf("item").forGetter(MobDrop::item),
+                        Codec.INT.optionalFieldOf("count", 1).forGetter(MobDrop::count))
+                .apply(instance, MobDrop::new));
+        private static final Codec<MobDrop> TABLE_ID_CODEC = ResourceKey.codec(Registries.LOOT_TABLE)
+                .xmap(table -> new MobDrop(Optional.of(table), Optional.empty(), 1),
+                        drop -> drop.lootTable().orElseThrow());
+        // Codec.withAlternative reads the first form, or if that fails the second (NeoForge's RaidHeroGift does the same)
+        public static final Codec<MobDrop> CODEC = Codec.withAlternative(FULL_CODEC, TABLE_ID_CODEC);
     }
 
-    public static final DataMapType<EntityType<?>, IntervalDrop> INTERVAL_DROPS = DataMapType.builder(
-                    Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "interval_drops"), Registries.ENTITY_TYPE,
-                    IntervalDrop.CODEC)
-            // Sent to clients too (for the tooltip timer); not required, so clients without it can still join
-            .synced(IntervalDrop.CODEC, false)
-            .build();
+    public static final DataMapType<EntityType<?>, MobDrop> INTERVAL_DROPS = dataMap("interval_drops");
+    public static final DataMapType<EntityType<?>, MobDrop> GROW_UP_DROPS = dataMap("grow_up_drops");
+
+    private static DataMapType<EntityType<?>, MobDrop> dataMap(String name)
+    {
+        return DataMapType.builder(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, name),
+                        Registries.ENTITY_TYPE, MobDrop.CODEC)
+                // Sent to clients too (for the tooltip timer); not required, so clients without it can still join
+                .synced(MobDrop.CODEC, false)
+                .build();
+    }
 
     @SubscribeEvent
     public static void register(RegisterDataMapTypesEvent event)
     {
         event.register(INTERVAL_DROPS);
+        event.register(GROW_UP_DROPS);
     }
 
-    // The mob's entry, or null if it doesn't lay/shed anything. wrapAsHolder gives the registry entry for the type,
+    // The mob's entry in a data map, or null if it has none. wrapAsHolder gives the registry entry for the type,
     // and NeoForge adds getData to holders.
     @Nullable
-    public static IntervalDrop dropFor(EntityType<?> type)
+    private static MobDrop dropFor(DataMapType<EntityType<?>, MobDrop> map, EntityType<?> type)
     {
-        return BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).getData(INTERVAL_DROPS);
+        return BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).getData(map);
     }
 
+    // Whether the book's mob has interval drops (for the tooltip)
     public static boolean hasDrops(MobBookContents contents)
     {
-        return contents.type().isPresent() && dropFor(contents.type().get()) != null;
+        return contents.type().isPresent() && dropFor(INTERVAL_DROPS, contents.type().get()) != null;
     }
 
     // The result of a tick: the contents to keep (null = unchanged) and the items made (often none)
@@ -90,45 +104,70 @@ public final class MobBookDrops
     private static final Result NOTHING = new Result(null, List.of());
 
     // Called every tick for a placed book and for a book in a player's inventory (server only).
-    // - A mob with drops and no timer yet: start the timer
-    // - Timer done: each adult rolls the loot table once, and the timer restarts
-    // - A mob without drops but with a timer (e.g. the chickens were all killed and cows went in): stop the timer
+    // `contents` must be settled (so babies that grew up are counted in grown()).
     public static Result tick(ServerLevel level, MobBookContents contents, Vec3 at)
     {
+        if (contents.type().isEmpty()) return NOTHING;
+        EntityType<?> type = contents.type().get();
         long now = level.getGameTime();
-        IntervalDrop drop = contents.type().isPresent() && contents.adults() > 0 ? dropFor(contents.type().get()) : null;
+        MobBookContents updated = contents;
+        List<ItemStack> items = new ArrayList<>();
+
+        // Grown-up babies: pay out their drops once, then clear the count (also for mobs without any)
+        if (updated.grown() > 0)
+        {
+            MobDrop drop = dropFor(GROW_UP_DROPS, type);
+            if (drop != null) roll(level, type, drop, updated.grown(), at, items);
+            updated = updated.withGrownPaid();
+        }
+
+        // Interval drops:
+        // - a mob with drops and no timer yet: start the timer
+        // - timer done: each adult drops once, and the timer restarts
+        // - a mob without drops but with a timer (e.g. the chickens were all killed and cows went in): stop the timer
+        MobDrop drop = updated.adults() > 0 ? dropFor(INTERVAL_DROPS, type) : null;
         if (drop == null)
         {
-            return contents.nextDrop() != 0 ? new Result(contents.withNextDrop(0), List.of()) : NOTHING;
+            if (updated.nextDrop() != 0) updated = updated.withNextDrop(0);
         }
-        if (contents.nextDrop() == 0) return new Result(contents.withNextDrop(now + DROP_INTERVAL), List.of());
-        if (now < contents.nextDrop()) return NOTHING;
+        else if (updated.nextDrop() == 0)
+        {
+            updated = updated.withNextDrop(now + DROP_INTERVAL);
+        }
+        else if (now >= updated.nextDrop())
+        {
+            roll(level, type, drop, updated.adults(), at, items);
+            updated = updated.withNextDrop(now + DROP_INTERVAL);
+        }
 
-        List<ItemStack> items = roll(level, contents.type().get(), drop, contents.adults(), at);
-        return new Result(contents.withNextDrop(now + DROP_INTERVAL), items);
+        // Records are compared by reference here: every with...() makes a new one, so "same object" = no change
+        return updated == contents ? NOTHING : new Result(updated, items);
     }
 
-    // Rolls the table `times` times for a temporary mob of `type` standing at `at` (like a real chicken laying),
-    // and merges the results into as few stacks as possible.
-    private static List<ItemStack> roll(ServerLevel level, EntityType<?> type, IntervalDrop drop, int times, Vec3 at)
+    // `times` mobs of `type` at `at` each drop once; the items are merged into `into` (as few stacks as possible)
+    private static void roll(ServerLevel level, EntityType<?> type, MobDrop drop, int times, Vec3 at, List<ItemStack> into)
     {
-        List<ItemStack> merged = new ArrayList<>();
-        Entity mob = MobBookActions.createTemporary(type, level, EntitySpawnReason.TRIGGERED);
-        if (mob == null) return merged;
-        mob.setPos(at.x, at.y, at.z);
+        // A fixed item: count per mob
+        drop.item().ifPresent(item -> {
+            for (int i = 0; i < times; i++) merge(into, new ItemStack(item, drop.count()));
+        });
+        if (drop.lootTable().isEmpty()) return;
 
+        // A loot table, rolled for a temporary mob standing at `at` (like a real chicken laying)
+        Entity mob = MobBookActions.createTemporary(type, level, EntitySpawnReason.TRIGGERED);
+        if (mob == null) return;
+        mob.setPos(at.x, at.y, at.z);
         // The same calls vanilla's fishing hook makes. "Gift" is the loot context vanilla uses for chicken eggs and
-        // armadillo scutes: the place (ORIGIN) and the mob (THIS_ENTITY, so e.g. a cold chicken could lay blue eggs).
-        LootTable table = level.getServer().reloadableRegistries().getLootTable(drop.lootTable());
+        // armadillo scutes: the place (ORIGIN) and the mob (THIS_ENTITY).
+        LootTable table = level.getServer().reloadableRegistries().getLootTable(drop.lootTable().get());
         LootParams params = new LootParams.Builder(level)
                 .withParameter(LootContextParams.ORIGIN, at)
                 .withParameter(LootContextParams.THIS_ENTITY, mob)
                 .create(LootContextParamSets.GIFT);
         for (int i = 0; i < times; i++)
         {
-            for (ItemStack stack : table.getRandomItems(params)) merge(merged, stack);
+            for (ItemStack stack : table.getRandomItems(params)) merge(into, stack);
         }
-        return merged;
     }
 
     // Adds `stack` to the list, topping up matching stacks first
