@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
@@ -39,7 +40,8 @@ public class DeathBookBlock extends BookBlock
     protected void pickUp(ServerLevel level, BlockPos pos, BlockState state, BookBlockEntity book, Player player)
     {
         ItemStack stack;
-        while (!(stack = book.getItems().extractStack(Integer.MAX_VALUE)).isEmpty())
+        // MowLib's StorageInteractions.extractStack: up to a stack at a time from the last page holding something
+        while (!(stack = StorageInteractions.extractStack(book.getItems(), Integer.MAX_VALUE)).isEmpty())
         {
             Containers.dropItemStack(level, pos.getX(), pos.getY() + 0.5, pos.getZ(), stack);
         }

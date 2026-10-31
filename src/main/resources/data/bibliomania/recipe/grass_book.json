@@ -10,7 +10,7 @@
   "result": {
     "id": "bibliomania:grass_book",
     "components": {
-      "bibliomania:book_contents": {
+      "mowlib:paged_contents": {
         "pages": 8
       }
     }

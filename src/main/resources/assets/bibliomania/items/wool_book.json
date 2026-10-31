@@ -1,7 +1,7 @@
 {
   "model": {
     "type": "minecraft:range_dispatch",
-    "property": "bibliomania:book_fullness",
+    "property": "mowlib:paged_fullness",
     "fallback": {
       "type": "minecraft:model",
       "model": "bibliomania:item/book/wool_book/size_0",

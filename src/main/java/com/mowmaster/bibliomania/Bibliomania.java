@@ -33,6 +33,8 @@ import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.CreativeTabRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
+import com.mowmaster.bibliomania.EventHandlers.BibliomaniaBonusDrops;
+import com.mowmaster.bibliomania.EventHandlers.BibliomaniaKnapping;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(Bibliomania.MODID)
@@ -50,7 +52,7 @@ public class Bibliomania {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
-        // Our own registers (blocks, their items, block entities, item data, recipes, the creative tab)
+        // Our own registers (blocks, their items, block entities, the old item data id alias, the creative tab)
         ItemRegistry.register(modEventBus);
         BlockRegistry.register(modEventBus);
         libBlockEntityRegistry.register(modEventBus);
@@ -73,6 +75,11 @@ public class Bibliomania {
     private void commonSetup(FMLCommonSetupEvent event) {
         // Some common setup code
         LOGGER.info("HELLO FROM COMMON SETUP");
+
+        // Knapping recipes and bonus drops for MowLib's handlers. enqueueWork runs them on the main thread (setup
+        // events can run on several threads at once).
+        event.enqueueWork(BibliomaniaKnapping::register);
+        event.enqueueWork(BibliomaniaBonusDrops::register);
 
         if (Config.LOG_DIRT_BLOCK.getAsBoolean()) {
             LOGGER.info("DIRT BLOCK >> {}", BuiltInRegistries.BLOCK.getKey(Blocks.DIRT));

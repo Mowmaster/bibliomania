@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.BibliomaniaTags;
+import com.mowmaster.mowlib.items.tools.CraftingToolItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ToolMaterial;
 import net.neoforged.bus.api.IEventBus;
@@ -28,15 +29,15 @@ public class ItemRegistry {
     public static final DeferredItem<Item> BOOKBLOCK_STARTER = CBITEMS.registerSimpleItem("bookblock_starter");
 
     // ---- Knife ----
-    // Parts are knapped with flint in both hands (see KnappingHandler), then crafted together
+    // Parts are knapped with flint in both hands (MowLib's KnappingHandler; recipes in BibliomaniaKnapping), then crafted together
 
     public static final DeferredItem<Item> KNIFEPART_BLADE_STONE = CBITEMS.registerSimpleItem("knifepart_blade_stone");
     public static final DeferredItem<Item> KNIFEPART_HANDLE_OAK = CBITEMS.registerSimpleItem("knifepart_handle_oak");
     // Stone durability and enchantability; 0.5 attack damage and -2 attack speed as in 1.20.
     // Item.Properties#tool sets the TOOL (mining), WEAPON and attribute components and makes it unstackable.
     // The last argument is how many seconds a hit disables a shield for (0: knives don't).
-    public static final DeferredItem<KnifeItem> KNIFE_STONE = CBITEMS.registerItem("knife_stone",
-            properties -> new KnifeItem(properties.tool(ToolMaterial.STONE, BibliomaniaTags.MINEABLE_WITH_KNIFE, 0.5f, -2.0f, 0f)));
+    public static final DeferredItem<CraftingToolItem> KNIFE_STONE = CBITEMS.registerItem("knife_stone",
+            properties -> new CraftingToolItem(properties.tool(ToolMaterial.STONE, BibliomaniaTags.MINEABLE_WITH_KNIFE, 0.5f, -2.0f, 0f)));
 
     // In creative tab order
     public static final List<DeferredItem<? extends Item>> MATERIALS = List.of(

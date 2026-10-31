@@ -1,24 +1,25 @@
 package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Blocks.Book.BookContents;
-import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
-import java.util.function.Supplier;
-
-// Data components replace item NBT since 1.20.5: each piece of item data is its own typed, registered component
+// Bibliomania registers no data components of its own any more: books use MowLib's mowlib:paged_contents.
+// This register stays only to keep old worlds working: books saved with "bibliomania:book_contents" load as
+// "mowlib:paged_contents" (same format). An alias only applies because the old name is no longer registered.
 public class DataComponentRegistry
 {
     public static final DeferredRegister.DataComponents COMPONENTS =
             DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, BibliomaniaReferences.MODID);
 
-    // persistent = saved with the item; with no networkSynchronized codec, the same codec is used to sync it to
-    // clients (they need it for the item model's thickness)
-    public static final Supplier<DataComponentType<BookContents>> BOOK_CONTENTS = COMPONENTS.registerComponentType(
-            "book_contents", builder -> builder.persistent(BookContents.CODEC));
+    // A static block runs once, when the class is first used: before register() below, as aliases must be
+    static
+    {
+        COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "book_contents"),
+                Identifier.fromNamespaceAndPath("mowlib", "paged_contents"));
+    }
 
     public static void register(IEventBus eventBus)
     {

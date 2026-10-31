@@ -1,16 +1,18 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
-import com.mowmaster.bibliomania.Items.DataComponentRegistry;
-import com.mowmaster.bibliomania.StorageHandler.libBulkItemHandler;
-import com.mowmaster.bibliomania.TintHandler.ITintHolder;
-import com.mowmaster.bibliomania.TintHandler.libTintData;
-import com.mowmaster.bibliomania.TintHandler.libTintBlockEntity;
+import com.mowmaster.mowlib.display.ISpinningItemHolder;
+import com.mowmaster.mowlib.paging.IPageHolder;
+import com.mowmaster.mowlib.paging.PagedContents;
+import com.mowmaster.mowlib.paging.PagedStorage;
+import com.mowmaster.mowlib.registry.MowLibDataComponents;
+import com.mowmaster.mowlib.storage.CBBulkItemHandler;
+import com.mowmaster.mowlib.tint.CBTintData;
+import com.mowmaster.mowlib.tint.ITintHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -18,31 +20,20 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.DyedItemColor;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.transfer.item.ItemResource;
-import net.neoforged.neoforge.transfer.resource.ResourceStack;
-import net.neoforged.neoforge.transfer.transaction.Transaction;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
-// The block entity for every book. Each page is one slot of a libBulkItemHandler: one kind of item, up to the
-// block's page capacity, ignoring normal stack sizes. Only the open page can be filled or emptied by hand.
-// Books are manual only for now (no hopper/pipe capability); lecterns and shelves will add automation later.
-public class BookBlockEntity extends BlockEntity implements ITintHolder
+// The block entity for every book. The pages are a MowLib PagedStorage (one item type per page, up to the block's
+// page capacity), the cover colour a MowLib CBTintData. IPageHolder lets MowLib's page keys turn the open page;
+// ISpinningItemHolder makes MowLib's SpinningItemRenderer show the open page's item above the book.
+// Only the open page can be filled or emptied by hand. Saved data is the same as before the switch to MowLib.
+public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHolder, ISpinningItemHolder
 {
-    private static final String TAG_PAGES = "pages";
-    private static final String TAG_PAGE = "page";
-
-    private final libTintData tints;
-    // Not final: the page count comes from the item when the book is placed, so the handler is rebuilt then
-    private libBulkItemHandler items;
-    private int page = 0;
+    private final CBTintData tints;
+    private final PagedStorage pages;
     // Set while the book is being picked up, so removing the block doesn't also drop it
     private boolean pickedUp = false;
 
@@ -50,8 +41,8 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
     {
         super(libBlockEntityRegistry.BOOK.get(), pos, state);
         BookBlock block = (BookBlock) state.getBlock();
-        this.tints = new libTintData(this, block.getTintRegionCount());
-        this.items = newHandler(block.defaultPages());
+        this.tints = new CBTintData(this, block.getTintRegionCount());
+        this.pages = new PagedStorage(this, block.pageCapacity(), block.defaultPages(), block::accepts, this::onItemsChanged);
     }
 
     private BookBlock block()
@@ -59,94 +50,32 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
         return (BookBlock) getBlockState().getBlock();
     }
 
-    private libBulkItemHandler newHandler(int pages)
-    {
-        BookBlock block = block();
-        return new libBulkItemHandler(pages, block.pageCapacity(), block::accepts, this::onItemsChanged);
-    }
+    // ---- Pages (IPageHolder and the book's own clicks) ----
 
-    // ---- Pages ----
+    public CBBulkItemHandler getItems() { return pages.getItems(); }
+    @Override public int getPage() { return pages.getPage(); }
+    @Override public int getPageCount() { return pages.getPageCount(); }
+    @Override public void setPage(int page) { pages.setPage(page); }
 
-    public libBulkItemHandler getItems()
-    {
-        return items;
-    }
+    public ItemStack getOpenPageStack() { return pages.getOpenPageStack(); }
+    public int insertIntoOpenPage(ItemStack stack) { return pages.insertIntoOpenPage(stack); }
+    public ItemStack extractFromOpenPage(int maxAmount) { return pages.extractFromOpenPage(maxAmount); }
 
-    public int getPage()
-    {
-        return page;
-    }
+    // ---- The spinning item (ISpinningItemHolder, drawn by MowLib's SpinningItemRenderer) ----
 
-    public int getPageCount()
-    {
-        return items.size();
-    }
+    @Override public ItemStack getDisplayedItem() { return pages.getOpenPageStack(); }
 
-    // Moves forward (+1) or back (-1), wrapping round at either end
-    public void turnPage(int direction)
-    {
-        // Math.floorMod keeps the result positive: floorMod(-1, 8) is 7, where -1 % 8 would be -1
-        setPage(Math.floorMod(page + direction, getPageCount()));
-    }
+    // Just above the pages, which rise with the thickness (the thickness is in the block state, which clients have)
+    @Override public double getDisplayHeight() { return (getBlockState().getValue(BookBlock.THICKNESS) + 4) / 16.0; }
 
-    public void setPage(int newPage)
-    {
-        page = Math.floorMod(newPage, getPageCount());
-        setChanged();
-        sync();
-    }
+    @Override public float getDisplayScale() { return 1.5f; }
 
-    // What the open page holds, as a normal ItemStack (for the renderer); at most one stack's worth
-    public ItemStack getOpenPageStack()
-    {
-        ItemResource resource = items.getResource(page);
-        if (resource.isEmpty()) return ItemStack.EMPTY;
-        return resource.toStack((int) Math.min(items.getAmountAsLong(page), resource.getMaxStackSize()));
-    }
-
-    // Puts as much of the stack as fits into the open page (does not change the stack). Returns how many went in.
-    public int insertIntoOpenPage(ItemStack stack)
-    {
-        if (stack.isEmpty()) return 0;
-        // try-with-resources: the transaction is closed (and undone if not committed) at the end of the block
-        try (Transaction transaction = Transaction.openRoot())
-        {
-            int inserted = items.insert(page, ItemResource.of(stack), stack.getCount(), transaction);
-            transaction.commit();
-            return inserted;
-        }
-    }
-
-    // Takes up to maxAmount (and at most one normal stack) out of the open page
-    public ItemStack extractFromOpenPage(int maxAmount)
-    {
-        ItemResource resource = items.getResource(page);
-        if (resource.isEmpty()) return ItemStack.EMPTY;
-        int amount = Math.min(maxAmount, resource.getMaxStackSize());
-        try (Transaction transaction = Transaction.openRoot())
-        {
-            int extracted = items.extract(page, resource, amount, transaction);
-            transaction.commit();
-            return resource.toStack(extracted);
-        }
-    }
-
+    // Contents changed: the book gets thicker or thinner (PagedStorage has already saved and synced)
     private void onItemsChanged()
     {
-        setChanged();
         if (level != null && !level.isClientSide())
         {
-            block().updateThickness(level, worldPosition, getBlockState(), items.fullness());
-            sync();
-        }
-    }
-
-    // Sends getUpdatePacket() to nearby clients, so the renderer shows the open page's item
-    private void sync()
-    {
-        if (level != null && !level.isClientSide())
-        {
-            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+            block().updateThickness(level, worldPosition, getBlockState(), pages.getItems().fullness());
         }
     }
 
@@ -178,11 +107,10 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
     protected void applyImplicitComponents(DataComponentGetter components)
     {
         super.applyImplicitComponents(components);
-        BookContents contents = components.get(DataComponentRegistry.BOOK_CONTENTS.get());
-        if (contents != null) loadContents(contents);
-
-        DyedItemColor dyed = components.get(DataComponents.DYED_COLOR);
-        if (dyed != null && getTintRegionCount() > 0) tints.setColor(0, dyed.rgb());
+        PagedContents contents = components.get(MowLibDataComponents.PAGED_CONTENTS.get());
+        if (contents != null) pages.load(contents);
+        // The item's dyed_color onto the cover (does nothing for books without a dyeable cover: no regions)
+        tints.applyItemColor(components, 0);
     }
 
     // Block turned into an item (picked up, or creative pick-block with Ctrl)
@@ -190,28 +118,9 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
     protected void collectImplicitComponents(DataComponentMap.Builder components)
     {
         super.collectImplicitComponents(components);
-        components.set(DataComponentRegistry.BOOK_CONTENTS.get(), new BookContents(getPageCount(), page, items.copyToList()));
-        if (getTintRegionCount() > 0 && tints.getColor(0) != libTintBlockEntity.UNDYED)
-        {
-            components.set(DataComponents.DYED_COLOR, new DyedItemColor(tints.getColor(0)));
-        }
-    }
-
-    private int getTintRegionCount()
-    {
-        return block().getTintRegionCount();
-    }
-
-    private void loadContents(BookContents contents)
-    {
-        items = newHandler(contents.pages());
-        List<ResourceStack<ItemResource>> stacks = contents.stacks();
-        for (int index = 0; index < Math.min(stacks.size(), contents.pages()); index++)
-        {
-            ResourceStack<ItemResource> stack = stacks.get(index);
-            if (!stack.isEmpty()) items.set(index, stack.resource(), stack.amount());
-        }
-        page = Math.floorMod(contents.page(), contents.pages());
+        components.set(MowLibDataComponents.PAGED_CONTENTS.get(), pages.toContents());
+        // The cover colour onto the item as dyed_color (nothing if undyed)
+        tints.collectItemColor(components);
     }
 
     // ---- Removed by anything other than a pickup (explosion, /setblock...): drop the book with its contents ----
@@ -223,16 +132,14 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
         Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), toItem());
     }
 
-    // ---- Saving ----
+    // ---- Saving (keys "color", "pages", "page", "stacks": unchanged) ----
 
     @Override
     protected void saveAdditional(ValueOutput output)
     {
         super.saveAdditional(output);
         tints.save(output);
-        output.putInt(TAG_PAGES, getPageCount());
-        output.putInt(TAG_PAGE, page);
-        items.serialize(output);
+        pages.save(output);
     }
 
     @Override
@@ -240,10 +147,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder
     {
         super.loadAdditional(input);
         tints.load(input);
-        items = newHandler(input.getIntOr(TAG_PAGES, block().defaultPages()));
-        // deserialize replaces the slot list with the saved one (and its size)
-        items.deserialize(input);
-        page = Math.floorMod(input.getIntOr(TAG_PAGE, 0), getPageCount());
+        pages.load(input);
     }
 
     // ---- Syncing to clients: everything, so the renderer knows the open page and the colour ----

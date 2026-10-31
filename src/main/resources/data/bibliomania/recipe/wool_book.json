@@ -10,7 +10,7 @@
   "result": {
     "id": "bibliomania:wool_book",
     "components": {
-      "bibliomania:book_contents": {
+      "mowlib:paged_contents": {
         "pages": 8
       }
     }

@@ -1,10 +1,11 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
-import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
+import com.mowmaster.mowlib.tint.IColorableBlock;
 
 // A book with a dyeable cover (wool, leather). The colour lives in the BookBlockEntity and travels with the item as
-// minecraft:dyed_color. Dye it in a crafting grid (book + dyes, see BookDyeRecipe); in-world dyeing isn't possible
-// because right-clicking with a dye stores it, and sneaking with an item in hand skips the block entirely.
+// minecraft:dyed_color. Dye it in a crafting grid (book + dyes: MowLib's mowlib:colorable_dye, via the
+// #mowlib:dyeable_in_crafting tag), or right-click it with MowLib's Color Palette. Plain dyes right-clicked on the
+// book are stored, like any other item.
 // The cover's model faces use tintindex 0. newBlockEntity comes from BookBlock (a superclass method beats the
 // interface's default), so this still gets a BookBlockEntity.
 public class TintableBookBlock extends BookBlock implements IColorableBlock

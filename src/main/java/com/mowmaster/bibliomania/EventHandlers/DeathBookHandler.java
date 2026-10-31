@@ -5,7 +5,8 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
-import com.mowmaster.bibliomania.StorageHandler.libBulkItemHandler;
+import com.mowmaster.mowlib.storage.CBBulkItemHandler;
+import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -67,15 +68,16 @@ public class DeathBookHandler
         bookDrop.getItem().shrink(1);
         if (bookDrop.getItem().isEmpty()) drops.remove(bookDrop);
 
-        libBulkItemHandler items = book.getItems();
-        items.insertStack(playerHead(player));
+        CBBulkItemHandler items = book.getItems();
+        // MowLib's StorageInteractions.insertStack: pages already holding the same item first, then empty ones
+        StorageInteractions.insertStack(items, playerHead(player), false);
 
         // An Iterator lets us remove entries from the collection while looping over it
         Iterator<ItemEntity> iterator = drops.iterator();
         while (iterator.hasNext())
         {
             ItemStack stack = iterator.next().getItem();
-            int inserted = items.insertStack(stack);
+            int inserted = StorageInteractions.insertStack(items, stack, false);
             stack.shrink(inserted); // the drop keeps whatever didn't fit
             if (stack.isEmpty()) iterator.remove();
         }

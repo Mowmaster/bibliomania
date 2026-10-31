@@ -1,4 +1,4 @@
-package java.com.mowmaster.bibliomania.EventHandlers;
+package com.mowmaster.bibliomania.EventHandlers;
 
 import com.mowmaster.bibliomania.Items.ItemRegistry;
 import com.mowmaster.mowlib.knapping.KnappingRecipe;

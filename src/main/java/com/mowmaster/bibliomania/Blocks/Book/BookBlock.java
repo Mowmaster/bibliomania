@@ -1,6 +1,11 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
-import com.mowmaster.bibliomania.TintHandler.libPixelBox;
+import com.mowmaster.mowlib.items.CBColorPickerItem;
+import com.mowmaster.mowlib.paging.PageArrows;
+import com.mowmaster.mowlib.storage.StorageInteractions;
+import com.mowmaster.mowlib.tint.IColorableBlock;
+import com.mowmaster.mowlib.tint.IDyeSource;
+import com.mowmaster.mowlib.util.CBPixelBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -33,7 +38,6 @@ import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.neoforge.transfer.item.ItemResource;
@@ -46,7 +50,8 @@ import java.util.Map;
 
 // A book lying open on the ground that stores items, one kind per page.
 // - Right-click the arrow in a top corner: turn the page back (left arrow) or forward (right arrow)
-// - Right-click with an item: stores as much as fits on the open page
+// - Right-click with an item: stores as much as fits on the open page (MowLib's Color Palette dyes a dyeable cover
+//   instead, and its colour picker reads the cover colour)
 // - Left-click: takes 1 from the open page; sneak + left-click: a full stack
 // - Sneak + right-click with an empty hand: picks the book up, contents and all
 // Mining never breaks a book (it only takes items out); anything else that removes it drops it with its contents.
@@ -61,10 +66,9 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
     // Fullness needed for each thickness above 0 (same steps as 1.20)
     private static final float[] THICKNESS_STEPS = {0.1f, 0.2f, 0.4f, 0.6f, 0.8f};
 
-    // The page-turn arrows, in pixels, as modelled facing north (the model's arrows are at x 0-2 and 14-16,
-    // z 12-14; these are half a pixel bigger so they're easy to hit)
-    private static final libPixelBox ARROW_BACK = new libPixelBox(-0.5, 0, 11.5, 2.5, 16, 14.5);
-    private static final libPixelBox ARROW_FORWARD = new libPixelBox(13.5, 0, 11.5, 16.5, 16, 14.5);
+    // The page-turn arrows in the open book's far corners (MowLib's PageArrows: back and forward boxes as modelled
+    // facing north, top face only)
+    private static final PageArrows ARROWS = PageArrows.BOOK_CORNERS;
 
     private static final int SHIFT_EXTRACT = 64;
 
@@ -89,21 +93,21 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
             VoxelShape[] byThickness = new VoxelShape[6];
             for (int thickness = 0; thickness < 6; thickness++)
             {
-                int turns = libPixelBox.quarterTurns(facing);
-                byThickness[thickness] = libPixelBox.union(northBoxes(thickness).stream().map(box -> box.rotateY(turns)).toList());
+                int turns = CBPixelBox.quarterTurns(facing);
+                byThickness[thickness] = CBPixelBox.union(northBoxes(thickness).stream().map(box -> box.rotateY(turns)).toList());
             }
             shapes.put(facing, byThickness);
         }
     }
 
     // The covers and the stack of pages, as modelled facing north. The covers stick out past the block's sides.
-    private static List<libPixelBox> northBoxes(int thickness)
+    private static List<CBPixelBox> northBoxes(int thickness)
     {
         double coverTop = thickness == 0 ? 0.25 : 1;
         double pagesTop = thickness == 0 ? 0.5 : (thickness == 1 ? 1.5 : thickness);
         return List.of(
-                new libPixelBox(-6.25, 0, 1, 21.25, coverTop, 15),
-                new libPixelBox(-3.25, coverTop, 1.25, 18.25, pagesTop, 14.75));
+                new CBPixelBox(-6.25, 0, 1, 21.25, coverTop, 15),
+                new CBPixelBox(-3.25, coverTop, 1.25, 18.25, pagesTop, 14.75));
     }
 
     // ---- What it stores ----
@@ -219,16 +223,25 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         if (!(level.getBlockEntity(pos) instanceof BookBlockEntity book)) return InteractionResult.TRY_WITH_EMPTY_HAND;
 
         // The arrows work whatever is in your hand
-        int turn = arrowAt(state, hitResult);
+        int turn = ARROWS.arrowAt(state.getValue(FACING), hitResult);
         if (turn != 0)
         {
             if (!level.isClientSide())
             {
                 book.turnPage(turn);
-                level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1f);
+                PageArrows.playTurnSound(level, pos);
             }
             // SUCCESS on both sides so the client swings the arm
             return InteractionResult.SUCCESS;
+        }
+
+        // MowLib's colour tools work on the cover instead of being stored:
+        // - the colour picker reads the cover colour: PASS lets the picker's own right-click (useOn) run
+        // - the Color Palette (any IDyeSource) dyes a dyeable cover; tryDyeBlock mixes like leather armour
+        if (stack.getItem() instanceof CBColorPickerItem) return InteractionResult.PASS;
+        if (stack.getItem() instanceof IDyeSource && this instanceof IColorableBlock colorable)
+        {
+            return colorable.tryDyeBlock(stack, state, level, pos, player, hitResult);
         }
 
         // Empty hand, or nothing to store: fall through to useWithoutItem (pickup), or let the item act normally
@@ -270,16 +283,6 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         level.playSound(null, pos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 2f, sound.getPitch() * 0.8f);
     }
 
-    // +1 for the forward arrow, -1 for the back arrow, 0 for anywhere else. Only the top of the book counts.
-    private static int arrowAt(BlockState state, BlockHitResult hitResult)
-    {
-        if (hitResult.getDirection() != Direction.UP) return 0;
-        Vec3 pixel = libPixelBox.pixelInside(hitResult);
-        int turns = libPixelBox.quarterTurns(state.getValue(FACING));
-        if (ARROW_BACK.rotateY(turns).contains(pixel)) return -1;
-        if (ARROW_FORWARD.rotateY(turns).contains(pixel)) return 1;
-        return 0;
-    }
 
     // ---- Left-click: take items out ----
 
@@ -306,9 +309,8 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         ItemStack taken = book.extractFromOpenPage(player.isShiftKeyDown() ? SHIFT_EXTRACT : 1);
         if (taken.isEmpty()) return;
 
-        // Into the inventory
-        // add() keeps whatever didn't fit when the inventory is full: drop that on top of the book
-        if (!player.getInventory().add(taken)) Block.popResource(level, pos.above(), taken);
+        // Into the inventory, or dropped at the player's feet if it's full (MowLib's shared helper)
+        StorageInteractions.giveToPlayer(player, taken);
         level.playSound(null, pos, SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.3f, 1f);
     }
 }

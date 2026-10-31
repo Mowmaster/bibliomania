@@ -1,27 +1,17 @@
 package com.mowmaster.bibliomania;
 
-import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
-import com.mowmaster.mowlib.tint.IColorableBlock;
+import com.mowmaster.mowlib.client.SpinningItemRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.color.block.BlockTintSource;
-import net.minecraft.world.level.block.Block;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
-import net.neoforged.neoforge.client.event.RegisterRangeSelectItemModelPropertyEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 // This class will not load on dedicated servers. Accessing client side code from here is safe.
 @Mod(value = Bibliomania.MODID, dist = Dist.CLIENT)
@@ -42,43 +32,13 @@ public class BibliomaniaClient {
         Bibliomania.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
     }
 
-    // Every colourable block gets one tint source per tint region (region N = model tintindex N)
-    @SubscribeEvent
-    public static void registerTintBlocks(RegisterColorHandlersEvent.BlockTintSources event)
-    {
-        for (var holder : BlockRegistry.BCBLOCKS.getEntries())
-        {
-            Block block = holder.get();
-            if (block instanceof IColorableBlock colorable)
-            {
-                List<BlockTintSource> sources = new ArrayList<>();
-                for (int region = 0; region < colorable.getTintRegionCount(); region++)
-                {
-                    sources.add(new libBlockEntityTintSource(region));
-                }
-                event.register(sources, block);
-            }
-        }
-    }
+    // MowLib registers the tint sources (for every IColorableBlock), the page tooltip, the paged_fullness item
+    // model property and the page keys. Books only need MowLib's renderer for their type.
 
-    // The spinning item above an open book
+    // The spinning item above an open book (BookBlockEntity is an ISpinningItemHolder)
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
-        event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), BookRenderer::new);
-    }
-
-    // A book's tooltip data -> the class that draws it
-    @SubscribeEvent
-    public static void registerTooltips(RegisterClientTooltipComponentFactoriesEvent event)
-    {
-        event.register(BookTooltip.class, ClientBookTooltip::new);
-    }
-
-    // "bibliomania:book_fullness", used by the book item models to get thicker as they fill
-    @SubscribeEvent
-    public static void registerRangeProperties(RegisterRangeSelectItemModelPropertyEvent event)
-    {
-        event.register(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "book_fullness"), BookFullnessProperty.MAP_CODEC);
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), SpinningItemRenderer::new);
     }
 }

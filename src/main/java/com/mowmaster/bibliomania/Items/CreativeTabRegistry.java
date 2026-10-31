@@ -2,7 +2,8 @@ package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
-import com.mowmaster.bibliomania.Blocks.Book.BookContents;
+import com.mowmaster.mowlib.paging.PagedContents;
+import com.mowmaster.mowlib.registry.MowLibDataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -35,7 +36,7 @@ public class CreativeTabRegistry
     private static ItemStack book(ItemLike book, int pages)
     {
         ItemStack stack = new ItemStack(book);
-        stack.set(DataComponentRegistry.BOOK_CONTENTS.get(), new BookContents(pages, 0, List.of()));
+        stack.set(MowLibDataComponents.PAGED_CONTENTS.get(), PagedContents.empty(pages));
         return stack;
     }
 
