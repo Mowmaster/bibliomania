@@ -75,7 +75,7 @@ A Food Mod focusing on complex recipes and food progression
 [[dependencies.${mod_id}]]
     modId="mowlib"
     type="required"
-    versionRange="[0.0.2,1.0.0)"
+    versionRange="[0.0.3,1.0.0)"
     ordering="AFTER"
     side="BOTH"
 

@@ -124,8 +124,8 @@ dependencies {
     // CBTintData's item colour helpers, which Bibliomania uses.
     jarJar(implementation(group: 'com.mowmaster.mowlib', name: 'mowlib')) {
         version {
-            strictly '[0.0.2,1.0.0)'
-            prefer '0.0.2'
+            strictly '[0.0.3,1.0.0)'
+            prefer '0.0.3'
         }
     }
 
