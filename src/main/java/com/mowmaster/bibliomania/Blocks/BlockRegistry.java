@@ -5,6 +5,8 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookItem;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
+import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
+import com.mowmaster.bibliomania.Blocks.MobBook.MobBookItem;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -33,7 +35,11 @@ public class BlockRegistry
     public static final DeferredBlock<DeathBookBlock> DEATH_BOOK = registerBook("death_book",
             properties -> new DeathBookBlock(bookProperties(properties, SoundType.SOUL_SAND)));
 
-    // Every book, for the creative tab and the block entity type
+    // The Bestiary: holds mobs, not items (its own block entity type and item, so not in BOOKS)
+    public static final DeferredBlock<MobBookBlock> MOB_BOOK = registerMobBook("mob_book",
+            properties -> new MobBookBlock(bookProperties(properties, SoundType.WOOD)));
+
+    // Every item book, for the creative tab and the block entity type
     public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK);
 
     // Books can't be mined (strength -1, like bedrock; left-click takes items out instead) or blown up,
@@ -60,6 +66,14 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new BookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    // The Bestiary's item captures mobs and has its own inventory clicks (MobBookItem)
+    private static <T extends Block> DeferredBlock<T> registerMobBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new MobBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

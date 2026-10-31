@@ -1,6 +1,9 @@
 package com.mowmaster.bibliomania;
 
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
+import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
+import com.mowmaster.bibliomania.ClientSide.ClientMobBookTooltip;
+import com.mowmaster.bibliomania.ClientSide.MobBookRenderer;
 import com.mowmaster.mowlib.client.SpinningItemRenderer;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -10,6 +13,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 
@@ -40,5 +44,14 @@ public class BibliomaniaClient {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), SpinningItemRenderer::new);
+        // The Bestiary's spinning mob
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.MOB_BOOK.get(), MobBookRenderer::new);
+    }
+
+    // The Bestiary's tooltip data -> the class that draws it
+    @SubscribeEvent
+    public static void registerTooltips(RegisterClientTooltipComponentFactoriesEvent event)
+    {
+        event.register(MobBookTooltip.class, ClientMobBookTooltip::new);
     }
 }
