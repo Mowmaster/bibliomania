@@ -2,10 +2,8 @@ package com.mowmaster.bibliomania;
 
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
-import com.mowmaster.bibliomania.ClientSide.BookFullnessProperty;
-import com.mowmaster.bibliomania.ClientSide.BookRenderer;
-import com.mowmaster.bibliomania.ClientSide.libBlockEntityTintSource;
-import com.mowmaster.bibliomania.TintHandler.IColorableBlock;
+import com.mowmaster.mowlib.client.CBBlockEntityTintSource;
+import com.mowmaster.mowlib.tint.IColorableBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockTintSource;
 import net.minecraft.world.level.block.Block;
@@ -16,8 +14,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraft.resources.Identifier;
-import com.mowmaster.bibliomania.Blocks.Book.BookTooltip;
-import com.mowmaster.bibliomania.ClientSide.ClientBookTooltip;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
@@ -59,7 +55,7 @@ public class BibliomaniaClient {
                 List<BlockTintSource> sources = new ArrayList<>();
                 for (int region = 0; region < colorable.getTintRegionCount(); region++)
                 {
-                    sources.add(new libBlockEntityTintSource(region));
+                    sources.add(new CBBlockEntityTintSource(region));
                 }
                 event.register(sources, block);
             }

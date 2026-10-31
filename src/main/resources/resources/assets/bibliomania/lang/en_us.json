@@ -1,0 +1,21 @@
+{
+  "itemGroup.bibliomania": "Bibliomania",
+  "block.bibliomania.grass_book": "Woven Grass Book",
+  "block.bibliomania.wool_book": "Woven Wool Book",
+  "block.bibliomania.leather_book": "Leather Book",
+  "block.bibliomania.death_book": "Book of Death",
+  "item.bibliomania.fibers_grass": "Fibers (Grass)",
+  "item.bibliomania.fibers_wool": "Fibers (Wool)",
+  "item.bibliomania.thread_twisted_grass": "Binding Thread (Twisted - Grass)",
+  "item.bibliomania.thread_twisted_wool": "Binding Thread (Twisted - Wool)",
+  "item.bibliomania.weave_grass": "Book Cloth (Weave - Grass)",
+  "item.bibliomania.weave_wool": "Book Cloth (Weave - Wool)",
+  "item.bibliomania.bookblock_starter": "Starter Book Block (8)",
+  "item.bibliomania.knifepart_blade_stone": "Knife Blade (Stone)",
+  "item.bibliomania.knifepart_handle_oak": "Knife Handle (Oak)",
+  "item.bibliomania.knife_stone": "Stone Knife",
+  "bibliomania.configuration.title": "bibliomania Configs",
+  "bibliomania.configuration.section.bibliomania.common.toml": "bibliomania Configs",
+  "bibliomania.configuration.section.bibliomania.common.toml.title": "bibliomania Configs",
+  "bibliomania.configuration.items": "Item List"
+}

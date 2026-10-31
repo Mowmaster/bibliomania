@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "bibliomania:weave_wool",
+    "bibliomania:weave_wool",
+    "bibliomania:thread_twisted_wool",
+    "bibliomania:bookblock_starter",
+    "minecraft:copper_ingot"
+  ],
+  "result": {
+    "id": "bibliomania:wool_book",
+    "components": {
+      "mowlib:paged_contents": {
+        "pages": 12
+      }
+    }
+  }
+}

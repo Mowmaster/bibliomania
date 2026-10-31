@@ -73,6 +73,13 @@ A Food Mod focusing on complex recipes and food progression
 
 # Here's another dependency
 [[dependencies.${mod_id}]]
+    modId="mowlib"
+    type="required"
+    versionRange="[0.0.2,1.0.0)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
     modId="minecraft"
     type="required"
     # This version range declares a minimum of the current minecraft version up to but not including the next major version

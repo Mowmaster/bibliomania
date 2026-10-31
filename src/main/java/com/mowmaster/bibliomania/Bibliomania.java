@@ -33,7 +33,6 @@ import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.CreativeTabRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
-import com.mowmaster.bibliomania.Recipes.RecipeRegistry;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(Bibliomania.MODID)
@@ -56,7 +55,6 @@ public class Bibliomania {
         BlockRegistry.register(modEventBus);
         libBlockEntityRegistry.register(modEventBus);
         DataComponentRegistry.register(modEventBus);
-        RecipeRegistry.register(modEventBus);
         CreativeTabRegistry.register(modEventBus);
 
 
