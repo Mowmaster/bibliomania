@@ -71,8 +71,7 @@ public class Bibliomania {
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.LOCAL, Config.SPEC);
         // Gameplay settings (Bestiary timers), per world and sent to players: see ServerConfig
-        modContainer.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
-    }
+        modContainer.registerConfig(ModConfig.Type.SYNCED, ServerConfig.SPEC);    }
 
     private void commonSetup(FMLCommonSetupEvent event) {
         // Some common setup code

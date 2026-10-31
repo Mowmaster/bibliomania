@@ -5,6 +5,7 @@ import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -134,7 +135,7 @@ public final class MobBookActions
     public static boolean canShear(Level level, MobBookContents contents)
     {
         if (contents.adults() <= 0 || contents.type().isEmpty() || contents.regrowing(level.getGameTime())) return false;
-        if (contents.type().get().is(BibliomaniaTags.MOB_BOOK_NO_SHEAR)) return false;
+        if (BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(contents.type().get()).is(BibliomaniaTags.MOB_BOOK_NO_SHEAR)) return false;
         return createFor(contents, level) instanceof IShearable;
     }
 
