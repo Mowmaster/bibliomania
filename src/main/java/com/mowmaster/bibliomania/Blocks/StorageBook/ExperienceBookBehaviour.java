@@ -109,7 +109,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
             // Slow down, then pull: speed 0.15 blocks a tick towards the book, a bit faster than an orb's own pull
             orb.setDeltaMovement(orb.getDeltaMovement().scale(0.6).add(toBook.normalize().scale(0.15)));
             // Tells the server to send the new motion to clients this tick (orbs are otherwise only synced rarely)
-            orb.hurtMarked = true;
+            orb.syncVelocity = true;
         }
     }
 
