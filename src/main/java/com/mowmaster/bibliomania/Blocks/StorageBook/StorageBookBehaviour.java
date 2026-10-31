@@ -26,6 +26,14 @@ import java.util.function.Consumer;
 // changes anything. Book contents are opened with BookStorage (items) or StorageBookBlockEntity#storage (placed).
 public interface StorageBookBehaviour
 {
+    // true: the book has an "activated" mode (StorageBookItem): sneak + right-click or the activation key turns it
+    // on and off, and the held and inventory actions below only run while it's on (so an inactive book is placed
+    // and moved like any item). false: they always run.
+    default boolean usesActivation()
+    {
+        return false;
+    }
+
     // ---- Placed book ----
 
     // Right-click on the placed book with an item. TRY_WITH_EMPTY_HAND = not handled (useWithoutItemPlaced runs next).
@@ -54,7 +62,7 @@ public interface StorageBookBehaviour
     // ---- Held in the hand ----
 
     // Right-click on a block. null = place the book as a block (the normal thing for a block item);
-    // PASS = go on to useHeld (like right-clicking the air).
+    // PASS = go on to useHeld (like right-clicking the air). (With activation: only called while active.)
     default @Nullable InteractionResult useOnHeld(UseOnContext context)
     {
         return null;

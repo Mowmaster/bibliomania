@@ -38,8 +38,9 @@ import java.util.function.Consumer;
 // - Placed: right-click stores all your experience; left-click gives you 1 level, sneak + left-click 10;
 //   right-click with bottles o' enchanting stores them (3-11 points for one, 7 each for a stack; glass bottles back);
 //   left-click with glass bottles fills them (11 points each). Experience orbs nearby fly to the book.
-// - Held: the same: right-click stores all, left-click 1 level (sneak 10); sneak + right-click on a block places it
-// - Inventory: left-click the book stores all your experience, right-click takes 5 levels;
+// - Held, while activated (sneak + right-click or the activation key; see StorageBookItem): the same: right-click
+//   stores all, left-click 1 level (sneak 10). Not activated, it's placed like any book.
+// - Inventory, while activated: left-click the book stores all your experience, right-click takes 5 levels;
 //   bottles o' enchanting (left-click, either way round) are stored; glass bottles (right-click) are filled
 public class ExperienceBookBehaviour implements StorageBookBehaviour
 {
@@ -50,6 +51,13 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     private static ResourceHandler<AmountResource> xp(BookStorage storage)
     {
         return storage.handler(TransportTypes.EXPERIENCE.get());
+    }
+
+    // Hand and inventory actions only while activated (see StorageBookItem)
+    @Override
+    public boolean usesActivation()
+    {
+        return true;
     }
 
     // ---- Placed ----
@@ -119,11 +127,11 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     // a left-click (see StorageBookEvents, which fills this, and swingHeld)
     static final Map<UUID, Long> LAST_RIGHT_CLICK = new HashMap<>();
 
+    // Active book, right-click on a block: go on to useHeld (like right-clicking the air)
     @Override
     public @Nullable InteractionResult useOnHeld(UseOnContext context)
     {
-        Player player = context.getPlayer();
-        return player == null || player.isShiftKeyDown() ? null : InteractionResult.PASS;
+        return InteractionResult.PASS;
     }
 
     // CONSUME: handled, but the arm doesn't swing (a swing would be read as a left-click)

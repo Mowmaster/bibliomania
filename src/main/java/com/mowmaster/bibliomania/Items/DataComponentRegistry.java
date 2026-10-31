@@ -3,7 +3,9 @@ package com.mowmaster.bibliomania.Items;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceContents;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookContents;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
@@ -34,6 +36,11 @@ public class DataComponentRegistry
     // What a Book of Essence holds (EssenceContents)
     public static final Supplier<DataComponentType<EssenceContents>> ESSENCE_CONTENTS = COMPONENTS.registerComponentType(
             "essence_contents", builder -> builder.persistent(EssenceContents.CODEC).networkSynchronized(EssenceContents.STREAM_CODEC));
+
+    // Whether a Book of Fluids / Experience is "activated" (its hand and inventory actions are on; see StorageBookItem).
+    // Codec.BOOL saves it as true/false; ByteBufCodecs.BOOL sends it as one byte.
+    public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
+            "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
     public static void register(IEventBus eventBus)
     {

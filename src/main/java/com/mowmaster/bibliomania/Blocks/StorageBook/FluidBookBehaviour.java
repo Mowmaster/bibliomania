@@ -37,14 +37,23 @@ import org.jetbrains.annotations.Nullable;
 // The Book of Fluids. Amounts in mB (1000 = a bucket); a water bottle is 250mB.
 // - Placed: right-click with a filled bucket (or tank) stores it, with an empty one takes a bucketful out;
 //   right-click with a water bottle / glass bottle stores / takes 250mB of water
-// - Held: right-click a fluid source picks it up (like a bucket); right-click a block puts a bucketful there;
-//   right-click a cauldron: an empty one is filled, a full one emptied into the book, a partly filled one gets a
-//   bottle's worth; sneak + right-click places the book
-// - Inventory, either way round: left-click with a filled container stores it, right-click with an empty one fills it
+// - Held, while activated (sneak + right-click or the activation key; see StorageBookItem): right-click a fluid
+//   source picks it up (like a bucket); right-click a block puts a bucketful there; right-click a cauldron: an empty
+//   one is filled, a full one emptied into the book, a partly filled one gets a bottle's worth.
+//   Not activated, it's placed like any book.
+// - Inventory, while activated, either way round: left-click with a filled container stores it, right-click with an
+//   empty one fills it
 public class FluidBookBehaviour implements StorageBookBehaviour
 {
     public static final int BOTTLE = 250;
     public static final int BUCKET = 1000;
+
+    // Hand and inventory actions only while activated (see StorageBookItem)
+    @Override
+    public boolean usesActivation()
+    {
+        return true;
+    }
 
     // ---- Placed ----
 
@@ -76,12 +85,11 @@ public class FluidBookBehaviour implements StorageBookBehaviour
 
     // ---- Held ----
 
-    // Right-click on a block: sneaking places the book; otherwise go on to useHeld (it does its own ray traces)
+    // Active book, right-click on a block: go on to useHeld (like right-clicking the air)
     @Override
     public @Nullable InteractionResult useOnHeld(UseOnContext context)
     {
-        Player player = context.getPlayer();
-        return player == null || player.isShiftKeyDown() ? null : InteractionResult.PASS;
+        return InteractionResult.PASS;
     }
 
     @Override
