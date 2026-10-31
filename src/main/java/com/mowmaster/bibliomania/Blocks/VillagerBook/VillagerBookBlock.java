@@ -2,7 +2,6 @@ package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
-import com.mowmaster.bibliomania.ServerConfig;
 import com.mowmaster.mowlib.paging.PageArrows;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -36,6 +35,7 @@ import java.util.Optional;
 // - Right-click with one of the trade's prices: makes the trade; both prices come out of your inventory, the item
 //   bought drops on the book
 // - Right-click with a workstation block: the villager takes that profession (back to level 1, new trades); one used
+// - Right-click with an enchanted golden apple (cheaper emerald prices) or a nether star (restocks sooner); one used
 // - Sneak + right-click with an empty hand: picks the book up, villager and all
 public class VillagerBookBlock extends BookBlock
 {
@@ -84,6 +84,26 @@ public class VillagerBookBlock extends BookBlock
         VillagerContents contents = book.getContents();
         if (!contents.hasVillager()) return InteractionResult.TRY_WITH_EMPTY_HAND;
 
+        // An upgrade (enchanted golden apple: cheaper; nether star: restocks sooner)
+        if (VillagerBookActions.isUpgrade(stack))
+        {
+            VillagerContents upgraded = VillagerBookActions.applyUpgrade(contents, stack);
+            if (level instanceof ServerLevel)
+            {
+                if (upgraded == null)
+                {
+                    level.playSound(null, pos, SoundEvents.VILLAGER_NO, SoundSource.BLOCKS, 1f, 1f);
+                }
+                else
+                {
+                    book.setContents(upgraded);
+                    stack.consume(1, player);
+                    level.playSound(null, pos, SoundEvents.VILLAGER_CELEBRATE, SoundSource.BLOCKS, 1f, 1f);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+
         // A workstation: new profession
         if (stack.getItem() instanceof BlockItem blockItem)
         {
@@ -109,7 +129,7 @@ public class VillagerBookBlock extends BookBlock
         {
             if (level instanceof ServerLevel serverLevel)
             {
-                VillagerBookActions.Trade trade = VillagerBookActions.trade(serverLevel, player, contents, ServerConfig.villagerRestockInterval());
+                VillagerBookActions.Trade trade = VillagerBookActions.trade(serverLevel, player, contents);
                 if (trade == null)
                 {
                     level.playSound(null, pos, SoundEvents.VILLAGER_NO, SoundSource.BLOCKS, 1f, 1f);

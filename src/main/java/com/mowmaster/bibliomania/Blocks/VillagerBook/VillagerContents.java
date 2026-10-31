@@ -22,11 +22,14 @@ import java.util.Optional;
 // - workstation:  the job block shown in front of it (the profession's, or the one that was clicked)
 // - page:         the trade on show
 // - restockAt:    the game tick all trades restock (0 = none used since the last restock)
+// - discounts:    discount items used (enchanted golden apples): emerald prices are lower (VillagerBookActions#applyDiscounts)
+// - speedUps:     restock items used (nether stars): trades restock sooner
+// The two upgrades belong to the book: they stay when the villager changes profession or is reset.
 // MerchantOffers is a mutable list, so it's always copied before a change (data components must never change in place).
 public record VillagerContents(Optional<VillagerData> villager, MerchantOffers offers, int xp, Optional<Block> workstation,
-                               int page, long restockAt)
+                               int page, long restockAt, int discounts, int speedUps)
 {
-    public static final VillagerContents EMPTY = new VillagerContents(Optional.empty(), new MerchantOffers(), 0, Optional.empty(), 0, 0L);
+    public static final VillagerContents EMPTY = new VillagerContents(Optional.empty(), new MerchantOffers(), 0, Optional.empty(), 0, 0L, 0, 0);
 
     // VillagerData and MerchantOffers have vanilla codecs (the same ones villagers save with)
     public static final Codec<VillagerContents> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -35,9 +38,11 @@ public record VillagerContents(Optional<VillagerData> villager, MerchantOffers o
                     Codec.INT.optionalFieldOf("xp", 0).forGetter(VillagerContents::xp),
                     BuiltInRegistries.BLOCK.byNameCodec().optionalFieldOf("workstation").forGetter(VillagerContents::workstation),
                     Codec.INT.optionalFieldOf("page", 0).forGetter(VillagerContents::page),
-                    Codec.LONG.optionalFieldOf("restock_at", 0L).forGetter(VillagerContents::restockAt))
-            .apply(instance, (villager, offers, xp, workstation, page, restockAt) ->
-                    new VillagerContents(villager, offers.orElseGet(MerchantOffers::new), xp, workstation, page, restockAt)));
+                    Codec.LONG.optionalFieldOf("restock_at", 0L).forGetter(VillagerContents::restockAt),
+                    Codec.INT.optionalFieldOf("discounts", 0).forGetter(VillagerContents::discounts),
+                    Codec.INT.optionalFieldOf("speed_ups", 0).forGetter(VillagerContents::speedUps))
+            .apply(instance, (villager, offers, xp, workstation, page, restockAt, discounts, speedUps) ->
+                    new VillagerContents(villager, offers.orElseGet(MerchantOffers::new), xp, workstation, page, restockAt, discounts, speedUps)));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, VillagerContents> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
 
@@ -69,23 +74,39 @@ public record VillagerContents(Optional<VillagerData> villager, MerchantOffers o
 
     public VillagerContents withPage(int newPage)
     {
-        return new VillagerContents(villager, offers, xp, workstation, Math.floorMod(newPage, pageCount()), restockAt);
+        return new VillagerContents(villager, offers, xp, workstation, Math.floorMod(newPage, pageCount()), restockAt, discounts, speedUps);
     }
 
     public VillagerContents withRestockAt(long tick)
     {
-        return new VillagerContents(villager, offers, xp, workstation, page, tick);
+        return new VillagerContents(villager, offers, xp, workstation, page, tick, discounts, speedUps);
     }
 
-    // A new villager, offers, experience and workstation (page and timer reset)
+    // A new villager, offers, experience and workstation (page and timer reset; the upgrades stay)
     public VillagerContents withVillager(VillagerData data, MerchantOffers newOffers, int newXp, Optional<Block> block)
     {
-        return new VillagerContents(Optional.of(data), newOffers, newXp, block, 0, 0L);
+        return new VillagerContents(Optional.of(data), newOffers, newXp, block, 0, 0L, discounts, speedUps);
     }
 
     // The same, keeping the page and restock timer (after a trade)
     public VillagerContents withTrade(VillagerData data, MerchantOffers newOffers, int newXp)
     {
-        return new VillagerContents(Optional.of(data), newOffers, newXp, workstation, Math.floorMod(page, Math.max(1, newOffers.size())), restockAt);
+        return new VillagerContents(Optional.of(data), newOffers, newXp, workstation, Math.floorMod(page, Math.max(1, newOffers.size())), restockAt, discounts, speedUps);
+    }
+
+    // New offers only (restocked, or discounted)
+    public VillagerContents withOffers(MerchantOffers newOffers, long newRestockAt)
+    {
+        return new VillagerContents(villager, newOffers, xp, workstation, page, newRestockAt, discounts, speedUps);
+    }
+
+    public VillagerContents withDiscount()
+    {
+        return new VillagerContents(villager, offers, xp, workstation, page, restockAt, discounts + 1, speedUps);
+    }
+
+    public VillagerContents withSpeedUp()
+    {
+        return new VillagerContents(villager, offers, xp, workstation, page, restockAt, discounts, speedUps + 1);
     }
 }

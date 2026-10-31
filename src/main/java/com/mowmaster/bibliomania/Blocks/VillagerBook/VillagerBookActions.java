@@ -1,9 +1,10 @@
 package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
-import com.mojang.logging.LogUtils;
+import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.npc.villager.VillagerProfession;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
@@ -23,9 +25,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
-import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -37,21 +37,19 @@ public final class VillagerBookActions
 {
     private VillagerBookActions() {}
 
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     // Experience a villager needs to reach the next level, by its current level (vanilla's thresholds: 10, 70, 150, 250)
     private static final int[] NEXT_LEVEL_XP = {0, 10, 70, 150, 250};
     public static final int MAX_LEVEL = 5;
 
     // ---- The temporary villager ----
 
-    // A villager (not in the world) with the book's data, offers and experience
-    public static @Nullable Villager temporaryVillager(Level level, VillagerData data, @Nullable MerchantOffers offers, int xp)
+    // A villager (not in the world) with the book's villager data and experience, and no trades yet: asking it for
+    // its offers (server) makes it roll the trades for its profession at its current level
+    public static @Nullable Villager temporaryVillager(Level level, VillagerData data, int xp)
     {
         Entity entity = MobBookActions.createTemporary(EntityTypes.VILLAGER, level, EntitySpawnReason.TRIGGERED);
         if (!(entity instanceof Villager villager)) return null;
         villager.setVillagerData(data);
-        if (offers != null) villager.overrideOffers(offers.copy());
         villager.setVillagerXp(xp);
         return villager;
     }
@@ -64,11 +62,14 @@ public final class VillagerBookActions
         return target instanceof Villager villager && !villager.isBaby() && !villager.isTrading();
     }
 
-    // The villager as book contents (server: getOffers rolls its first trades if it has none yet)
-    public static VillagerContents capture(Villager villager)
+    // The villager into the book (keeping the book's upgrades). Server: getOffers rolls its first trades if it has
+    // none yet.
+    public static VillagerContents capture(VillagerContents book, Villager villager)
     {
         VillagerData data = villager.getVillagerData();
-        return VillagerContents.EMPTY.withVillager(data, villager.getOffers().copy(), villager.getVillagerXp(), workstationFor(data.profession()));
+        MerchantOffers offers = villager.getOffers().copy();
+        applyDiscounts(offers, book.discounts());
+        return book.withVillager(data, offers, villager.getVillagerXp(), workstationFor(data.profession()));
     }
 
     // ---- Professions and workstations ----
@@ -102,19 +103,85 @@ public final class VillagerBookActions
     {
         if (contents.villager().isEmpty()) return null;
         VillagerData data = contents.villager().get().withProfession(profession).withLevel(1);
-        Villager villager = temporaryVillager(level, data, null, 0);
+        Villager villager = temporaryVillager(level, data, 0);
         if (villager == null) return null;
-        // No offers set: getOffers rolls the level 1 trades for the new profession
-        return contents.withVillager(data, villager.getOffers().copy(), 0, Optional.of(block));
+        // A new villager has no offers: getOffers rolls the level 1 trades for the new profession
+        MerchantOffers offers = villager.getOffers().copy();
+        applyDiscounts(offers, contents.discounts());
+        return contents.withVillager(data, offers, 0, Optional.of(block));
     }
 
-    // A fresh villager of the same type: no profession, level 1, no trades (crafting resets it)
+    // A fresh villager of the same type: no profession, level 1, no trades (crafting resets it). The book's upgrades
+    // stay.
     public static VillagerContents reset(VillagerContents contents)
     {
         if (contents.villager().isEmpty()) return contents;
         Holder<VillagerProfession> none = BuiltInRegistries.VILLAGER_PROFESSION.getOrThrow(VillagerProfession.NONE);
         VillagerData data = contents.villager().get().withProfession(none).withLevel(1);
-        return VillagerContents.EMPTY.withVillager(data, new MerchantOffers(), 0, Optional.empty());
+        return contents.withVillager(data, new MerchantOffers(), 0, Optional.empty());
+    }
+
+    // ---- Levels (vanilla's names and experience) ----
+
+    // "Novice", "Apprentice", "Journeyman", "Expert", "Master": vanilla's own lang keys merchant.level.1 to 5
+    public static Component levelName(int level)
+    {
+        return Component.translatable("merchant.level." + Math.clamp(level, 1, MAX_LEVEL));
+    }
+
+    // How far to the next level, 0 to 100 (100 at Master)
+    public static int percentToNextLevel(int level, int xp)
+    {
+        if (level >= MAX_LEVEL) return 100;
+        int from = NEXT_LEVEL_XP[level - 1];
+        int to = NEXT_LEVEL_XP[level];
+        return Math.clamp((int) Math.floor(100.0 * (xp - from) / (to - from)), 0, 100);
+    }
+
+    // ---- Upgrades: discounts and faster restocking ----
+
+    public static boolean isUpgrade(ItemStack stack)
+    {
+        return ServerConfig.isVillagerDiscountItem(stack) || ServerConfig.isVillagerRestockItem(stack);
+    }
+
+    // The book with one more upgrade from `stack`, or null if it can't take another (the discount item has a limit,
+    // and isn't used when there's nothing left to take off)
+    public static @Nullable VillagerContents applyUpgrade(VillagerContents contents, ItemStack stack)
+    {
+        if (ServerConfig.isVillagerDiscountItem(stack))
+        {
+            if (contents.discounts() >= ServerConfig.villagerMaxDiscounts()) return null;
+            VillagerContents upgraded = contents.withDiscount();
+            MerchantOffers offers = upgraded.offers().copy();
+            applyDiscounts(offers, upgraded.discounts());
+            return upgraded.withOffers(offers, upgraded.restockAt());
+        }
+        if (ServerConfig.isVillagerRestockItem(stack)) return contents.withSpeedUp();
+        return null;
+    }
+
+    // Takes ServerConfig.villagerDiscountAmount() emeralds per discount off every trade whose first price is emeralds,
+    // never below ServerConfig.villagerMinEmeraldCost(). It uses the offer's "special price" (the same field vanilla's
+    // cured-zombie and Hero of the Village discounts use), and never undoes a bigger discount the villager already had.
+    public static void applyDiscounts(MerchantOffers offers, int discounts)
+    {
+        if (discounts <= 0) return;
+        for (MerchantOffer offer : offers)
+        {
+            ItemStack base = offer.getBaseCostA();
+            if (!base.is(Items.EMERALD)) continue;
+            int off = Math.min(discounts * ServerConfig.villagerDiscountAmount(), base.getCount() - ServerConfig.villagerMinEmeraldCost());
+            if (off > 0) offer.setSpecialPriceDiff(Math.min(offer.getSpecialPriceDiff(), -off));
+        }
+    }
+
+    // Ticks until a restock: the config's 10 minutes, shortened by each restock item in turn (1% each by default:
+    // 0.99 x 0.99 x ...); never under a second
+    public static int restockTicks(VillagerContents contents)
+    {
+        double factor = Math.pow(1.0 - ServerConfig.villagerRestockPercent() / 100.0, contents.speedUps());
+        return (int) Math.max(20, Math.round(ServerConfig.villagerRestockInterval() * factor));
     }
 
     // ---- Trading ----
@@ -133,7 +200,7 @@ public final class VillagerBookActions
     // (sold out, or the player can't pay).
     public record Trade(VillagerContents contents, ItemStack result) {}
 
-    public static @Nullable Trade trade(ServerLevel level, Player player, VillagerContents contents, int restockTicks)
+    public static @Nullable Trade trade(ServerLevel level, Player player, VillagerContents contents)
     {
         MerchantOffer offer = contents.currentOffer();
         if (offer == null || offer.isOutOfStock() || contents.villager().isEmpty()) return null;
@@ -154,41 +221,26 @@ public final class VillagerBookActions
 
         VillagerData data = contents.villager().get();
         int xp = contents.xp() + used.getXp();
-        // Level up (maybe more than once), and each new level adds its trades
+        // Level up (maybe more than once): each new level's trades are added to the ones it already has
         while (data.level() < MAX_LEVEL && xp >= NEXT_LEVEL_XP[data.level()])
         {
             data = data.withLevel(data.level() + 1);
-            offers = addLevelTrades(level, data, offers, xp);
+            addLevelTrades(level, data, offers, contents.discounts());
         }
         VillagerContents next = contents.withTrade(data, offers, xp);
-        if (next.restockAt() == 0) next = next.withRestockAt(level.getGameTime() + restockTicks);
+        if (next.restockAt() == 0) next = next.withRestockAt(level.getGameTime() + restockTicks(next));
         return new Trade(next, result);
     }
 
-    // Vanilla adds a level's trades in Villager#updateTrades, which is protected (only villagers call it). Reflection
-    // finds and calls it anyway: getDeclaredMethod looks it up by name on the class, setAccessible lets us call it.
-    // NeoForge runs with Mojang's names, so the name is the same in development and in a real game.
-    private static @Nullable Method updateTrades;
-
-    private static MerchantOffers addLevelTrades(ServerLevel level, VillagerData data, MerchantOffers offers, int xp)
+    // A level's own trades, added to `offers`: a new villager at that level, asked for its offers, rolls exactly that
+    // level's trades (vanilla's own trade sets), which are copied across. Discounts are applied to them too.
+    private static void addLevelTrades(ServerLevel level, VillagerData data, MerchantOffers offers, int discounts)
     {
-        Villager villager = temporaryVillager(level, data, offers, xp);
-        if (villager == null) return offers;
-        try
-        {
-            if (updateTrades == null)
-            {
-                updateTrades = Villager.class.getDeclaredMethod("updateTrades", ServerLevel.class);
-                updateTrades.setAccessible(true);
-            }
-            updateTrades.invoke(villager, level);
-            return villager.getOffers().copy();
-        }
-        catch (ReflectiveOperationException | RuntimeException exception)
-        {
-            LOGGER.warn("Trader's Ledger couldn't add trades for villager level {}: {}", data.level(), exception.toString());
-            return offers;
-        }
+        Villager villager = temporaryVillager(level, data, 0);
+        if (villager == null) return;
+        MerchantOffers added = villager.getOffers().copy();
+        applyDiscounts(added, discounts);
+        offers.addAll(added);
     }
 
     // Every trade usable again
@@ -196,7 +248,7 @@ public final class VillagerBookActions
     {
         MerchantOffers offers = contents.offers().copy();
         for (MerchantOffer offer : offers) offer.resetUses();
-        return new VillagerContents(contents.villager(), offers, contents.xp(), contents.workstation(), contents.page(), 0L);
+        return contents.withOffers(offers, 0L);
     }
 
     // ---- The player's items ----

@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -17,7 +18,10 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
+import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ClickAction;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -39,6 +43,8 @@ import java.util.function.Consumer;
 // - Right-click a workstation block (lectern, composter, smithing table...) with a book holding a villager: the
 //   villager takes that profession (level 1, new trades); the block stays where it is
 // - In an inventory the trades still restock (with the bell) after the timer; the tooltip lists the trades
+// - Upgrades, left-clicked onto the book (or the book onto them): enchanted golden apples take emeralds off the prices,
+//   nether stars make it restock sooner (see VillagerBookActions)
 // Both right-clicks are NeoForge events, which come before the villager's trading screen or the block's own screen.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
 public class VillagerBookItem extends BlockItem
@@ -80,7 +86,7 @@ public class VillagerBookItem extends BlockItem
         }
         if (event.getLevel() instanceof ServerLevel serverLevel && target instanceof Villager villager)
         {
-            setContents(book, VillagerBookActions.capture(villager));
+            setContents(book, VillagerBookActions.capture(contents(book), villager));
             serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER, target.getX(), target.getY() + 1, target.getZ(), 10, 0.3, 0.5, 0.3, 0);
             serverLevel.playSound(null, target.blockPosition(), SoundEvents.VILLAGER_CELEBRATE, SoundSource.PLAYERS, 1f, 1f);
             villager.discard(); // gone from the world, now in the book
@@ -128,9 +134,50 @@ public class VillagerBookItem extends BlockItem
         level.playSound(null, entity.blockPosition(), SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 0.6f, 1f);
     }
 
+    // ---- Inventory clicks: upgrades ----
+    // Left-click an enchanted golden apple (cheaper) or a nether star (restocks sooner) onto the book, or the book
+    // onto one: one is used. (Like the other books, either way round.)
+
+    @Override
+    public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
+                                            Player player, SlotAccess carriedItem)
+    {
+        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !VillagerBookActions.isUpgrade(other)) return false;
+        return upgrade(self, other, player);
+    }
+
+    @Override
+    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    {
+        ItemStack target = slot.getItem();
+        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !VillagerBookActions.isUpgrade(target)
+                || !slot.allowModification(player)) return false;
+        boolean handled = upgrade(self, target, player);
+        slot.setChanged();
+        return handled;
+    }
+
+    private static boolean upgrade(ItemStack book, ItemStack item, Player player)
+    {
+        VillagerContents upgraded = VillagerBookActions.applyUpgrade(contents(book), item);
+        if (upgraded == null)
+        {
+            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+            return true;
+        }
+        if (!player.level().isClientSide())
+        {
+            setContents(book, upgraded);
+            item.shrink(1);
+        }
+        player.playSound(SoundEvents.VILLAGER_CELEBRATE, 0.6f, 1f);
+        return true;
+    }
+
     // ---- Tooltip ----
 
-    // "Librarian, level 3 (40 xp)", then every trade: "> 1 Paper, 24 Emerald -> Enchanted Book (2/12)"
+    // "Librarian, Apprentice (40% to next level)", the restock timer, the upgrades, then every trade:
+    // "1 Paper, 24 Emerald -> 1 Enchanted Book (2/12)"
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display,
                                 Consumer<Component> tooltip, TooltipFlag flag)
@@ -143,7 +190,27 @@ public class VillagerBookItem extends BlockItem
             return;
         }
         VillagerData data = contents.villager().get();
-        tooltip.accept(line("villager", data.profession().value().name(), data.level(), contents.xp()).withStyle(ChatFormatting.GREEN));
+        if (data.level() >= VillagerBookActions.MAX_LEVEL)
+        {
+            tooltip.accept(line("villager_max", data.profession().value().name(), VillagerBookActions.levelName(data.level())).withStyle(ChatFormatting.GREEN));
+        }
+        else
+        {
+            tooltip.accept(line("villager", data.profession().value().name(), VillagerBookActions.levelName(data.level()),
+                    VillagerBookActions.percentToNextLevel(data.level(), contents.xp())).withStyle(ChatFormatting.GREEN));
+        }
+        // "Trades restock in: 7:12" (counts down live; the tooltip is rebuilt every frame)
+        if (contents.restockAt() > 0 && context.level() != null)
+        {
+            long seconds = (Math.max(0, contents.restockAt() - context.level().getGameTime()) + 19) / 20;
+            tooltip.accept(line("restock", String.format("%d:%02d", seconds / 60, seconds % 60)).withStyle(ChatFormatting.GRAY));
+        }
+        // "Discounts: 3/10, faster restocks: 5"
+        if (contents.discounts() > 0 || contents.speedUps() > 0)
+        {
+            tooltip.accept(line("upgrades", contents.discounts(), ServerConfig.villagerMaxDiscounts(), contents.speedUps())
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
         for (int index = 0; index < contents.offers().size(); index++)
         {
             MerchantOffer offer = contents.offers().get(index);

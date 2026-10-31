@@ -153,6 +153,30 @@ public final class ServerConfig
             .comment("Ticks after the first trade until all of a Trader's Ledger's trades restock. Default 12000 = 10 minutes.")
             .defineInRange("restockInterval", 12000, 20, Integer.MAX_VALUE);
 
+    private static final ModConfigSpec.ConfigValue<String> VILLAGER_DISCOUNT_ITEM = BUILDER
+            .comment("Item that makes a Trader's Ledger's emerald prices cheaper. Default minecraft:enchanted_golden_apple.")
+            .define("discountItem", "minecraft:enchanted_golden_apple");
+
+    private static final ModConfigSpec.IntValue VILLAGER_DISCOUNT_AMOUNT = BUILDER
+            .comment("Emeralds each discount item takes off every emerald price. Default 1.")
+            .defineInRange("discountAmount", 1, 0, 64);
+
+    private static final ModConfigSpec.IntValue VILLAGER_MAX_DISCOUNTS = BUILDER
+            .comment("Most discount items one book takes. Default 10.")
+            .defineInRange("maxDiscounts", 10, 0, 1000);
+
+    private static final ModConfigSpec.IntValue VILLAGER_MIN_EMERALD_COST = BUILDER
+            .comment("Cheapest an emerald price can be made by discounts. Default 1.")
+            .defineInRange("minEmeraldCost", 1, 1, 64);
+
+    private static final ModConfigSpec.ConfigValue<String> VILLAGER_RESTOCK_ITEM = BUILDER
+            .comment("Item that makes a Trader's Ledger restock sooner. Default minecraft:nether_star.")
+            .define("restockItem", "minecraft:nether_star");
+
+    private static final ModConfigSpec.DoubleValue VILLAGER_RESTOCK_PERCENT = BUILDER
+            .comment("How much (in %) each restock item shortens the restock time; each takes this off the time left by the ones before. Default 1.")
+            .defineInRange("restockPercent", 1.0, 0.0, 100.0);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -211,6 +235,20 @@ public final class ServerConfig
     }
 
     public static int villagerRestockInterval() { return get(VILLAGER_RESTOCK); }
+    public static int villagerDiscountAmount()  { return get(VILLAGER_DISCOUNT_AMOUNT); }
+    public static int villagerMaxDiscounts()    { return get(VILLAGER_MAX_DISCOUNTS); }
+    public static int villagerMinEmeraldCost()  { return get(VILLAGER_MIN_EMERALD_COST); }
+    public static double villagerRestockPercent() { return get(VILLAGER_RESTOCK_PERCENT); }
+
+    public static boolean isVillagerDiscountItem(ItemStack stack)
+    {
+        return isItem(stack, get(VILLAGER_DISCOUNT_ITEM));
+    }
+
+    public static boolean isVillagerRestockItem(ItemStack stack)
+    {
+        return isItem(stack, get(VILLAGER_RESTOCK_ITEM));
+    }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)
     {

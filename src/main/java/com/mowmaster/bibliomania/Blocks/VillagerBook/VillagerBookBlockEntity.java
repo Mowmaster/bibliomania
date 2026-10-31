@@ -93,7 +93,7 @@ public class VillagerBookBlockEntity extends BlockEntity implements IPageHolder
         if (level == null || contents.villager().isEmpty()) return null;
         if (displayVillager == null || !displayVillager.getVillagerData().equals(contents.villager().get()))
         {
-            displayVillager = VillagerBookActions.temporaryVillager(level, contents.villager().get(), null, 0);
+            displayVillager = VillagerBookActions.temporaryVillager(level, contents.villager().get(), 0);
         }
         return displayVillager;
     }
