@@ -29,10 +29,11 @@ import java.util.function.Consumer;
 
 // The Bestiary as an item.
 // - Right-click an adult animal (not a pet, not named): it goes into the book. Same kind only; one kind per book.
-// - In inventories, clicking the book with something on your cursor:
-//     breeding food, left-click (insert): breeds the mobs, using only as much food as they can eat
-//     a sword, right-click (extract):      kills one; the drops go into your inventory and the XP to you
-//     anything else:                       the bundle "can't" sound, nothing happens
+// - In inventories, either way round (the book on the cursor clicked onto an item, or the item onto the book):
+//     breeding food, left-click: breeds the mobs, using only as much food as they can eat
+//     a sword, right-click:      kills one; the drops go into your inventory and the XP to you
+//   Clicking the book with anything else on the cursor plays the bundle "can't" sound; clicking the book (on the
+//   cursor) onto anything else just swaps them as normal.
 // - Tooltip: text lines (appendHoverText) for the mob, count, babies and breeding; the mob's spawn egg as a picture.
 public class MobBookItem extends BlockItem
 {
@@ -85,8 +86,24 @@ public class MobBookItem extends BlockItem
     }
 
     // ---- Inventory clicks ----
+    // Both ways round work: the book on the cursor clicked onto an item, or an item on the cursor clicked onto the book.
+    //   left-click with breeding food:  breeds the mobs, using only as much food as they can eat
+    //   right-click with a sword:       kills one; the drops go into your inventory and the XP to you
+    // Changes are made on the server (it does the click too, and sends the result to the client);
+    // the client only plays the sound, so it isn't heard twice.
 
-    // Holding something (or nothing), clicking the book in a slot
+    // Book on the cursor, clicked onto `other` in a slot
+    @Override
+    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    {
+        if (self.getCount() != 1) return false;
+        ItemStack other = slot.getItem();
+        // Onto an empty slot, or an item it can't use: the book is placed/swapped as normal
+        if (other.isEmpty() || !slot.allowModification(player)) return false;
+        return useOn(self, other, clickAction, player);
+    }
+
+    // `other` on the cursor (or nothing), clicked onto the book in a slot
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
@@ -94,50 +111,45 @@ public class MobBookItem extends BlockItem
         if (self.getCount() != 1) return false;
         // Left-click with an empty hand picks the book up as normal
         if (clickAction == ClickAction.PRIMARY && other.isEmpty()) return false;
-
-        Level level = player.level();
-        MobBookContents contents = settled(self, level);
-
-        // Breeding food, left-click: breed
-        if (clickAction == ClickAction.PRIMARY && slot.allowModification(player) && MobBookActions.isBreedingFood(level, contents, other))
-        {
-            int eaten = Math.min(other.getCount(), contents.maxFeed());
-            if (eaten > 0)
-            {
-                // Changes are made on the server and sent to the client; the client only plays the sound
-                if (level instanceof ServerLevel)
-                {
-                    setContents(self, contents.withFed(eaten, level.getGameTime()));
-                    other.consume(eaten, player);
-                    slotsChanged(player);
-                }
-                player.playSound(SoundEvents.GENERIC_EAT.value(), 0.6f, 1f);
-                return true;
-            }
-        }
-
-        // A sword, right-click: kill one, drops and XP to the player
-        if (clickAction == ClickAction.SECONDARY && slot.allowModification(player) && MobBookActions.isKillWeapon(other)
-                && contents.adults() > 0 && contents.type().isPresent())
-        {
-            if (level instanceof ServerLevel serverLevel)
-            {
-                int killed = MobBookActions.kill(serverLevel, contents.type().get(), 1, player, player.position(), true);
-                setContents(self, contents.withKilled(killed));
-                slotsChanged(player);
-            }
-            return true;
-        }
+        if (slot.allowModification(player) && useOn(self, other, clickAction, player)) return true;
 
         // Anything else isn't allowed
         player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
         return true;
     }
 
-    // Tells the open container the book changed, so the change is sent to the client
-    private static void slotsChanged(Player player)
+    // The book `self` used with `other` (food or a sword). Returns true if something happened.
+    private static boolean useOn(ItemStack self, ItemStack other, ClickAction clickAction, Player player)
     {
-        player.containerMenu.slotsChanged(player.getInventory());
+        Level level = player.level();
+        MobBookContents contents = settled(self, level);
+
+        // Breeding food, left-click: breed
+        if (clickAction == ClickAction.PRIMARY && MobBookActions.isBreedingFood(level, contents, other))
+        {
+            int eaten = Math.min(other.getCount(), contents.maxFeed());
+            if (eaten <= 0) return false; // all have eaten this cycle (or the book is full)
+            if (level instanceof ServerLevel)
+            {
+                setContents(self, contents.withFed(eaten, level.getGameTime()));
+                other.consume(eaten, player); // creative players keep their food
+            }
+            else player.playSound(SoundEvents.GENERIC_EAT.value(), 0.6f, 1f);
+            return true;
+        }
+
+        // A sword, right-click: kill one, drops and XP to the player
+        if (clickAction == ClickAction.SECONDARY && MobBookActions.isKillWeapon(other)
+                && contents.adults() > 0 && contents.type().isPresent())
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                int killed = MobBookActions.kill(serverLevel, contents.type().get(), 1, player, player.position(), true);
+                setContents(self, contents.withKilled(killed));
+            }
+            return true;
+        }
+        return false;
     }
 
     // ---- Tooltip ----
