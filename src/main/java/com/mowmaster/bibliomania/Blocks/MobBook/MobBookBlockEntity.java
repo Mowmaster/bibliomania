@@ -98,7 +98,7 @@ public class MobBookBlockEntity extends BlockEntity
         Entity existing = baby ? displayBaby : displayAdult;
         if (existing != null && existing.getType() == type) return existing;
 
-        Entity created = type.create(level, EntitySpawnReason.LOAD);
+        Entity created = MobBookActions.createTemporary(type, level, EntitySpawnReason.LOAD);
         if (created == null) return null;
         // Positioned at the book, so it's lit by the light where the book is
         created.setPos(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5);

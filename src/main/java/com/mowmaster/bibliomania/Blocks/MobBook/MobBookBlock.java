@@ -103,22 +103,29 @@ public class MobBookBlock extends BookBlock
 
     // ---- Left-click: killing ----
 
+    // Left-clicks are caught by MobBookActions#onLeftClickBlock (a NeoForge event) and call killAction. Block#attack
+    // isn't used: creative players break blocks instead of "attacking" them, and swords can't break blocks in
+    // creative, so neither attack nor onDestroyedByPlayer ever ran for them.
+
+    // Turns off BookBlock's left-click (taking items out)
     @Override
     protected void attack(BlockState state, Level level, BlockPos pos, Player player)
     {
-        if (level instanceof ServerLevel serverLevel) killAction(serverLevel, pos, player);
     }
 
-    // Creative players break blocks instantly instead of "attacking" them: kill here instead. Never breaks.
+    // Never broken by a player (picked up with sneak + right-click instead)
     @Override
     public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, ItemStack toolStack,
                                        boolean willHarvest, FluidState fluid)
     {
-        if (player.isCreative() && level instanceof ServerLevel serverLevel) killAction(serverLevel, pos, player);
         return false;
     }
 
-    private void killAction(ServerLevel level, BlockPos pos, Player player)
+    // Ticks between kills: holding left-click sends a new click every tick, and this stops that
+    // from emptying the book (10 ticks is also how long the red flash lasts)
+    private static final int KILL_DELAY = 10;
+
+    static void killAction(ServerLevel level, BlockPos pos, Player player)
     {
         if (!(level.getBlockEntity(pos) instanceof MobBookBlockEntity book)) return;
         MobBookContents contents = book.getContents();
@@ -126,6 +133,8 @@ public class MobBookBlock extends BookBlock
         {
             return;
         }
+        long sinceKill = level.getGameTime() - book.getLastKill();
+        if (sinceKill >= 0 && sinceKill < KILL_DELAY) return;
         // Sneaking: 10% of the adults, rounded up (so always at least one)
         int count = player.isShiftKeyDown() ? (int) Math.ceil(contents.adults() * 0.1) : 1;
         Vec3 dropAt = Vec3.atCenterOf(pos).add(0, 0.2, 0);

@@ -21,6 +21,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.jetbrains.annotations.Nullable;
 
 // What a Bestiary does to the mobs in it, shared by the placed book and the item.
@@ -31,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 // equipment and XP are dropped, and other mods' drop and XP events apply, exactly as if the player had killed it.
 // For kills from the inventory, the drops and XP are caught in the events below and given to the player instead.
 //
-// @EventBusSubscriber: the two event handlers are on the game event bus.
+// @EventBusSubscriber: the event handlers are on the game event bus.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
 public final class MobBookActions
 {
@@ -41,6 +42,20 @@ public final class MobBookActions
     // Everything here runs on the server thread, one kill at a time, so a plain field is enough.
     private record Redirect(LivingEntity mob, Player player) {}
     @Nullable private static Redirect redirect;
+
+    // ---- Temporary mobs ----
+
+    // Makes a mob of `type` that is never added to the world (for display, food checks and kills).
+    // Since 26.x a mob only gets its network ID when it's added to a level, and asking for it before then crashes
+    // ("Tried to access entity ID before ID assignment"). Rendering and dying both ask, so it gets -1:
+    // the same ID vanilla gives the mob spinning in a spawner (BaseSpawner#SET_DISPLAY_ENTITY_ID).
+    @Nullable
+    public static Entity createTemporary(EntityType<?> type, Level level, EntitySpawnReason reason)
+    {
+        Entity entity = type.create(level, reason);
+        if (entity != null) entity.setId(-1);
+        return entity;
+    }
 
     // ---- What can go in, and what feeds them ----
 
@@ -55,7 +70,7 @@ public final class MobBookActions
     public static boolean isBreedingFood(Level level, MobBookContents contents, ItemStack stack)
     {
         if (stack.isEmpty() || contents.type().isEmpty()) return false;
-        Entity mob = contents.type().get().create(level, EntitySpawnReason.TRIGGERED);
+        Entity mob = createTemporary(contents.type().get(), level, EntitySpawnReason.TRIGGERED);
         return mob instanceof Animal animal && animal.isFood(stack);
     }
 
@@ -76,7 +91,7 @@ public final class MobBookActions
         int killed = 0;
         for (int i = 0; i < count; i++)
         {
-            Entity created = type.create(level, EntitySpawnReason.TRIGGERED);
+            Entity created = createTemporary(type, level, EntitySpawnReason.TRIGGERED);
             if (!(created instanceof LivingEntity mob)) break;
             mob.setPos(at.x, at.y, at.z);
             // Counts as killed by the player: player-only drops and XP happen, and Looting applies
@@ -100,6 +115,24 @@ public final class MobBookActions
             killed++;
         }
         return killed;
+    }
+
+    // ---- Left-clicking a placed book with a sword ----
+
+    // NeoForge fires LeftClickBlock on both sides when a player starts hitting a block, before vanilla does
+    // anything (in creative too, where Block#attack never runs). Cancelling it stops the client from
+    // breaking/mining the book and the server from doing its own break handling; the server then kills instead.
+    // Only START: the other actions (STOP, ABORT, CLIENT_HOLD) are for finishing or holding a dig.
+    @SubscribeEvent
+    public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event)
+    {
+        if (event.getAction() != PlayerInteractEvent.LeftClickBlock.Action.START) return;
+        Level level = event.getLevel();
+        if (!(level.getBlockState(event.getPos()).getBlock() instanceof MobBookBlock)) return;
+        Player player = event.getEntity();
+        if (!isKillWeapon(player.getMainHandItem())) return;
+        event.setCanceled(true);
+        if (level instanceof ServerLevel serverLevel) MobBookBlock.killAction(serverLevel, event.getPos(), player);
     }
 
     // ---- Inventory kills: drops and XP to the player ----
