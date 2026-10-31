@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -30,7 +31,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
-// Draws a placed Trader's Ledger: everything turned to face the camera (the player looking at it):
+// Draws a placed Trader's Ledger, everything turned to face the player who placed it (fixed once placed), and drawn at
+// DISPLAY_SCALE:
 // - the villager standing on the pages, at the back
 // - its workstation in front of it, small, with the item on offer floating above it
 // - the price (one or two items) in front of the workstation; a barrier when the trade is sold out
@@ -43,6 +45,8 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
     private static final float VILLAGER_SCALE = 0.3f;
     private static final float WORKSTATION_SIZE = 0.25f;
     private static final float ITEM_SCALE = 0.5f;
+    // All of it together, made bigger (1.5 = 150%), so the parts keep their places relative to each other
+    private static final float DISPLAY_SCALE = 1.5f;
 
     private final ItemModelResolver itemModelResolver;
 
@@ -68,10 +72,10 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
         VillagerContents contents = book.getContents();
         if (level == null || !contents.hasVillager()) return;
 
-        // Face the camera: the angle from the book's centre to the camera, around the vertical axis.
-        // atan2(x, z) is 0 when the camera is due south (+Z), which is the way models face unturned.
-        BlockPos pos = book.getBlockPos();
-        state.angle = (float) Math.atan2(cameraPos.x - (pos.getX() + 0.5), cameraPos.z - (pos.getZ() + 0.5));
+        // Face the player who placed it: the book's FACING is the way they were looking, so everything turns to face
+        // the opposite way, and stays like that. atan2(x, z) is 0 for due south (+Z), the way models face unturned.
+        Direction towardsPlacer = book.getBlockState().getValue(BookBlock.FACING).getOpposite();
+        state.angle = (float) Math.atan2(towardsPlacer.getStepX(), towardsPlacer.getStepZ());
         state.height = (book.getBlockState().getValue(BookBlock.THICKNESS) + 2) / 16f;
 
         Villager villager = book.getDisplayVillager();
@@ -112,15 +116,16 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
     {
         if (state.villager == null && !state.hasWorkstation) return;
         poseStack.pushPose();
-        // From here on +Z points at the camera
+        // From here on +Z points at the player who placed the book
         poseStack.translate(0.5, state.height, 0.5);
         poseStack.rotate(Axis.YP.rotation(state.angle));
+        poseStack.scale(DISPLAY_SCALE, DISPLAY_SCALE, DISPLAY_SCALE);
 
         // The villager at the back
         if (state.villager != null)
         {
             poseStack.pushPose();
-            poseStack.translate(0, 0, -0.18);
+            poseStack.translate(0, 0, -0.17);
             poseStack.scale(VILLAGER_SCALE, VILLAGER_SCALE, VILLAGER_SCALE);
             Minecraft.getInstance().getEntityRenderDispatcher().submit(state.villager, camera, 0.0, 0.0, 0.0, poseStack, collector);
             poseStack.popPose();
@@ -140,7 +145,8 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
         // The item on offer, above the workstation
         item(state.result, poseStack, collector, state.lightCoords, 0, WORKSTATION_SIZE + 0.04f, workstationZ);
         // The price in front: one item in the middle, or two side by side
-        float priceZ = 0.38f;
+        // (x DISPLAY_SCALE = about 0.48 from the centre: still on the book)
+        float priceZ = 0.32f;
         if (state.costB.isEmpty())
         {
             item(state.costA, poseStack, collector, state.lightCoords, 0, 0.04f, priceZ);
@@ -167,7 +173,7 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
     public AABB getRenderBoundingBox(VillagerBookBlockEntity book)
     {
         BlockPos pos = book.getBlockPos();
-        return new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.5, pos.getZ() + 1.0);
+        return new AABB(pos.getX() - 0.25, pos.getY(), pos.getZ() - 0.25, pos.getX() + 1.25, pos.getY() + 2.0, pos.getZ() + 1.25);
     }
 
     public static class State extends BlockEntityRenderState
