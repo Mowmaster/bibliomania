@@ -5,6 +5,7 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlockEntity;
+import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBlock;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBlockEntity;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -43,6 +44,10 @@ public class libBlockEntityRegistry
     // The Farmer's Almanac
     public static final Supplier<BlockEntityType<CropBookBlockEntity>> CROP_BOOK = CBBLOCKENTITIES.register("crop_book",
             () -> new BlockEntityType<>(CropBookBlockEntity::new, BlockRegistry.CROP_BOOK.get()));
+
+    // The Trader's Ledger
+    public static final Supplier<BlockEntityType<VillagerBookBlockEntity>> VILLAGER_BOOK = CBBLOCKENTITIES.register("villager_book",
+            () -> new BlockEntityType<>(VillagerBookBlockEntity::new, BlockRegistry.VILLAGER_BOOK.get()));
 
     // The Book of Essence
     public static final Supplier<BlockEntityType<EssenceBookBlockEntity>> ESSENCE_BOOK = CBBLOCKENTITIES.register("essence_book",

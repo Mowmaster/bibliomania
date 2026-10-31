@@ -12,6 +12,8 @@ import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookBlock;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
+import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookBlock;
+import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.component.ItemLore;
@@ -62,6 +64,10 @@ public class BlockRegistry
     // The Farmer's Almanac: grows a crop on a soil (see CropBookBlock)
     public static final DeferredBlock<CropBookBlock> CROP_BOOK = registerCropBook("crop_book",
             properties -> new CropBookBlock(bookProperties(properties, SoundType.GRASS)));
+
+    // The Trader's Ledger: a villager to trade with (see VillagerBookBlock)
+    public static final DeferredBlock<VillagerBookBlock> VILLAGER_BOOK = registerVillagerBook("villager_book",
+            properties -> new VillagerBookBlock(bookProperties(properties, SoundType.WOOD)));
 
     // The Book of Essence: for the mobs a Bestiary can't hold
     public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
@@ -132,6 +138,13 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new CropBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    private static <T extends Block> DeferredBlock<T> registerVillagerBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new VillagerBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

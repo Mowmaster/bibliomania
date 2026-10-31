@@ -143,6 +143,16 @@ public final class ServerConfig
             .comment("How many more drops (in %) each yield item gives a harvest, added up (2 cores = +50% by default). Default 25.")
             .defineInRange("yieldPercent", 25.0, 0.0, 10000.0);
 
+    // ---- [villager_book] Trader's Ledger ----
+    static
+    {
+        BUILDER.pop().push("villager_book");
+    }
+
+    private static final ModConfigSpec.IntValue VILLAGER_RESTOCK = BUILDER
+            .comment("Ticks after the first trade until all of a Trader's Ledger's trades restock. Default 12000 = 10 minutes.")
+            .defineInRange("restockInterval", 12000, 20, Integer.MAX_VALUE);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -199,6 +209,8 @@ public final class ServerConfig
     {
         return isItem(stack, get(CROP_BOOST_ITEM));
     }
+
+    public static int villagerRestockInterval() { return get(VILLAGER_RESTOCK); }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)
     {

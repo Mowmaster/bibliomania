@@ -32,6 +32,7 @@ import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.CreativeTabRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.Items.RecipeRegistry;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
 import com.mowmaster.bibliomania.EventHandlers.BibliomaniaBonusDrops;
 import com.mowmaster.bibliomania.EventHandlers.BibliomaniaKnapping;
@@ -57,6 +58,7 @@ public class Bibliomania {
         BlockRegistry.register(modEventBus);
         libBlockEntityRegistry.register(modEventBus);
         DataComponentRegistry.register(modEventBus);
+        RecipeRegistry.register(modEventBus);
         CreativeTabRegistry.register(modEventBus);
 
 
