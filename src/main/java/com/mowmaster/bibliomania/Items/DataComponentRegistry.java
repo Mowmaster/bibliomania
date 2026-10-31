@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.CropBook.CropContents;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceContents;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookContents;
 import com.mojang.serialization.Codec;
@@ -42,6 +43,10 @@ public class DataComponentRegistry
     // Codec.BOOL saves it as true/false; ByteBufCodecs.BOOL sends it as one byte.
     public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
             "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+
+    // What a Farmer's Almanac holds (CropContents)
+    public static final Supplier<DataComponentType<CropContents>> CROP_CONTENTS = COMPONENTS.registerComponentType(
+            "crop_contents", builder -> builder.persistent(CropContents.CODEC).networkSynchronized(CropContents.STREAM_CODEC));
 
     // The Breakfast Club: for each slot, the uses left of the cake (or other edible block) being eaten there;
     // 0 = none started. A list of whole numbers: saved as [5, 0, 0, ...]; sent as a list of variable-length ints.

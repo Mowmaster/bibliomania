@@ -5,6 +5,8 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookItem;
 import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
+import com.mowmaster.bibliomania.Blocks.CropBook.CropBookBlock;
+import com.mowmaster.bibliomania.Blocks.CropBook.CropBookItem;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookBlock;
@@ -56,6 +58,10 @@ public class BlockRegistry
     public static final DeferredBlock<StorageBookBlock> FLUID_BOOK = registerStorageBook("fluid_book", TransportTypes.FLUIDS, ServerConfig::fluidCapacity);
     public static final DeferredBlock<StorageBookBlock> EXPERIENCE_BOOK = registerStorageBook("experience_book", TransportTypes.EXPERIENCE, ServerConfig::experienceCapacity);
     public static final DeferredBlock<StorageBookBlock> ENERGY_BOOK = registerStorageBook("energy_book", TransportTypes.ENERGY, ServerConfig::energyCapacity);
+
+    // The Farmer's Almanac: grows a crop on a soil (see CropBookBlock)
+    public static final DeferredBlock<CropBookBlock> CROP_BOOK = registerCropBook("crop_book",
+            properties -> new CropBookBlock(bookProperties(properties, SoundType.GRASS)));
 
     // The Book of Essence: for the mobs a Bestiary can't hold
     public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
@@ -119,6 +125,13 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new EssenceBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    private static <T extends Block> DeferredBlock<T> registerCropBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new CropBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

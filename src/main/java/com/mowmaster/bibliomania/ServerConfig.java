@@ -113,6 +113,20 @@ public final class ServerConfig
             .comment("How much a Book of Energy in your inventory charges your other items, in FE a tick (all items together). Default 2000.")
             .defineInRange("energyChargeRate", 2000, 0, Integer.MAX_VALUE);
 
+    // ---- [crop_book] Farmer's Almanac ----
+    static
+    {
+        BUILDER.pop().push("crop_book");
+    }
+
+    private static final ModConfigSpec.DoubleValue CROP_GROW_CHANCE = BUILDER
+            .comment("Chance (0 to 1) that a growth chance moves the crop a stage on (times the soil's speed). Placed books get a chance each random tick. Default 0.33.")
+            .defineInRange("growChance", 0.33, 0.0, 1.0);
+
+    private static final ModConfigSpec.IntValue CROP_INVENTORY_INTERVAL = BUILDER
+            .comment("Ticks between growth chances for a book in a player's inventory. Default 1200 = 1 minute.")
+            .defineInRange("inventoryInterval", 1200, 20, Integer.MAX_VALUE);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -153,6 +167,9 @@ public final class ServerConfig
     public static int experiencePullRange()    { return get(EXPERIENCE_PULL_RANGE); }
     public static int energyCapacity()         { return get(ENERGY_CAPACITY); }
     public static int energyChargeRate()       { return get(ENERGY_CHARGE_RATE); }
+
+    public static float cropGrowChance()       { return (float) (double) get(CROP_GROW_CHANCE); }
+    public static int cropInventoryInterval()  { return get(CROP_INVENTORY_INTERVAL); }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)
     {
