@@ -4,6 +4,7 @@ import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlockEntity;
+import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBlock;
@@ -48,6 +49,10 @@ public class libBlockEntityRegistry
     // The Trader's Ledger
     public static final Supplier<BlockEntityType<VillagerBookBlockEntity>> VILLAGER_BOOK = CBBLOCKENTITIES.register("villager_book",
             () -> new BlockEntityType<>(VillagerBookBlockEntity::new, BlockRegistry.VILLAGER_BOOK.get()));
+
+    // The Book of Barter
+    public static final Supplier<BlockEntityType<BarterBookBlockEntity>> BARTER_BOOK = CBBLOCKENTITIES.register("barter_book",
+            () -> new BlockEntityType<>(BarterBookBlockEntity::new, BlockRegistry.BARTER_BOOK.get()));
 
     // The Book of Essence
     public static final Supplier<BlockEntityType<EssenceBookBlockEntity>> ESSENCE_BOOK = CBBLOCKENTITIES.register("essence_book",

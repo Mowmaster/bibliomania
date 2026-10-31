@@ -24,6 +24,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -68,6 +69,14 @@ public class MobBookItem extends BlockItem
     private static void setContents(ItemStack stack, MobBookContents contents)
     {
         stack.set(DataComponentRegistry.MOB_CONTENTS.get(), contents);
+    }
+
+    // Can't be placed until it holds a mob
+    @Override
+    public InteractionResult place(BlockPlaceContext context)
+    {
+        if (contents(context.getItemInHand()).isEmpty()) return MobBookActions.refusePlacing(context);
+        return super.place(context);
     }
 
     // ---- Capturing ----

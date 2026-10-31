@@ -5,6 +5,9 @@ import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -92,6 +95,25 @@ public final class MobBookActions
         Entity mob = createTemporary(type, level, EntitySpawnReason.TRIGGERED);
         if (mob != null) MobAppearance.apply(mob, look);
         return mob;
+    }
+
+    // ---- Empty books can't be placed ----
+
+    // For a mob book's BlockItem#place when the book is empty: no block, the "can't" sound, and a message over the
+    // hotbar (sent from the server, which also runs place)
+    public static InteractionResult refusePlacing(BlockPlaceContext context)
+    {
+        Player player = context.getPlayer();
+        if (player != null)
+        {
+            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+            if (!context.getLevel().isClientSide())
+            {
+                player.sendOverlayMessage(Component.translatable("message." + BibliomaniaReferences.MODID + ".empty_mob_book",
+                        context.getItemInHand().getHoverName()));
+            }
+        }
+        return InteractionResult.FAIL;
     }
 
     // ---- What can go in, and what feeds them ----

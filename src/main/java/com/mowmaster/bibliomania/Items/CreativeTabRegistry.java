@@ -33,6 +33,7 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.MOB_BOOK.get());
                 output.accept(BlockRegistry.ESSENCE_BOOK.get());
                 output.accept(BlockRegistry.VILLAGER_BOOK.get());
+                output.accept(BlockRegistry.BARTER_BOOK.get());
                 output.accept(BlockRegistry.CROP_BOOK.get());
                 output.accept(BlockRegistry.FLUID_BOOK.get());
                 output.accept(BlockRegistry.EXPERIENCE_BOOK.get());

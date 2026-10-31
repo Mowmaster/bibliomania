@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.ChatFormatting;
@@ -25,6 +26,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.Level;
@@ -91,6 +93,14 @@ public class VillagerBookItem extends BlockItem
             serverLevel.playSound(null, target.blockPosition(), SoundEvents.VILLAGER_CELEBRATE, SoundSource.PLAYERS, 1f, 1f);
             villager.discard(); // gone from the world, now in the book
         }
+    }
+
+    // Can't be placed until it has a villager
+    @Override
+    public InteractionResult place(BlockPlaceContext context)
+    {
+        if (!contents(context.getItemInHand()).hasVillager()) return MobBookActions.refusePlacing(context);
+        return super.place(context);
     }
 
     // ---- Workstations in the world ----

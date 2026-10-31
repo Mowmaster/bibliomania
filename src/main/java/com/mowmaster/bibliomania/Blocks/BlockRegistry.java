@@ -11,6 +11,8 @@ import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookBlock;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookItem;
+import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookBlock;
+import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookBlock;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
@@ -68,6 +70,10 @@ public class BlockRegistry
     // The Trader's Ledger: a villager to trade with (see VillagerBookBlock)
     public static final DeferredBlock<VillagerBookBlock> VILLAGER_BOOK = registerVillagerBook("villager_book",
             properties -> new VillagerBookBlock(bookProperties(properties, SoundType.WOOD)));
+
+    // The Book of Barter: a piglin that barters for gold (see BarterBookBlock)
+    public static final DeferredBlock<BarterBookBlock> BARTER_BOOK = registerBarterBook("barter_book",
+            properties -> new BarterBookBlock(bookProperties(properties, SoundType.WOOD)));
 
     // The Book of Essence: for the mobs a Bestiary can't hold
     public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
@@ -145,6 +151,13 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new VillagerBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    private static <T extends Block> DeferredBlock<T> registerBarterBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new BarterBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

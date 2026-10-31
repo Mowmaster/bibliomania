@@ -177,6 +177,36 @@ public final class ServerConfig
             .comment("How much (in %) each restock item shortens the restock time; each takes this off the time left by the ones before. Default 1.")
             .defineInRange("restockPercent", 1.0, 0.0, 100.0);
 
+    // ---- [barter_book] Book of Barter ----
+    static
+    {
+        BUILDER.pop().push("barter_book");
+    }
+
+    private static final ModConfigSpec.IntValue BARTER_INTERVAL = BUILDER
+            .comment("Ticks between barters while the book has gold. Default 120 = 6 seconds.")
+            .defineInRange("interval", 120, 5, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue BARTER_MAX_GOLD = BUILDER
+            .comment("Most gold (ingots; a block is 9) one book holds. Default 4096.")
+            .defineInRange("maxGold", 4096, 1, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.ConfigValue<String> BARTER_SPEED_ITEM = BUILDER
+            .comment("Item that makes barters come sooner. Default minecraft:nether_star.")
+            .define("speedItem", "minecraft:nether_star");
+
+    private static final ModConfigSpec.DoubleValue BARTER_SPEED_PERCENT = BUILDER
+            .comment("How much (in %) each speed item shortens the time between barters; each takes this off the time left by the ones before. Default 5.")
+            .defineInRange("speedPercent", 5.0, 0.0, 100.0);
+
+    private static final ModConfigSpec.ConfigValue<String> BARTER_YIELD_ITEM = BUILDER
+            .comment("Item that adds one more barter each time (costing one more gold). Default minecraft:heavy_core.")
+            .define("yieldItem", "minecraft:heavy_core");
+
+    private static final ModConfigSpec.IntValue BARTER_MAX_YIELDS = BUILDER
+            .comment("Most yield items one book takes. Default 8.")
+            .defineInRange("maxYields", 8, 0, 1000);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -248,6 +278,21 @@ public final class ServerConfig
     public static boolean isVillagerRestockItem(ItemStack stack)
     {
         return isItem(stack, get(VILLAGER_RESTOCK_ITEM));
+    }
+
+    public static int barterInterval()         { return get(BARTER_INTERVAL); }
+    public static int barterMaxGold()          { return get(BARTER_MAX_GOLD); }
+    public static double barterSpeedPercent()  { return get(BARTER_SPEED_PERCENT); }
+    public static int barterMaxYields()        { return get(BARTER_MAX_YIELDS); }
+
+    public static boolean isBarterSpeedItem(ItemStack stack)
+    {
+        return isItem(stack, get(BARTER_SPEED_ITEM));
+    }
+
+    public static boolean isBarterYieldItem(ItemStack stack)
+    {
+        return isItem(stack, get(BARTER_YIELD_ITEM));
     }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)

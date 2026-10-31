@@ -29,6 +29,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -99,6 +100,14 @@ public class EssenceBookItem extends BlockItem
                     30, 0.3, 0.5, 0.3, 0.5);
             level.playSound(null, target.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1f, 1f);
         }
+    }
+
+    // Can't be placed until it's set to a mob
+    @Override
+    public InteractionResult place(BlockPlaceContext context)
+    {
+        if (!contents(context.getItemInHand()).isSet()) return MobBookActions.refusePlacing(context);
+        return super.place(context);
     }
 
     // ---- Spawners ----
