@@ -5,6 +5,8 @@
   "block.bibliomania.leather_book": "Leather Book",
   "block.bibliomania.death_book": "Book of Death",
   "block.bibliomania.mob_book": "Bestiary",
+  "block.bibliomania.breakfast_book": "The Breakfast Club",
+  "item.bibliomania.breakfast_book.lore": "By John Hughes",
   "block.bibliomania.essence_book": "Book of Essence",
   "block.bibliomania.fluid_book": "Book of Fluids",
   "block.bibliomania.experience_book": "Book of Experience",

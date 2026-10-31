@@ -7,7 +7,12 @@ import com.mowmaster.bibliomania.Blocks.Book.DeathBookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.TintableBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
+import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookBlock;
+import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookBlock;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.component.ItemLore;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBlock;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
 import com.mowmaster.bibliomania.ServerConfig;
@@ -56,8 +61,12 @@ public class BlockRegistry
     public static final DeferredBlock<EssenceBookBlock> ESSENCE_BOOK = registerEssenceBook("essence_book",
             properties -> new EssenceBookBlock(bookProperties(properties, SoundType.WOOD)));
 
+    // "The Breakfast Club": food and drinkable potions only, and it can be eaten from (BreakfastBookItem)
+    public static final DeferredBlock<BreakfastBookBlock> BREAKFAST_BOOK = registerBreakfastBook("breakfast_book",
+            properties -> new BreakfastBookBlock(bookProperties(properties, SoundType.WOOD)));
+
     // Every item book, for the creative tab and the block entity type
-    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK);
+    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK, BREAKFAST_BOOK);
 
     // Books can't be mined (strength -1, like bedrock; left-click takes items out instead) or blown up,
     // aren't pushed by pistons, and don't hide the faces of blocks next to them (noOcclusion)
@@ -83,6 +92,18 @@ public class BlockRegistry
     {
         DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
         ItemRegistry.CBITEMS.registerItem(name, properties -> new BookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
+    }
+
+    // The Breakfast Club's item: a book you can eat from, with the lore line "By John Hughes" under its name.
+    // Lore is the minecraft:lore data component (purple italic lines, like a named item's lore); giving it to the item
+    // properties makes every Breakfast Club carry it.
+    private static <T extends Block> DeferredBlock<T> registerBreakfastBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new BreakfastBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)
+                .component(DataComponents.LORE, new ItemLore(List.of(
+                        Component.translatable("item." + BibliomaniaReferences.MODID + "." + name + ".lore"))))));
         return toReturn;
     }
 
