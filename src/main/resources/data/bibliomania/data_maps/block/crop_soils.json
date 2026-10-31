@@ -1,16 +1,45 @@
 {
   "values": {
-    "minecraft:soul_sand": { "speed": 0.5 },
-    "minecraft:sand": { "speed": 0.5 },
-    "minecraft:red_sand": { "speed": 0.5 },
-    "minecraft:dirt": { "speed": 1.0 },
-    "minecraft:coarse_dirt": { "speed": 1.0 },
-    "minecraft:rooted_dirt": { "speed": 1.0 },
-    "minecraft:grass_block": { "speed": 1.0 },
-    "minecraft:podzol": { "speed": 1.0 },
-    "minecraft:farmland": { "speed": 1.0 },
-    "minecraft:moss_block": { "speed": 1.25 },
-    "minecraft:mud": { "speed": 1.25 },
-    "minecraft:end_stone": { "speed": 1.0, "any_plant": false }
+    "minecraft:soul_sand": {
+      "speed": 0.5
+    },
+    "minecraft:sand": {
+      "speed": 0.5
+    },
+    "minecraft:red_sand": {
+      "speed": 0.5
+    },
+    "minecraft:dirt": {
+      "speed": 1.0
+    },
+    "minecraft:coarse_dirt": {
+      "speed": 1.0
+    },
+    "minecraft:rooted_dirt": {
+      "speed": 1.0
+    },
+    "minecraft:grass_block": {
+      "speed": 1.0
+    },
+    "minecraft:podzol": {
+      "speed": 1.0
+    },
+    "minecraft:farmland": {
+      "speed": 1.0
+    },
+    "minecraft:moss_block": {
+      "speed": 1.25
+    },
+    "minecraft:mud": {
+      "speed": 1.25
+    },
+    "minecraft:end_stone": {
+      "speed": 1.0,
+      "any_plant": false
+    },
+    "#minecraft:logs": {
+      "speed": 1.0,
+      "any_plant": false
+    }
   }
 }

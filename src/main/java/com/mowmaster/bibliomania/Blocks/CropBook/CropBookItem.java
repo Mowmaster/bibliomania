@@ -26,7 +26,8 @@ import java.util.function.Consumer;
 
 // The Farmer's Almanac as an item.
 // - In inventories, either way round (the book on the cursor onto an item, or the item onto the book):
-//     left-click with soil (first) or a seed that grows on it: puts one in; a boost item (nether star) any time
+//     left-click with soil (first) or a seed that grows on it: puts one in; a boost item (nether star) or a yield
+//     item (heavy core) any time
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
@@ -149,6 +150,12 @@ public class CropBookItem extends BlockItem
     {
         super.appendHoverText(stack, context, display, tooltip, flag);
         CropContents contents = contents(stack);
+        // "Yield: 2 (+50% drops)"
+        if (contents.yields() > 0)
+        {
+            tooltip.accept(line("yields", contents.yields(), Math.round(contents.yields() * ServerConfig.cropYieldPercent()))
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
         // "Boosts: 3 (+30% growth)"
         if (contents.boosts() > 0)
         {

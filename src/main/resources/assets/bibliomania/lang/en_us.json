@@ -17,6 +17,7 @@
   "tooltip.bibliomania.crop_book.chance": "Growth chance: %s%%",
   "tooltip.bibliomania.crop_book.next": "Next growth chance in: %s",
   "tooltip.bibliomania.crop_book.boosts": "Boosts: %1$s (+%2$s%% growth)",
+  "tooltip.bibliomania.crop_book.yields": "Yield: %1$s (+%2$s%% drops)",
   "tooltip.bibliomania.crop_book.ripe": "Ripe: hit the placed book to harvest",
   "block.bibliomania.fluid_book": "Book of Fluids",
   "block.bibliomania.experience_book": "Book of Experience",

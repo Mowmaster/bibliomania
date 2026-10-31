@@ -19,17 +19,19 @@ import java.util.Optional;
 // - nextTick:  in an inventory, the game tick of the next growth chance (0 = not started); placed books use random ticks
 // - boosts:    boost items put in (nether stars): each raises the growth chance and shortens the inventory timer by
 //              ServerConfig.cropBoostPercent(); kept when the soil or seed is changed
+// - yields:    yield items put in (heavy cores): each gives ServerConfig.cropYieldPercent() more drops; also kept
 // Records are immutable, so every change returns a new copy.
-public record CropContents(Optional<Block> soil, Optional<Item> seed, int stage, long nextTick, int boosts)
+public record CropContents(Optional<Block> soil, Optional<Item> seed, int stage, long nextTick, int boosts, int yields)
 {
-    public static final CropContents EMPTY = new CropContents(Optional.empty(), Optional.empty(), 0, 0L, 0);
+    public static final CropContents EMPTY = new CropContents(Optional.empty(), Optional.empty(), 0, 0L, 0, 0);
 
     public static final Codec<CropContents> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                     BuiltInRegistries.BLOCK.byNameCodec().optionalFieldOf("soil").forGetter(CropContents::soil),
                     BuiltInRegistries.ITEM.byNameCodec().optionalFieldOf("seed").forGetter(CropContents::seed),
                     Codec.INT.optionalFieldOf("stage", 0).forGetter(CropContents::stage),
                     Codec.LONG.optionalFieldOf("next_tick", 0L).forGetter(CropContents::nextTick),
-                    Codec.INT.optionalFieldOf("boosts", 0).forGetter(CropContents::boosts))
+                    Codec.INT.optionalFieldOf("boosts", 0).forGetter(CropContents::boosts),
+                    Codec.INT.optionalFieldOf("yields", 0).forGetter(CropContents::yields))
             .apply(instance, CropContents::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, CropContents> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
@@ -72,33 +74,38 @@ public record CropContents(Optional<Block> soil, Optional<Item> seed, int stage,
 
     public CropContents withSoil(Block block)
     {
-        return new CropContents(Optional.of(block), seed, 0, 0L, boosts);
+        return new CropContents(Optional.of(block), seed, 0, 0L, boosts, yields);
     }
 
     public CropContents withSeed(Item item)
     {
-        return new CropContents(soil, Optional.of(item), 0, 0L, boosts);
+        return new CropContents(soil, Optional.of(item), 0, 0L, boosts, yields);
     }
 
     public CropContents withStage(int newStage)
     {
-        return new CropContents(soil, seed, newStage, nextTick, boosts);
+        return new CropContents(soil, seed, newStage, nextTick, boosts, yields);
     }
 
     public CropContents withNextTick(long tick)
     {
-        return new CropContents(soil, seed, stage, tick, boosts);
+        return new CropContents(soil, seed, stage, tick, boosts, yields);
     }
 
     // The seed taken out (growth lost), or else the soil
     public CropContents withoutTop()
     {
-        if (seed.isPresent()) return new CropContents(soil, Optional.empty(), 0, 0L, boosts);
-        return new CropContents(Optional.empty(), Optional.empty(), 0, 0L, boosts);
+        if (seed.isPresent()) return new CropContents(soil, Optional.empty(), 0, 0L, boosts, yields);
+        return new CropContents(Optional.empty(), Optional.empty(), 0, 0L, boosts, yields);
     }
 
     public CropContents withBoost()
     {
-        return new CropContents(soil, seed, stage, nextTick, boosts + 1);
+        return new CropContents(soil, seed, stage, nextTick, boosts + 1, yields);
+    }
+
+    public CropContents withYield()
+    {
+        return new CropContents(soil, seed, stage, nextTick, boosts, yields + 1);
     }
 }

@@ -135,6 +135,14 @@ public final class ServerConfig
             .comment("How much (in %) each boost item raises the growth chance, and shortens the inventory timer (each one takes this off the time left by the ones before). Default 10.")
             .defineInRange("boostPercent", 10.0, 0.0, 100.0);
 
+    private static final ModConfigSpec.ConfigValue<String> CROP_YIELD_ITEM = BUILDER
+            .comment("Item that makes a Farmer's Almanac's harvests bigger. Default minecraft:heavy_core.")
+            .define("yieldItem", "minecraft:heavy_core");
+
+    private static final ModConfigSpec.DoubleValue CROP_YIELD_PERCENT = BUILDER
+            .comment("How many more drops (in %) each yield item gives a harvest, added up (2 cores = +50% by default). Default 25.")
+            .defineInRange("yieldPercent", 25.0, 0.0, 10000.0);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -179,6 +187,13 @@ public final class ServerConfig
     public static float cropGrowChance()       { return (float) (double) get(CROP_GROW_CHANCE); }
     public static int cropInventoryInterval()  { return get(CROP_INVENTORY_INTERVAL); }
     public static double cropBoostPercent()    { return get(CROP_BOOST_PERCENT); }
+
+    public static double cropYieldPercent()    { return get(CROP_YIELD_PERCENT); }
+
+    public static boolean isCropYieldItem(ItemStack stack)
+    {
+        return isItem(stack, get(CROP_YIELD_ITEM));
+    }
 
     public static boolean isCropBoostItem(ItemStack stack)
     {

@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 // What a Farmer's Almanac does, shared by the placed book and the item.
@@ -26,6 +27,8 @@ public final class CropBookActions
         if (stack.isEmpty()) return null;
         // A boost item (nether star) goes in at any time
         if (ServerConfig.isCropBoostItem(stack)) return contents.withBoost();
+        // A yield item (heavy core) too
+        if (ServerConfig.isCropYieldItem(stack)) return contents.withYield();
         if (contents.soil().isEmpty())
         {
             return stack.getItem() instanceof BlockItem blockItem && CropSoils.isSoil(blockItem.getBlock())
@@ -82,11 +85,36 @@ public final class CropBookActions
 
     // ---- Harvesting ----
 
-    // A full harvest's drops (see CropProfile#drops); the caller resets the book with contents.withStage(0)
+    // A full harvest's drops (see CropProfile#drops), made bigger by yield items; the caller resets the book with
+    // contents.withStage(0)
     public static List<ItemStack> harvest(ServerLevel level, CropContents contents, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
     {
         CropProfile profile = contents.profile();
         if (profile == null || !contents.grown()) return List.of();
-        return profile.drops(level, pos, tool, harvester);
+        List<ItemStack> drops = profile.drops(level, pos, tool, harvester);
+        double multiplier = yieldMultiplier(contents);
+        if (multiplier == 1.0) return drops;
+        List<ItemStack> bigger = new ArrayList<>();
+        for (ItemStack drop : drops)
+        {
+            // e.g. 3 x 1.25 = 3.75: 3 for sure, and a 75% chance of a 4th, so on average exactly +25%
+            double exact = drop.getCount() * multiplier;
+            int count = (int) Math.floor(exact);
+            if (level.getRandom().nextDouble() < exact - count) count++;
+            // split into normal stack sizes (a big harvest could pass 64)
+            while (count > 0)
+            {
+                int size = Math.min(count, drop.getMaxStackSize());
+                bigger.add(drop.copyWithCount(size));
+                count -= size;
+            }
+        }
+        return bigger;
+    }
+
+    // 1 + yieldPercent% per yield item (1.25, 1.5, 1.75... by default)
+    public static double yieldMultiplier(CropContents contents)
+    {
+        return 1.0 + contents.yields() * ServerConfig.cropYieldPercent() / 100.0;
     }
 }

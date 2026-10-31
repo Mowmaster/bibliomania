@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropContents;
@@ -61,6 +62,7 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         CropProfile profile = contents.profile();
         state.cropHeight = 0;
         state.hasTopper = false;
+        state.pod = profile != null && profile.pod();
         if (profile != null && state.hasSoil)
         {
             resolver.update(state.crop, profile.stage(contents.stage()), DISPLAY);
@@ -89,6 +91,14 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
 
         // The crop on top, one block per block of height (sugar cane)
         poseStack.translate(0, SOIL_HEIGHT, 0);
+        if (state.pod)
+        {
+            // A pod's model hangs from the north side of its block (cocoa faces north by default). Turned a quarter
+            // around the X axis (east-west), about the block's centre, that side ends up underneath: on the book.
+            poseStack.translate(0.5, 0.5, 0.5);
+            poseStack.rotate(Axis.XP.rotationDegrees(-90));
+            poseStack.translate(-0.5, -0.5, -0.5);
+        }
         for (int block = 0; block < state.cropHeight; block++)
         {
             state.crop.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
@@ -113,6 +123,7 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         final BlockModelRenderState topper = new BlockModelRenderState();
         boolean hasSoil;
         boolean hasTopper;
+        boolean pod;
         int cropHeight;
         float height;
     }

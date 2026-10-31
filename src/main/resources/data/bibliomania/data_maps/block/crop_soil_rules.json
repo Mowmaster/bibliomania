@@ -1,14 +1,23 @@
 {
   "values": {
     "minecraft:chorus_flower": {
-      "soils": ["minecraft:end_stone"]
+      "soils": [
+        "minecraft:end_stone"
+      ]
     },
     "minecraft:sugar_cane": {
       "soils": [
-        "minecraft:sand", "minecraft:red_sand",
-        "minecraft:dirt", "minecraft:coarse_dirt", "minecraft:rooted_dirt", "minecraft:grass_block", "minecraft:podzol",
-        "minecraft:moss_block", "minecraft:mud"
-      ],"minecraft:nether_wart": {
+        "minecraft:sand",
+        "minecraft:red_sand",
+        "minecraft:dirt",
+        "minecraft:coarse_dirt",
+        "minecraft:rooted_dirt",
+        "minecraft:grass_block",
+        "minecraft:podzol",
+        "minecraft:moss_block",
+        "minecraft:mud"
+      ],
+      "minecraft:nether_wart": {
         "soils": [
           "minecraft:soul_sand"
         ]
@@ -22,6 +31,15 @@
         "minecraft:grass_block": 0.5,
         "minecraft:podzol": 0.5,
         "minecraft:soul_sand": 1.0
+      }
+    },
+    "minecraft:cocoa": {
+      "soils": "#minecraft:logs",
+      "speeds": {
+        "minecraft:jungle_log": 1.25,
+        "minecraft:jungle_wood": 1.25,
+        "minecraft:stripped_jungle_log": 1.25,
+        "minecraft:stripped_jungle_wood": 1.25
       }
     }
   }
