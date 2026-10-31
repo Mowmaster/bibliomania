@@ -127,6 +127,14 @@ public final class ServerConfig
             .comment("Ticks between growth chances for a book in a player's inventory. Default 1200 = 1 minute.")
             .defineInRange("inventoryInterval", 1200, 20, Integer.MAX_VALUE);
 
+    private static final ModConfigSpec.ConfigValue<String> CROP_BOOST_ITEM = BUILDER
+            .comment("Item that boosts a Farmer's Almanac's growth. Default minecraft:nether_star.")
+            .define("boostItem", "minecraft:nether_star");
+
+    private static final ModConfigSpec.DoubleValue CROP_BOOST_PERCENT = BUILDER
+            .comment("How much (in %) each boost item raises the growth chance, and shortens the inventory timer (each one takes this off the time left by the ones before). Default 10.")
+            .defineInRange("boostPercent", 10.0, 0.0, 100.0);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -170,6 +178,12 @@ public final class ServerConfig
 
     public static float cropGrowChance()       { return (float) (double) get(CROP_GROW_CHANCE); }
     public static int cropInventoryInterval()  { return get(CROP_INVENTORY_INTERVAL); }
+    public static double cropBoostPercent()    { return get(CROP_BOOST_PERCENT); }
+
+    public static boolean isCropBoostItem(ItemStack stack)
+    {
+        return isItem(stack, get(CROP_BOOST_ITEM));
+    }
 
     public static boolean isEssenceSpeedItem(ItemStack stack)
     {

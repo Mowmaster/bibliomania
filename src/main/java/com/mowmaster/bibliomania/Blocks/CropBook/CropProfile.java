@@ -25,10 +25,15 @@ import java.util.List;
 // - pumpkin / melon stems: their ages, then the fruit; harvesting gives the fruit and keeps the stem
 // - sweet berry bushes, glow berries (cave vines without and with berries): picked, the plant stays
 // - sugar cane: 1, 2, then 3 blocks tall; the top two are cut
+// - cactus: 1, 2, 3 blocks tall, then a cactus flower on top; the top two and the flower are cut
 // - chorus flowers: their ages; harvest gives the fruit of a small chorus plant
 // - anything else whose block has an "age" (nether wart, cocoa, pitcher pods, modded plants): its ages, replanting
 // `replants`: the harvest takes the plant (like breaking a crop), so one seed from the drops goes back in.
-public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants, boolean tall)
+// `maxHeight`: for plants that grow upwards (sugar cane, cactus), how many blocks tall they get; 0 for the rest.
+// `topper`: drawn on top at the last stage (a cactus's flower), or null.
+// A plant with a bibliomania:crop_drops entry drops that instead of its harvest states' loot (see CropDrops).
+public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants,
+                          int maxHeight, @Nullable BlockState topper)
 {
     public int maxStage()
     {
@@ -40,16 +45,25 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
         return stages.get(Math.clamp(stage, 0, maxStage()));
     }
 
-    // How many blocks tall the plant is drawn at this stage (sugar cane grows upwards, everything else is one)
+    // How many blocks tall the plant is drawn at this stage (sugar cane and cactus grow upwards, the rest are one)
     public int height(int stage)
     {
-        return tall ? stage + 1 : 1;
+        return maxHeight > 0 ? Math.min(stage + 1, maxHeight) : 1;
+    }
+
+    // What's drawn on top at this stage (the cactus flower when grown), or null
+    public @Nullable BlockState topper(int stage)
+    {
+        return stage >= maxStage() ? topper : null;
     }
 
     // What a full harvest drops: each harvested state's own loot (with the tool, so Fortune works), and one seed
     // less for plants that are replanted (if a seed dropped)
     public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
     {
+        // A data map override replaces all of this
+        CropDrops.Override override = CropDrops.overrideFor(plant);
+        if (override != null) return override.roll(level.getRandom());
         List<ItemStack> drops = new ArrayList<>();
         for (BlockState state : harvest)
         {
@@ -86,30 +100,37 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             Block fruit = plant == Blocks.PUMPKIN_STEM ? Blocks.PUMPKIN : Blocks.MELON;
             List<BlockState> stages = new ArrayList<>(ages(base));
             stages.add(fruit.defaultBlockState());
-            return new CropProfile(seed, plant, stages, List.of(fruit.defaultBlockState()), false, false);
+            return new CropProfile(seed, plant, stages, List.of(fruit.defaultBlockState()), false, 0, null);
         }
         // Glow berries: a vine without, then with berries; picking leaves the vine
         if (plant == Blocks.CAVE_VINES)
         {
             BlockState ripe = base.setValue(CaveVines.BERRIES, true);
-            return new CropProfile(seed, plant, List.of(base.setValue(CaveVines.BERRIES, false), ripe), List.of(ripe), false, false);
+            return new CropProfile(seed, plant, List.of(base.setValue(CaveVines.BERRIES, false), ripe), List.of(ripe), false, 0, null);
         }
         // Sugar cane: 1 to 3 blocks tall; the top two are cut, the bottom one stays
         if (plant == Blocks.SUGAR_CANE)
         {
-            return new CropProfile(seed, plant, List.of(base, base, base), List.of(base, base), false, true);
+            return new CropProfile(seed, plant, List.of(base, base, base), List.of(base, base), false, 3, null);
+        }
+        // Cactus: 1 to 3 blocks tall, then a flower on top (one stage more than sugar cane); the top two and the
+        // flower are cut, the bottom one stays
+        if (plant == Blocks.CACTUS)
+        {
+            BlockState flower = Blocks.CACTUS_FLOWER.defaultBlockState();
+            return new CropProfile(seed, plant, List.of(base, base, base, base), List.of(base, base, flower), false, 3, flower);
         }
         // Chorus: the flower's ages; a harvest gives what a small chorus plant would (4 stems' worth)
         if (plant == Blocks.CHORUS_FLOWER)
         {
             BlockState stem = Blocks.CHORUS_PLANT.defaultBlockState();
-            return new CropProfile(seed, plant, ages(base), Collections.nCopies(4, stem), false, false);
+            return new CropProfile(seed, plant, ages(base), Collections.nCopies(4, stem), false, 0, null);
         }
         // Sweet berries: picked, the bush stays
         if (plant == Blocks.SWEET_BERRY_BUSH)
         {
             List<BlockState> stages = ages(base);
-            return new CropProfile(seed, plant, stages, List.of(stages.getLast()), false, false);
+            return new CropProfile(seed, plant, stages, List.of(stages.getLast()), false, 0, null);
         }
         // Torchflowers and pitcher pods grow into their flower, which is what's harvested
         if (plant == Blocks.TORCHFLOWER_CROP || plant == Blocks.PITCHER_CROP)
@@ -117,12 +138,12 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             Block flower = plant == Blocks.TORCHFLOWER_CROP ? Blocks.TORCHFLOWER : Blocks.PITCHER_PLANT;
             List<BlockState> stages = new ArrayList<>(ages(base));
             stages.add(flower.defaultBlockState());
-            return new CropProfile(seed, plant, stages, List.of(flower.defaultBlockState()), true, false);
+            return new CropProfile(seed, plant, stages, List.of(flower.defaultBlockState()), true, 0, null);
         }
         // Crops, and anything else with an age
         List<BlockState> stages = plant instanceof CropBlock crop ? cropAges(crop) : ages(base);
         if (stages.size() < 2) return null;
-        return new CropProfile(seed, plant, stages, List.of(stages.getLast()), true, false);
+        return new CropProfile(seed, plant, stages, List.of(stages.getLast()), true, 0, null);
     }
 
     // A crop's own states for each age (CropBlock knows its age property and maximum)

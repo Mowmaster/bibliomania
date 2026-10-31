@@ -8,7 +8,11 @@
         "minecraft:sand", "minecraft:red_sand",
         "minecraft:dirt", "minecraft:coarse_dirt", "minecraft:rooted_dirt", "minecraft:grass_block", "minecraft:podzol",
         "minecraft:moss_block", "minecraft:mud"
-      ],
+      ],"minecraft:nether_wart": {
+        "soils": [
+          "minecraft:soul_sand"
+        ]
+      },
       "speeds": {
         "minecraft:sand": 1.0,
         "minecraft:red_sand": 1.0,
@@ -16,7 +20,8 @@
         "minecraft:coarse_dirt": 0.5,
         "minecraft:rooted_dirt": 0.5,
         "minecraft:grass_block": 0.5,
-        "minecraft:podzol": 0.5
+        "minecraft:podzol": 0.5,
+        "minecraft:soul_sand": 1.0
       }
     }
   }

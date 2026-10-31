@@ -17,13 +17,14 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 // Draws a placed Farmer's Almanac's soil and crop on its pages, standing still (not spinning): the soil as a thin
-// slab (the top quarter of the block, squeezed), the crop at its growth stage on top, both half size. Sugar cane is
-// drawn as tall as it has grown.
+// slab (the top quarter of the block, squeezed), the crop at its growth stage on top, both half size. Sugar cane and
+// cactus are drawn as tall as they have grown, a grown cactus with its flower on top.
 // 26.1+ block models in renderers: a BlockModelResolver fills a BlockModelRenderState with a block state's model in
 // extractRenderState, and the render state submits it in submit (see the 26.1 porting primer).
 public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity, CropBookRenderer.State>
@@ -51,17 +52,23 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         BlockEntityRenderer.super.extractRenderState(book, state, partialTick, cameraPos, crumblingOverlay);
         BlockModelResolver resolver = Minecraft.getInstance().getBlockModelResolver();
         CropContents contents = book.getContents();
-        state.height = (book.getBlockState().getValue(BookBlock.THICKNESS) + 2) / 16f;
+        // Sitting on the pages (the page stack is about thickness/16 high)
+        state.height = book.getBlockState().getValue(BookBlock.THICKNESS) / 16f;
 
         state.hasSoil = contents.soil().isPresent();
         if (state.hasSoil) resolver.update(state.soil, contents.soil().get().defaultBlockState(), DISPLAY);
 
         CropProfile profile = contents.profile();
         state.cropHeight = 0;
+        state.hasTopper = false;
         if (profile != null && state.hasSoil)
         {
             resolver.update(state.crop, profile.stage(contents.stage()), DISPLAY);
             state.cropHeight = profile.height(contents.stage());
+            // A cactus's flower on top once grown
+            BlockState topper = profile.topper(contents.stage());
+            state.hasTopper = topper != null;
+            if (topper != null) resolver.update(state.topper, topper, DISPLAY);
         }
     }
 
@@ -87,6 +94,7 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
             state.crop.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
             poseStack.translate(0, 1, 0);
         }
+        if (state.hasTopper) state.topper.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
     }
 
@@ -95,14 +103,16 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
     public AABB getRenderBoundingBox(CropBookBlockEntity book)
     {
         BlockPos pos = book.getBlockPos();
-        return new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 2.0, pos.getZ() + 1.0);
+        return new AABB(pos.getX(), pos.getY(), pos.getZ(), pos.getX() + 1.0, pos.getY() + 2.5, pos.getZ() + 1.0);
     }
 
     public static class State extends BlockEntityRenderState
     {
         final BlockModelRenderState soil = new BlockModelRenderState();
         final BlockModelRenderState crop = new BlockModelRenderState();
+        final BlockModelRenderState topper = new BlockModelRenderState();
         boolean hasSoil;
+        boolean hasTopper;
         int cropHeight;
         float height;
     }

@@ -24,6 +24,8 @@ public final class CropBookActions
     public static @Nullable CropContents insert(CropContents contents, ItemStack stack)
     {
         if (stack.isEmpty()) return null;
+        // A boost item (nether star) goes in at any time
+        if (ServerConfig.isCropBoostItem(stack)) return contents.withBoost();
         if (contents.soil().isEmpty())
         {
             return stack.getItem() instanceof BlockItem blockItem && CropSoils.isSoil(blockItem.getBlock())
@@ -46,12 +48,28 @@ public final class CropBookActions
         return stack.is(Items.BONE_MEAL);
     }
 
-    // One growth chance (a random tick, or an inventory interval): ServerConfig.cropGrowChance() (a third by default)
-    // times the soil's speed. Returns the book one stage further, or null if it didn't grow.
+    // The chance a growth chance works: ServerConfig.cropGrowChance() (a third by default) times the soil's speed,
+    // raised by each boost (+10% each by default); at most certain
+    public static float growChance(CropContents contents)
+    {
+        float boost = 1f + contents.boosts() * (float) ServerConfig.cropBoostPercent() / 100f;
+        return Math.min(1f, ServerConfig.cropGrowChance() * contents.speed() * boost);
+    }
+
+    // Ticks between growth chances in an inventory: the config's 1 minute, shortened by each boost in turn (10% each
+    // by default: 0.9 x 0.9 x ...); never under a second
+    public static int inventoryInterval(CropContents contents)
+    {
+        double factor = Math.pow(1.0 - ServerConfig.cropBoostPercent() / 100.0, contents.boosts());
+        return (int) Math.max(20, Math.round(ServerConfig.cropInventoryInterval() * factor));
+    }
+
+    // One growth chance (a random tick, or an inventory interval). Returns the book one stage further, or null if it
+    // didn't grow.
     public static @Nullable CropContents tryGrow(CropContents contents, RandomSource random)
     {
         if (!contents.planted() || contents.grown()) return null;
-        if (random.nextFloat() >= ServerConfig.cropGrowChance() * contents.speed()) return null;
+        if (random.nextFloat() >= growChance(contents)) return null;
         return contents.withStage(contents.stage() + 1);
     }
 

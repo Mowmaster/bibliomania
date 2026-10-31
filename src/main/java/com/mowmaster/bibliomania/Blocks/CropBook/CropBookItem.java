@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 
 // The Farmer's Almanac as an item.
 // - In inventories, either way round (the book on the cursor onto an item, or the item onto the book):
-//     left-click with soil (first) or a seed that grows on it: puts one in
+//     left-click with soil (first) or a seed that grows on it: puts one in; a boost item (nether star) any time
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
@@ -58,15 +58,16 @@ public class CropBookItem extends BlockItem
         CropContents contents = contents(stack);
         if (!contents.planted()) return;
         long now = level.getGameTime();
-        if (contents.nextTick() == 0 || contents.nextTick() > now + ServerConfig.cropInventoryInterval())
+        int interval = CropBookActions.inventoryInterval(contents);
+        if (contents.nextTick() == 0 || contents.nextTick() > now + interval)
         {
-            setContents(stack, contents.withNextTick(now + ServerConfig.cropInventoryInterval()));
+            setContents(stack, contents.withNextTick(now + interval));
             return;
         }
         if (now < contents.nextTick()) return;
 
         CropContents grown = CropBookActions.tryGrow(contents, level.getRandom());
-        CropContents next = (grown != null ? grown : contents).withNextTick(now + ServerConfig.cropInventoryInterval());
+        CropContents next = (grown != null ? grown : contents).withNextTick(now + interval);
         if (next.grown())
         {
             // Ripe: harvested into the inventory (no tool), and planted again
@@ -148,6 +149,12 @@ public class CropBookItem extends BlockItem
     {
         super.appendHoverText(stack, context, display, tooltip, flag);
         CropContents contents = contents(stack);
+        // "Boosts: 3 (+30% growth)"
+        if (contents.boosts() > 0)
+        {
+            tooltip.accept(line("boosts", contents.boosts(), Math.round(contents.boosts() * ServerConfig.cropBoostPercent()))
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+        }
         if (contents.soil().isEmpty())
         {
             tooltip.accept(line("no_soil").withStyle(ChatFormatting.GRAY));
@@ -162,8 +169,19 @@ public class CropBookItem extends BlockItem
         }
         tooltip.accept(line("crop", new ItemStack(profile.seed()).getHoverName(), contents.stage() + 1, profile.maxStage() + 1)
                 .withStyle(ChatFormatting.GREEN));
-        tooltip.accept(line("speed", String.format("%.2f", contents.speed())).withStyle(ChatFormatting.DARK_GRAY));
-        if (contents.grown()) tooltip.accept(line("ripe").withStyle(ChatFormatting.GOLD));
+        // "Growth chance: 41%" (each random tick when placed, each timer in an inventory)
+        tooltip.accept(line("chance", Math.round(CropBookActions.growChance(contents) * 100)).withStyle(ChatFormatting.DARK_GRAY));
+        if (contents.grown())
+        {
+            tooltip.accept(line("ripe").withStyle(ChatFormatting.GOLD));
+        }
+        else if (contents.nextTick() > 0 && context.level() != null)
+        {
+            // "Next growth chance in: 0:42" (in an inventory; counts down live, the tooltip is rebuilt every frame)
+            long ticks = Math.max(0, contents.nextTick() - context.level().getGameTime());
+            long seconds = (ticks + 19) / 20;
+            tooltip.accept(line("next", String.format("%d:%02d", seconds / 60, seconds % 60)).withStyle(ChatFormatting.DARK_GRAY));
+        }
     }
 
     private static MutableComponent line(String name, Object... args)

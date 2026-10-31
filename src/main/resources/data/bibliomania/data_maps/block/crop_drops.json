@@ -1,0 +1,10 @@
+{
+  "values": {
+    "minecraft:chorus_flower": {
+      "drops": [
+        { "item": "minecraft:chorus_fruit", "min": 1, "max": 4 },
+        { "item": "minecraft:chorus_flower", "chance": 0.1 }
+      ]
+    }
+  }
+}

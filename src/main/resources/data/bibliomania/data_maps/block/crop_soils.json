@@ -1,5 +1,6 @@
 {
   "values": {
+    "minecraft:soul_sand": { "speed": 0.5 },
     "minecraft:sand": { "speed": 0.5 },
     "minecraft:red_sand": { "speed": 0.5 },
     "minecraft:dirt": { "speed": 1.0 },
