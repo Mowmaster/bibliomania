@@ -5,7 +5,9 @@ import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.ServerConfig;
 import com.mowmaster.mowlib.display.MobDisplay;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -52,7 +54,10 @@ public final class EssenceActions
         return saved.getCompound("SpawnData")
                 .flatMap(data -> data.getCompound("entity"))
                 .flatMap(entity -> entity.getString("id"))
-                .flatMap(EntityType::byString);
+                // The id string -> an Identifier (tryParse: null if it's badly written) -> the registered type.
+                // getOptional is empty for an id that isn't registered (getValue would give the registry's default, a pig).
+                .flatMap(id -> Optional.ofNullable(Identifier.tryParse(id)))
+                .flatMap(BuiltInRegistries.ENTITY_TYPE::getOptional);
     }
 
     // ---- Boost items ----
