@@ -20,6 +20,16 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   (MowLib `CraftingToolItem`, loses 1 durability per craft) -> fibers (grass: 20% from `#bibliomania:grass_fiber_plants`
   with a knife, `BibliomaniaBonusDrops` -> MowLib `BonusDrops`; wool: string/wool + knife) -> twisted thread -> weave
   -> books. Copper/iron/gold ingot in a book recipe = 12/16/24 pages.
+- **Mob books** (`Blocks/MobBook/`, `Blocks/EssenceBook/`), shown by one `MobBookRenderer` (`IMobBookDisplay`):
+  - **Bestiary** (`mob_book`, animals only): right-click an adult animal to store it (count + first mob's look via
+    `MobAppearance`). Breed with food, kill with a sword (placed: left-click via `LeftClickBlock`; inventory: right-click),
+    dye, shear (`IShearable`; mooshrooms are shear-killed via `shear_kills`), milk (`milkings`). Egg/scute drops via
+    data maps `interval_drops` / `grow_up_drops`. Contents in `bibliomania:mob_contents` (`MobBookContents`).
+  - **Book of Essence** (`essence_book`, non-animal mobs, respects `#mowlib:mob_display_blacklist`): set from a mob or
+    spawner; kills/spawners fill essence; at 100% spawns mobs over time; nether star/heavy core boosts.
+    Contents in `bibliomania:essence_contents` (`EssenceContents`).
+  - Temporary mobs: `MobBookActions.createTemporary` (ID -1, never added to the world).
+  - Timers and amounts: `ServerConfig` (`ModConfig.Type.SYNCED`, `<world>/syncedconfig/bibliomania-server.toml`).
 
 ## Known issues / to do
 - Crafting a book that holds items into a death book deletes those items (same as 1.20).
@@ -56,6 +66,9 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
 - Giving items to players: MowLib `StorageInteractions.giveToPlayer` (26.3's `placeItemBackInInventory` takes a
   `Prediction`; plain `Inventory#add` keeps leftovers when full, so items vanish).
 - Recipe JSON: ingredients are plain ids or `#tags`; results use `"id"`.
+- - Config types are `LOCAL` / `SYNCED` (no `SERVER`). `EntityType#is(tag)` and `EntityType.byString` are gone: use
+    `BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).is(tag)` and `.getOptional(Identifier)`.
+- Entities not added to a level have no ID; call `setId(-1)` (like spawner display mobs) before rendering or `die()`.
 
 ## Model conventions
 - Texture slots `#texture_one/two/three`; `cullface` only on faces at the block edge; glow via
