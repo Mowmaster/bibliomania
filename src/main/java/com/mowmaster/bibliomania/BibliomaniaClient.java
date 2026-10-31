@@ -2,7 +2,6 @@ package com.mowmaster.bibliomania;
 
 import com.mowmaster.bibliomania.Blocks.BlockRegistry;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
-import com.mowmaster.mowlib.client.CBBlockEntityTintSource;
 import com.mowmaster.mowlib.tint.IColorableBlock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.block.BlockTintSource;
@@ -55,7 +54,7 @@ public class BibliomaniaClient {
                 List<BlockTintSource> sources = new ArrayList<>();
                 for (int region = 0; region < colorable.getTintRegionCount(); region++)
                 {
-                    sources.add(new CBBlockEntityTintSource(region));
+                    sources.add(new libBlockEntityTintSource(region));
                 }
                 event.register(sources, block);
             }
