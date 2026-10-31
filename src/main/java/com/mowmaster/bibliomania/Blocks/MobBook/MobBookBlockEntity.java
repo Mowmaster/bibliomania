@@ -18,6 +18,7 @@ import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -44,6 +45,7 @@ public class MobBookBlockEntity extends BlockEntity
     // Client only, not saved
     @Nullable private Entity displayAdult;
     @Nullable private Entity displayBaby;
+    @Nullable private DataComponentMap displayLook;
 
     public MobBookBlockEntity(BlockPos pos, BlockState state)
     {
@@ -107,22 +109,33 @@ public class MobBookBlockEntity extends BlockEntity
 
     // ---- Display mobs (client) ----
 
-    // The fake adult or baby to draw, made the first time it's needed (and again if the type changed)
+    // The fake adult or baby to draw, made the first time it's needed (and again if the type or look changed),
+    // with the book's look (variant, colour) and, for sheep, sheared while the wool grows back
     @Nullable
     public Entity getDisplayMob(boolean baby)
     {
         if (level == null || contents.type().isEmpty()) return null;
         EntityType<?> type = contents.type().get();
-        Entity existing = baby ? displayBaby : displayAdult;
-        if (existing != null && existing.getType() == type) return existing;
-
-        Entity created = MobBookActions.createTemporary(type, level, EntitySpawnReason.LOAD);
-        if (created == null) return null;
-        // Positioned at the book, so it's lit by the light where the book is
-        created.setPos(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5);
-        if (baby && created instanceof AgeableMob ageable) ageable.setBaby(true);
-        if (baby) displayBaby = created; else displayAdult = created;
-        return created;
+        // Dyed (or emptied and refilled with another kind): make new display mobs
+        if (!contents.appearance().equals(displayLook))
+        {
+            displayAdult = null;
+            displayBaby = null;
+            displayLook = contents.appearance();
+        }
+        Entity mob = baby ? displayBaby : displayAdult;
+        if (mob == null || mob.getType() != type)
+        {
+            mob = MobBookActions.createTemporary(type, level, EntitySpawnReason.LOAD);
+            if (mob == null) return null;
+            MobAppearance.apply(mob, contents.appearance());
+            // Positioned at the book, so it's lit by the light where the book is
+            mob.setPos(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5);
+            if (baby && mob instanceof AgeableMob ageable) ageable.setBaby(true);
+            if (baby) displayBaby = mob; else displayAdult = mob;
+        }
+        if (mob instanceof Sheep sheep) sheep.setSheared(contents.regrowing(level.getGameTime()));
+        return mob;
     }
 
     // ---- Block <-> item ----

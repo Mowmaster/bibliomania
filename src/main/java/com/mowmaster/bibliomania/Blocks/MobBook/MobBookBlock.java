@@ -12,6 +12,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -28,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 // BookBlock), but holds mobs instead of items, so the clicks are different:
 // - Right-click with the mobs' breeding food: breeds them (see MobBookContents for the rules)
 // - Left-click with a sword: kills one; sneak + left-click: kills 10% (at least one). Drops and XP land on the book.
+// - Right-click with a dye: recolours dyeable mobs (sheep); with shears: shears them, drops on the book
 // - Sneak + right-click with an empty hand: picks the book up, mobs and all
 // - Chickens and other egg layers drop their eggs on the book every 7.5 minutes (MobBookDrops)
 // Mobs go in with the book item (right-click an animal with it, see MobBookItem).
@@ -69,7 +71,7 @@ public class MobBookBlock extends BookBlock
         return false;
     }
 
-    // ---- Right-click: breeding ----
+    // ---- Right-click: breeding, dyeing, shearing ----
 
     @Override
     protected @NotNull InteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
@@ -77,6 +79,43 @@ public class MobBookBlock extends BookBlock
     {
         if (!(level.getBlockEntity(pos) instanceof MobBookBlockEntity book)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         MobBookContents contents = book.getContents();
+
+        // A dye: recolours all the mobs (sheep...), one dye used
+        if (MobBookActions.canDye(contents, stack))
+        {
+            if (level instanceof ServerLevel)
+            {
+                book.setContents(contents.withAppearance(MobAppearance.dyed(contents.appearance(), MobBookActions.dyeColor(stack))));
+                stack.consume(1, player);
+                level.playSound(null, pos, SoundEvents.DYE_USE, SoundSource.PLAYERS, 1f, 1f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // Shears: shears every adult, the drops land on the book; then they grow back (ServerConfig.shearRegrowth)
+        if (MobBookActions.isShears(stack))
+        {
+            if (MobBookActions.canShear(level, contents))
+            {
+                if (level instanceof ServerLevel serverLevel)
+                {
+                    for (ItemStack drop : MobBookActions.shear(serverLevel, contents, player, stack, Vec3.atCenterOf(pos)))
+                    {
+                        Block.popResource(serverLevel, pos, drop);
+                    }
+                    book.setContents(contents.withSheared(level.getGameTime()));
+                    stack.hurtAndBreak(1, player, hand); // one durability per use, like shearing one sheep
+                }
+                return InteractionResult.SUCCESS;
+            }
+            if (contents.regrowing(level.getGameTime()))
+            {
+                // Still growing back
+                if (level instanceof ServerLevel) level.playSound(null, pos, SoundEvents.BUNDLE_INSERT_FAIL, SoundSource.BLOCKS, 1f, 1f);
+                return InteractionResult.SUCCESS;
+            }
+        }
+
         if (!MobBookActions.isBreedingFood(level, contents, stack)) return InteractionResult.TRY_WITH_EMPTY_HAND;
 
         if (level instanceof ServerLevel serverLevel)
@@ -154,7 +193,7 @@ public class MobBookBlock extends BookBlock
         // Sneaking: 10% of the adults, rounded up (so always at least one)
         int count = player.isShiftKeyDown() ? (int) Math.ceil(contents.adults() * 0.1) : 1;
         Vec3 dropAt = Vec3.atCenterOf(pos).add(0, 0.2, 0);
-        int killed = MobBookActions.kill(level, contents.type().get(), count, player, dropAt, false);
+        int killed = MobBookActions.kill(level, contents, count, player, dropAt, false);
         book.setContents(contents.withKilled(killed));
         book.markKilled();
     }

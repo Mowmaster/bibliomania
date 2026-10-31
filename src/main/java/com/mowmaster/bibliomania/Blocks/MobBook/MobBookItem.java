@@ -21,6 +21,7 @@ import net.minecraft.world.inventory.ClickAction;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
@@ -36,10 +37,12 @@ import java.util.function.Consumer;
 // - Right-click an adult animal (not a pet, not named): it goes into the book. Same kind only; one kind per book.
 // - In inventories, either way round (the book on the cursor clicked onto an item, or the item onto the book):
 //     breeding food, left-click: breeds the mobs, using only as much food as they can eat
+//     a dye, left-click:         recolours dyeable mobs (sheep)
 //     a sword, right-click:      kills one; the drops go into your inventory and the XP to you
+//     shears, right-click:       shears every adult; the drops go into your inventory
 //   Clicking the book with anything else on the cursor plays the bundle "can't" sound; clicking the book (on the
 //   cursor) onto anything else just swaps them as normal.
-// - Egg layers (chickens...) lay into your inventory every 7.5 minutes while the book is in it (MobBookDrops).
+// - Egg layers (chickens...) lay into your inventory every ServerConfig.dropInterval() ticks while the book is in it (MobBookDrops).
 // - Tooltip: text lines (appendHoverText) for the mob, count, babies and breeding; the mob's spawn egg as a picture.
 public class MobBookItem extends BlockItem
 {
@@ -82,7 +85,8 @@ public class MobBookItem extends BlockItem
         }
         if (level instanceof ServerLevel serverLevel)
         {
-            setContents(book, contents.withCaptured(target.getType()));
+            // The first mob's look (variant, colour) becomes the book's; later ones just add to the count
+            setContents(book, contents.withCaptured(target.getType(), MobAppearance.capture(target)));
             serverLevel.sendParticles(ParticleTypes.POOF, target.getX(), target.getY() + target.getBbHeight() / 2, target.getZ(),
                     10, 0.3, 0.3, 0.3, 0.02);
             level.playSound(null, target.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1f);
@@ -140,7 +144,7 @@ public class MobBookItem extends BlockItem
         return true;
     }
 
-    // The book `self` used with `other` (food or a sword). Returns true if something happened.
+    // The book `self` used with `other` (food, a dye, a sword or shears). Returns true if something happened.
     private static boolean useOn(ItemStack self, ItemStack other, ClickAction clickAction, Player player)
     {
         Level level = player.level();
@@ -160,13 +164,41 @@ public class MobBookItem extends BlockItem
             return true;
         }
 
+        // A dye, left-click: recolour (one dye used)
+        if (clickAction == ClickAction.PRIMARY && MobBookActions.canDye(contents, other))
+        {
+            if (level instanceof ServerLevel)
+            {
+                setContents(self, contents.withAppearance(MobAppearance.dyed(contents.appearance(), MobBookActions.dyeColor(other))));
+                other.consume(1, player);
+            }
+            else player.playSound(SoundEvents.DYE_USE, 1f, 1f);
+            return true;
+        }
+
+        // Shears, right-click: shear every adult, drops to the player, one durability used
+        if (clickAction == ClickAction.SECONDARY && MobBookActions.isShears(other) && MobBookActions.canShear(level, contents))
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                for (ItemStack drop : MobBookActions.shear(serverLevel, contents, player, other, player.position()))
+                {
+                    StorageInteractions.giveToPlayer(player, drop);
+                }
+                setContents(self, contents.withSheared(level.getGameTime()));
+                // This hurtAndBreak overload is for items not held in a hand; the lambda runs if they break (nothing to do)
+                other.hurtAndBreak(1, serverLevel, player, broken -> {});
+            }
+            return true;
+        }
+
         // A sword, right-click: kill one, drops and XP to the player
         if (clickAction == ClickAction.SECONDARY && MobBookActions.isKillWeapon(other)
                 && contents.adults() > 0 && contents.type().isPresent())
         {
             if (level instanceof ServerLevel serverLevel)
             {
-                int killed = MobBookActions.kill(serverLevel, contents.type().get(), 1, player, player.position(), true);
+                int killed = MobBookActions.kill(serverLevel, contents, 1, player, player.position(), true);
                 setContents(self, contents.withKilled(killed));
             }
             return true;
@@ -207,6 +239,17 @@ public class MobBookItem extends BlockItem
         else if (contents.onCooldown(now))
         {
             tooltip.accept(line("breed_in", time(contents.cooldownLeft(now))).withStyle(ChatFormatting.GRAY));
+        }
+        // "Colour: Red" for dyeable mobs (the colour names are vanilla's own lang lines)
+        DyeColor color = contents.color();
+        if (color != null)
+        {
+            tooltip.accept(line("color", Component.translatable("color.minecraft." + color.getName())).withStyle(ChatFormatting.GRAY));
+        }
+        // "Regrows in: 1:12" after shearing
+        if (contents.regrowing(now))
+        {
+            tooltip.accept(line("regrow_in", time(contents.regrowLeft(now))).withStyle(ChatFormatting.GRAY));
         }
         // "Next drops in: 6:02" for egg layers (the timer starts on the first tick after capture)
         if (contents.nextDrop() > 0 && MobBookDrops.hasDrops(contents))

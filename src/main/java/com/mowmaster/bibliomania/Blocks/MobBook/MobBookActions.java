@@ -1,8 +1,13 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.mowlib.storage.StorageInteractions;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -11,18 +16,25 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.IShearable;
+import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 // What a Bestiary does to the mobs in it, shared by the placed book and the item.
 //
@@ -57,6 +69,19 @@ public final class MobBookActions
         return entity;
     }
 
+    // A temporary mob that looks like the book's mobs: its variant/colour (MobAppearance), and a sheared sheep while
+    // the wool grows back. Used for kills, shearing, egg laying, so the drops match (red wool from red sheep).
+    @Nullable
+    public static Entity createFor(MobBookContents contents, Level level)
+    {
+        if (contents.type().isEmpty()) return null;
+        Entity mob = createTemporary(contents.type().get(), level, EntitySpawnReason.TRIGGERED);
+        if (mob == null) return null;
+        MobAppearance.apply(mob, contents.appearance());
+        if (mob instanceof Sheep sheep && contents.regrowing(level.getGameTime())) sheep.setSheared(true);
+        return mob;
+    }
+
     // ---- What can go in, and what feeds them ----
 
     // Adults only, and never pets or named mobs (so nobody loses one by accident)
@@ -80,18 +105,71 @@ public final class MobBookActions
         return stack.is(ItemTags.SWORDS);
     }
 
+    // ---- Dyeing ----
+
+    // The dye colour of a dye item (26.1+: any item with the minecraft:dye component), or null
+    @Nullable
+    public static DyeColor dyeColor(ItemStack stack)
+    {
+        return stack.get(DataComponents.DYE);
+    }
+
+    // Whether `stack` would change the book's mobs' colour (a dyeable mob, and a different colour)
+    public static boolean canDye(MobBookContents contents, ItemStack stack)
+    {
+        DyeColor color = dyeColor(stack);
+        return color != null && !contents.isEmpty() && MobAppearance.dyeable(contents.appearance()) && color != contents.color();
+    }
+
+    // ---- Shearing ----
+
+    public static boolean isShears(ItemStack stack)
+    {
+        return stack.is(Tags.Items.TOOLS_SHEAR);
+    }
+
+    // Whether the book's mobs can be sheared now: they're shearable (NeoForge's IShearable, which every vanilla and most
+    // modded shearable mobs have), not growing back, and not in #bibliomania:mob_book_no_shear (mooshrooms: shearing
+    // one turns it into a cow, which would spawn a real cow into the world)
+    public static boolean canShear(Level level, MobBookContents contents)
+    {
+        if (contents.adults() <= 0 || contents.type().isEmpty() || contents.regrowing(level.getGameTime())) return false;
+        if (contents.type().get().is(BibliomaniaTags.MOB_BOOK_NO_SHEAR)) return false;
+        return createFor(contents, level) instanceof IShearable;
+    }
+
+    // Shears every adult: each one is a temporary mob sheared the normal way, so the drops come from its own shearing
+    // (a sheep's wool loot table, in its colour). NeoForge's onSheared returns the drops instead of spawning them.
+    // The caller starts the regrowth timer (MobBookContents#withSheared) and places the items.
+    public static List<ItemStack> shear(ServerLevel level, MobBookContents contents, Player player, ItemStack shears, Vec3 at)
+    {
+        List<ItemStack> items = new ArrayList<>();
+        BlockPos pos = BlockPos.containing(at);
+        for (int i = 0; i < contents.adults(); i++)
+        {
+            Entity mob = createFor(contents, level);
+            if (!(mob instanceof IShearable shearable)) break;
+            mob.setPos(at.x, at.y, at.z);
+            if (!shearable.isShearable(player, shears, level, pos)) continue;
+            for (ItemStack drop : shearable.onSheared(player, shears, level, pos)) MobBookDrops.merge(items, drop.copy());
+        }
+        // The mob's own shear sound doesn't reach anyone (it isn't in the world), so play one at the book/player
+        level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.PLAYERS, 1f, 1f);
+        return items;
+    }
+
     // ---- Killing ----
 
-    // Kills `count` stored mobs of `type` as `player`, at `at`. With toPlayer, the drops go into the player's
+    // Kills `count` of the book's adult mobs as `player`, at `at`. With toPlayer, the drops go into the player's
     // inventory (or at their feet if it's full) and the XP straight to them; otherwise both land at `at`.
     // The first kill plays the mob's own death sound. Returns how many were killed.
-    public static int kill(ServerLevel level, EntityType<?> type, int count, Player player, Vec3 at, boolean toPlayer)
+    public static int kill(ServerLevel level, MobBookContents contents, int count, Player player, Vec3 at, boolean toPlayer)
     {
         DamageSource source = level.damageSources().playerAttack(player);
         int killed = 0;
         for (int i = 0; i < count; i++)
         {
-            Entity created = createTemporary(type, level, EntitySpawnReason.TRIGGERED);
+            Entity created = createFor(contents, level);
             if (!(created instanceof LivingEntity mob)) break;
             mob.setPos(at.x, at.y, at.z);
             // Counts as killed by the player: player-only drops and XP happen, and Looting applies

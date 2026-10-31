@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania.Blocks.MobBook;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -10,7 +11,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -31,7 +31,7 @@ import java.util.Optional;
 
 // Mobs that make items on their own keep doing it in a Bestiary. Two kinds, each a NeoForge "data map" (a JSON file
 // that attaches a value to registry entries, here entity types), so datapacks and other mods can add mobs without code:
-// - interval_drops: every DROP_INTERVAL ticks, each stored adult drops once (chickens lay eggs, armadillos shed scutes).
+// - interval_drops: every ServerConfig.dropInterval() ticks (default 7.5 minutes), each stored adult drops once (chickens lay eggs, armadillos shed scutes).
 //     data/<any namespace>/data_maps/entity_type/interval_drops.json
 // - grow_up_drops:  each baby that grows into an adult drops once (turtles drop a turtle scute).
 //     data/<any namespace>/data_maps/entity_type/grow_up_drops.json
@@ -43,9 +43,6 @@ import java.util.Optional;
 public final class MobBookDrops
 {
     private MobBookDrops() {}
-
-    // 7.5 minutes (20 ticks a second)
-    public static final int DROP_INTERVAL = 9000;
 
     // What one mob drops: a loot table, an item, or both. In JSON:
     //   {"loot_table": "minecraft:gameplay/chicken_lay"}
@@ -117,7 +114,7 @@ public final class MobBookDrops
         if (updated.grown() > 0)
         {
             MobDrop drop = dropFor(GROW_UP_DROPS, type);
-            if (drop != null) roll(level, type, drop, updated.grown(), at, items);
+            if (drop != null) roll(level, updated, drop, updated.grown(), at, items);
             updated = updated.withGrownPaid();
         }
 
@@ -132,12 +129,12 @@ public final class MobBookDrops
         }
         else if (updated.nextDrop() == 0)
         {
-            updated = updated.withNextDrop(now + DROP_INTERVAL);
+            updated = updated.withNextDrop(now + ServerConfig.dropInterval());
         }
         else if (now >= updated.nextDrop())
         {
-            roll(level, type, drop, updated.adults(), at, items);
-            updated = updated.withNextDrop(now + DROP_INTERVAL);
+            roll(level, updated, drop, updated.adults(), at, items);
+            updated = updated.withNextDrop(now + ServerConfig.dropInterval());
         }
 
         // Records are compared by reference here: every with...() makes a new one, so "same object" = no change
@@ -145,7 +142,7 @@ public final class MobBookDrops
     }
 
     // `times` mobs of `type` at `at` each drop once; the items are merged into `into` (as few stacks as possible)
-    private static void roll(ServerLevel level, EntityType<?> type, MobDrop drop, int times, Vec3 at, List<ItemStack> into)
+    private static void roll(ServerLevel level, MobBookContents contents, MobDrop drop, int times, Vec3 at, List<ItemStack> into)
     {
         // A fixed item: count per mob
         drop.item().ifPresent(item -> {
@@ -154,7 +151,7 @@ public final class MobBookDrops
         if (drop.lootTable().isEmpty()) return;
 
         // A loot table, rolled for a temporary mob standing at `at` (like a real chicken laying)
-        Entity mob = MobBookActions.createTemporary(type, level, EntitySpawnReason.TRIGGERED);
+        Entity mob = MobBookActions.createFor(contents, level); // with the book's look: a cold chicken lays blue eggs
         if (mob == null) return;
         mob.setPos(at.x, at.y, at.z);
         // The same calls vanilla's fishing hook makes. "Gift" is the loot context vanilla uses for chicken eggs and
@@ -171,7 +168,7 @@ public final class MobBookDrops
     }
 
     // Adds `stack` to the list, topping up matching stacks first
-    private static void merge(List<ItemStack> into, ItemStack stack)
+    static void merge(List<ItemStack> into, ItemStack stack)
     {
         for (ItemStack existing : into)
         {
