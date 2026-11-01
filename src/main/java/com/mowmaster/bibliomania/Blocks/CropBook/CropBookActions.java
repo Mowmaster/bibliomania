@@ -71,16 +71,24 @@ public final class CropBookActions
     // didn't grow.
     public static @Nullable CropContents tryGrow(CropContents contents, RandomSource random)
     {
-        if (!contents.planted() || contents.grown()) return null;
+        CropProfile profile = contents.profile();
+        if (!contents.planted() || contents.grown() || profile == null || profile.flower()) return null;
         if (random.nextFloat() >= growChance(contents)) return null;
         return contents.withStage(contents.stage() + 1);
     }
 
     // Bone meal: straight to the next stage (null if nothing's growing)
-    public static @Nullable CropContents boneMeal(CropContents contents)
+    // What bone meal does: the book one stage further, or for a flower the same book and one of the flower.
+    // Null if it does nothing (nothing planted, or already ripe).
+    public record BoneMeal(CropContents contents, List<ItemStack> drops) {}
+
+    public static @Nullable BoneMeal boneMeal(CropContents contents)
     {
-        if (!contents.planted() || contents.grown()) return null;
-        return contents.withStage(contents.stage() + 1);
+        CropProfile profile = contents.profile();
+        if (!contents.planted() || profile == null) return null;
+        if (profile.flower()) return new BoneMeal(contents, List.of(new ItemStack(profile.seed())));
+        if (contents.grown()) return null;
+        return new BoneMeal(contents.withStage(contents.stage() + 1), List.of());
     }
 
     // ---- Harvesting ----

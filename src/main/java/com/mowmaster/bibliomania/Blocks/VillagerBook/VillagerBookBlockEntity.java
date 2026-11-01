@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.mowlib.paging.IPageHolder;
@@ -28,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 // A placed Trader's Ledger: its VillagerContents, saved and synced to clients for the renderer, carried to and from
 // the item like the other books. IPageHolder lets MowLib's page keys (and the page arrows) turn the trade on show.
 // The server ticks it for restocking; the client keeps a display villager for the renderer.
-public class VillagerBookBlockEntity extends BlockEntity implements IPageHolder
+public class VillagerBookBlockEntity extends BlockEntity implements IPageHolder, PickupableBook
 {
     private static final String TAG_VILLAGER = "villager";
 

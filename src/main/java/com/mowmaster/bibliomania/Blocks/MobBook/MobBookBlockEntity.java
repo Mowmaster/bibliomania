@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import net.minecraft.core.BlockPos;
@@ -32,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 // A placed Bestiary: the mobs (MobBookContents) and when one was last killed (for the red flash on the display).
 // On the client it also keeps the two display mobs MobBookRenderer draws: fake copies that are never added to the
 // world and never tick, made once and reused every frame (like a mob spawner's spinning mob).
-public class MobBookBlockEntity extends BlockEntity implements IMobBookDisplay
+public class MobBookBlockEntity extends BlockEntity implements IMobBookDisplay, PickupableBook
 {
     private static final String TAG_MOBS = "mobs";
     private static final String TAG_LAST_KILL = "last_kill";

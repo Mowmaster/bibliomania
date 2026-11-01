@@ -37,7 +37,7 @@ public class DeathBookBlock extends BookBlock
     }
 
     @Override
-    protected void pickUp(ServerLevel level, BlockPos pos, BlockState state, BookBlockEntity book, Player player)
+    public void pickUp(ServerLevel level, BlockPos pos, BlockState state, BookBlockEntity book, Player player)
     {
         ItemStack stack;
         // MowLib's StorageInteractions.extractStack: up to a stack at a time from the last page holding something

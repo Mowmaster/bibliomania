@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.registry.MowLibDataComponents;
@@ -33,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 // capacity). This block entity is its TransportStorageHost. The storage is also offered to pipes and cables as the
 // type's capability (StorageBookEvents).
 // Clients get the contents (for the sphere) and when something last flowed in or out (for the flow animation).
-public class StorageBookBlockEntity extends BlockEntity implements TransportStorageHost
+public class StorageBookBlockEntity extends BlockEntity implements TransportStorageHost, PickupableBook
 {
     private static final String TAG_STORAGE = "storage";
     private static final String TAG_FLOW_TICK = "flow_tick";

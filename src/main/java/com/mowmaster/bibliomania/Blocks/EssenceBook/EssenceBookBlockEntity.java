@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.EssenceBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.MobBook.IMobBookDisplay;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobAppearance;
@@ -30,7 +31,7 @@ import org.jetbrains.annotations.Nullable;
 
 // A placed Book of Essence: its EssenceContents and when a mob was last killed (red flash). Like the Bestiary's block
 // entity (MobBookBlockEntity), it ticks on the server (spawns) and keeps a fake display mob on the client.
-public class EssenceBookBlockEntity extends BlockEntity implements IMobBookDisplay
+public class EssenceBookBlockEntity extends BlockEntity implements IMobBookDisplay, PickupableBook
 {
     private static final String TAG_ESSENCE = "essence";
     private static final String TAG_LAST_KILL = "last_kill";

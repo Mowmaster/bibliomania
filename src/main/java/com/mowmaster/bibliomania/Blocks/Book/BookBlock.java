@@ -271,13 +271,14 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         return InteractionResult.SUCCESS;
     }
 
-    // Into the player's (empty) main hand, contents and all
-    protected void pickUp(ServerLevel level, BlockPos pos, BlockState state, BookBlockEntity book, Player player)
+    // Into the player's main hand if it's empty (otherwise the inventory), contents and all. Public for the "pick up
+    // book" key (PickupableBook#pickUp).
+    public void pickUp(ServerLevel level, BlockPos pos, BlockState state, BookBlockEntity book, Player player)
     {
         ItemStack item = book.toItem();
         book.markPickedUp();
         level.removeBlock(pos, false);
-        player.setItemInHand(InteractionHand.MAIN_HAND, item);
+        PickupableBook.give(player, item);
 
         SoundType sound = state.getSoundType();
         level.playSound(null, pos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 2f, sound.getPitch() * 0.8f);

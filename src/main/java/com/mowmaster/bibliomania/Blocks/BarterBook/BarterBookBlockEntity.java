@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.BarterBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -35,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 // A placed Book of Barter: its BarterContents, saved and synced, carried to and from the item. Barters on the server
 // tick; the client keeps a display piglin (holding gold while there's gold stored) for the renderer.
-public class BarterBookBlockEntity extends BlockEntity
+public class BarterBookBlockEntity extends BlockEntity implements PickupableBook
 {
     private static final String TAG_BARTER = "barter";
 

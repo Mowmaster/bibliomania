@@ -51,7 +51,8 @@ public record CropContents(Optional<Block> soil, Optional<Item> seed, int stage,
     public boolean grown()
     {
         CropProfile profile = profile();
-        return profile != null && stage >= profile.maxStage();
+        // Flowers never grow, so they're never ripe (bone meal gives their flowers instead)
+        return profile != null && !profile.flower() && stage >= profile.maxStage();
     }
 
     // How fast it grows on its soil (1 = normal); 0 if nothing is planted

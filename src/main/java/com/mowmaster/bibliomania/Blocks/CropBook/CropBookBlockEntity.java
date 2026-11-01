@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CropBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 // A placed Farmer's Almanac: its CropContents (soil, seed, stage), saved, synced to clients for the renderer, and
 // carried to and from the item like the other books.
-public class CropBookBlockEntity extends BlockEntity
+public class CropBookBlockEntity extends BlockEntity implements PickupableBook
 {
     private static final String TAG_CROP = "crop";
 

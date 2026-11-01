@@ -4,6 +4,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.ActivatableBook;
 import com.mowmaster.bibliomania.Blocks.BuilderBook.BuilderBookItem;
+import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Network.PickupBookPayload;
 import com.mowmaster.bibliomania.Network.PlaceBookPayload;
 import com.mowmaster.bibliomania.Network.ToggleBookPayload;
 import net.minecraft.core.BlockPos;
@@ -31,6 +33,7 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 //   toggles the held one (main hand first). The server does the toggling (ToggleBookPayload).
 // - Place book (default G): places the held book (any Bibliomania book) where you're looking, for books whose
 //   right-click does something else (the Builder's Book places blocks, the Book of Fluids places fluids...)
+// - Pick up book (default H): picks up the placed book you're looking at, contents and all (any Bibliomania book)
 // Same pattern as MowLib's page keys (MowLibKeyMappings / PageInputHandler): since 1.21.9 a key's category is a
 // KeyMapping.Category (an id) that must be registered too; since 26.3 key codes are SDL scancodes, so always the
 // InputConstants.KEY_* constants.
@@ -47,6 +50,9 @@ public final class BibliomaniaKeys
     // Place the held book as a block where you're looking (default G), for books whose right-click does something else
     public static final KeyMapping PLACE_BOOK = new KeyMapping(BuilderBookItem.PLACE_BOOK_KEY, InputConstants.KEY_G, CATEGORY);
 
+    // Pick up the looked-at placed book, contents and all (default H)
+    public static final KeyMapping PICKUP_BOOK = new KeyMapping("key." + BibliomaniaReferences.MODID + ".pickup_book", InputConstants.KEY_H, CATEGORY);
+
     // A mod bus event: @EventBusSubscriber sends it there by its type
     @SubscribeEvent
     public static void register(RegisterKeyMappingsEvent event)
@@ -54,6 +60,7 @@ public final class BibliomaniaKeys
         event.registerCategory(CATEGORY);
         event.register(TOGGLE_BOOK);
         event.register(PLACE_BOOK);
+        event.register(PICKUP_BOOK);
     }
 
     // ---- In inventories: the hovered book ----
@@ -78,6 +85,7 @@ public final class BibliomaniaKeys
     public static void onClientTick(ClientTickEvent.Post event)
     {
         while (PLACE_BOOK.consumeClick()) placeHeldBook();
+        while (PICKUP_BOOK.consumeClick()) pickUpLookedAtBook();
         while (TOGGLE_BOOK.consumeClick())
         {
             Player player = Minecraft.getInstance().player;
@@ -108,6 +116,15 @@ public final class BibliomaniaKeys
         Vec3 at = hit.getLocation();
         ClientPacketDistributor.sendToServer(new PlaceBookPayload(offhand, pos, hit.getDirection(),
                 (float) (at.x - pos.getX()), (float) (at.y - pos.getY()), (float) (at.z - pos.getZ())));
+    }
+
+    // The "pick up book" key: if the crosshair is on a placed book, the server is asked to pick it up
+    private static void pickUpLookedAtBook()
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null || !(minecraft.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
+        if (!(minecraft.level.getBlockState(hit.getBlockPos()).getBlock() instanceof BookBlock)) return;
+        ClientPacketDistributor.sendToServer(new PickupBookPayload(hit.getBlockPos()));
     }
 
     // A storage book with an activation mode (Book of Fluids, Book of Experience)

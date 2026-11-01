@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 // The Farmer's Almanac as an item.
 // - In inventories, either way round (the book on the cursor onto an item, or the item onto the book):
 //     left-click with soil (first) or a seed that grows on it: puts one in; a boost item (nether star) or a yield
-//     item (heavy core) any time
+//     item (heavy core) any time; bone meal grows it a stage (a flower gives one of itself)
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
@@ -89,6 +89,12 @@ public class CropBookItem extends BlockItem
     {
         if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !slot.allowModification(player)) return false;
         ItemStack target = slot.getItem();
+        if (CropBookActions.isBoneMeal(target))
+        {
+            boolean handled = boneMeal(self, target, player);
+            if (handled) slot.setChanged();
+            return handled;
+        }
         CropContents planted = CropBookActions.insert(contents(self), target);
         if (planted == null) return false;
         if (!player.level().isClientSide())
@@ -121,6 +127,8 @@ public class CropBookItem extends BlockItem
             player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8f, 1f);
             return true;
         }
+        // Left-click with bone meal: like on the placed book (a ripe crop is harvested straight into the inventory)
+        if (clickAction == ClickAction.PRIMARY && CropBookActions.isBoneMeal(other)) return boneMeal(self, other, player);
         // Left-click with soil or a seed: put one in
         if (clickAction == ClickAction.PRIMARY && !other.isEmpty())
         {
@@ -139,6 +147,36 @@ public class CropBookItem extends BlockItem
             return true;
         }
         return false;
+    }
+
+    // One bone meal from `boneMeal` on the book (true = handled, even if it did nothing): the next stage, or a
+    // flower's flower into the inventory. If that ripens it, it's harvested into the inventory and starts again, the
+    // same as when it ripens there on its own.
+    private static boolean boneMeal(ItemStack book, ItemStack boneMeal, Player player)
+    {
+        CropBookActions.BoneMeal result = CropBookActions.boneMeal(contents(book));
+        if (result == null)
+        {
+            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+            return true;
+        }
+        if (player.level() instanceof ServerLevel level)
+        {
+            CropContents next = result.contents();
+            for (ItemStack drop : result.drops()) StorageInteractions.giveToPlayer(player, drop);
+            if (next.grown())
+            {
+                for (ItemStack drop : CropBookActions.harvest(level, next, player.blockPosition(), ItemStack.EMPTY, player))
+                {
+                    StorageInteractions.giveToPlayer(player, drop);
+                }
+                next = next.withStage(0);
+            }
+            setContents(book, next);
+            boneMeal.shrink(1);
+        }
+        player.playSound(SoundEvents.BONE_MEAL_USE, 0.8f, 1f);
+        return true;
     }
 
     // ---- Tooltip ----
@@ -178,7 +216,11 @@ public class CropBookItem extends BlockItem
                 .withStyle(ChatFormatting.GREEN));
         // "Growth chance: 41%" (each random tick when placed, each timer in an inventory)
         tooltip.accept(line("chance", Math.round(CropBookActions.growChance(contents) * 100)).withStyle(ChatFormatting.DARK_GRAY));
-        if (contents.grown())
+        if (profile.flower())
+        {
+            tooltip.accept(line("flower").withStyle(ChatFormatting.GOLD));
+        }
+        else if (contents.grown())
         {
             tooltip.accept(line("ripe").withStyle(ChatFormatting.GOLD));
         }

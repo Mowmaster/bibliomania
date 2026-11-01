@@ -83,11 +83,13 @@ public class CropBookBlock extends BookBlock
 
         if (CropBookActions.isBoneMeal(stack))
         {
-            CropContents grown = CropBookActions.boneMeal(contents);
+            CropBookActions.BoneMeal grown = CropBookActions.boneMeal(contents);
             if (grown == null) return InteractionResult.TRY_WITH_EMPTY_HAND;
-            if (level instanceof ServerLevel)
+            if (level instanceof ServerLevel serverLevel)
             {
-                book.setContents(grown);
+                book.setContents(grown.contents());
+                // A flower's bone meal gives one of the flower, on the book
+                for (ItemStack drop : grown.drops()) Block.popResource(serverLevel, pos, drop);
                 stack.consume(1, player);
                 // The green sparkles and sound of bone meal working
                 level.levelEvent(LevelEvent.PARTICLES_AND_SOUND_PLANT_GROWTH, pos, 15);

@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 // page capacity), the cover colour a MowLib CBTintData. IPageHolder lets MowLib's page keys turn the open page;
 // ISpinningItemHolder makes MowLib's SpinningItemRenderer show the open page's item above the book.
 // Only the open page can be filled or emptied by hand. Saved data is the same as before the switch to MowLib.
-public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHolder, ISpinningItemHolder
+public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHolder, ISpinningItemHolder, PickupableBook
 {
     private final CBTintData tints;
     private final PagedStorage pages;

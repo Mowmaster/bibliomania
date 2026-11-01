@@ -13,7 +13,7 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "2"; // 2: added place_book
+    private static final String VERSION = "3"; // 2: added place_book; 3: added pickup_book
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)
@@ -23,5 +23,7 @@ public final class BibliomaniaNetwork
         registrar.playToServer(ToggleBookPayload.TYPE, ToggleBookPayload.STREAM_CODEC, ToggleBookPayload::handle);
         // Client -> server: the "place book" key
         registrar.playToServer(PlaceBookPayload.TYPE, PlaceBookPayload.STREAM_CODEC, PlaceBookPayload::handle);
+        // Client -> server: the "pick up book" key
+        registrar.playToServer(PickupBookPayload.TYPE, PickupBookPayload.STREAM_CODEC, PickupBookPayload::handle);
     }
 }
