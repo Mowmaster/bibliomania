@@ -1,12 +1,12 @@
 package com.mowmaster.bibliomania.ClientSide;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
-import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookBlockEntity;
+import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
 import com.mowmaster.bibliomania.ClientConfig;
 import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
 import com.mowmaster.bibliomania.Network.BlockInfoPayloads;
-import com.mowmaster.mowlib.display.ISpinningItemHolder;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import com.mowmaster.mowlib.paging.PagedContents;
 import net.minecraft.client.DeltaTracker;
@@ -23,7 +23,9 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
@@ -56,8 +58,11 @@ import java.util.Optional;
 //   say - enchanted items and books, potions, tipped arrows (a Ledger's trade, a storage book's open page) - get their
 //   own tooltips underneath. Storage books (MowLib paged items) also say which page is open ("Wool Book (Page 3/16)")
 //   and what's on it, with a grid of every page's item at the bottom, no wider than a third of the screen.
+// - Holding a Bibliomania book (main hand first) and not looking at one: the same paper for the held book, so turning
+//   its pages shows on the paper (HeldPageMessages then skips its message above the hotbar).
 // - Looking at any other block or a mob: a small paper label, by default at the top middle, with its icon and name.
-//   Blocks add what they store (energy, fluids, experience); mobs how long until they grow up or can breed again.
+//   Blocks add what they store (energy, fluids, experience) and, on a chiseled bookshelf, the looked-at book's name
+//   and enchantments; mobs their effects and how long until they grow up or can breed again.
 //   Both are asked from the server (Network/BlockInfoPayloads).
 // Positions are in ClientConfig. The text is worked out once a tick (here, ClientTickEvent) and only drawn each frame.
 // 26.1+ GUI drawing goes through GuiGraphicsExtractor (it was GuiGraphics: drawString -> text, renderItem -> item...).
@@ -101,6 +106,8 @@ public final class ReadingHud
     private static ItemStack labelIcon = ItemStack.EMPTY;
     private static Component labelName = Component.empty();
     private static @Nullable BlockPos labelPos;
+    // The chiseled bookshelf slot looked at, or -1
+    private static int labelSlot = -1;
     private static int labelEntity = -1;
     private static int ticks;
 
@@ -118,75 +125,105 @@ public final class ReadingHud
         Minecraft minecraft = Minecraft.getInstance();
         Player player = minecraft.player;
         Level level = minecraft.level;
-        List<FormattedCharSequence> newBook = List.of();
-        PagedContents newPages = null;
+        // The book on the paper (looked at, or else held) and the label (any other block or a mob) are separate:
+        // both can show at once
+        ItemStack book = ItemStack.EMPTY;
         boolean newLabel = false;
         BlockPos newPos = null;
+        int newSlot = -1;
         int newEntity = -1;
-        try
+        if (player != null && level != null && ReadingGlassesItem.canRead(player))
         {
-            if (player == null || level == null || !ReadingGlassesItem.canRead(player)) return;
             // hitResult: what the crosshair is on, worked out each frame (blocks, or mobs within reach)
             HitResult hitResult = minecraft.hitResult;
-
+            boolean lookingAtBook = false;
             if (hitResult instanceof EntityHitResult entityHit && hitResult.getType() == HitResult.Type.ENTITY)
             {
-                if (!ClientConfig.LABEL_ENABLED.get()) return;
-                Entity entity = entityHit.getEntity();
-                newLabel = true;
-                newEntity = entity.getId();
-                // The mob's spawn egg as its icon, if it has one (26.1+: byId gives an Optional holder of the egg item)
-                labelIcon = SpawnEggItem.byId(entity.getType()).map(ItemStack::new).orElse(ItemStack.EMPTY);
-                labelName = entity.getDisplayName();
-                if (newEntity != labelEntity || ticks % ASK_EVERY == 0)
+                if (ClientConfig.LABEL_ENABLED.get())
                 {
-                    ClientPacketDistributor.sendToServer(new BlockInfoPayloads.EntityRequest(newEntity));
+                    Entity entity = entityHit.getEntity();
+                    newLabel = true;
+                    newEntity = entity.getId();
+                    // The mob's spawn egg as its icon, if it has one (26.1+: byId gives an Optional holder of the egg)
+                    labelIcon = SpawnEggItem.byId(entity.getType()).map(ItemStack::new).orElse(ItemStack.EMPTY);
+                    labelName = entity.getDisplayName();
+                    if (newEntity != labelEntity || ticks % ASK_EVERY == 0)
+                    {
+                        ClientPacketDistributor.sendToServer(new BlockInfoPayloads.EntityRequest(newEntity));
+                    }
                 }
-                return;
             }
-
-            if (!(hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
-            BlockPos pos = hit.getBlockPos();
-            BlockState state = level.getBlockState(pos);
-            if (state.isAir()) return;
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-
-            if (blockEntity instanceof PickupableBook book)
+            else if (hitResult instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK)
             {
-                if (!ClientConfig.BOOK_ENABLED.get()) return;
-                ItemStack item = book.toItem();
-                // Storage books: their pages (the item holds them as MowLib's PagedContents)
-                if (item.getItem() instanceof IPagedStorageItem paged) newPages = paged.contents(item);
-                newBook = wrap(minecraft.font, readBook(item, newPages, blockEntity, level, player), ClientConfig.BOOK_MAX_WIDTH.get());
-                return;
+                BlockPos pos = hit.getBlockPos();
+                BlockState state = level.getBlockState(pos);
+                BlockEntity blockEntity = level.getBlockEntity(pos);
+                if (blockEntity instanceof PickupableBook placed)
+                {
+                    lookingAtBook = true;
+                    // The placed book as an item with its contents, so its tooltip is the one it has in an inventory
+                    if (ClientConfig.BOOK_ENABLED.get()) book = placed.toItem();
+                }
+                else if (!state.isAir() && ClientConfig.LABEL_ENABLED.get())
+                {
+                    newLabel = true;
+                    newPos = pos;
+                    newSlot = BlockInfoPayloads.bookshelfSlot(state, hit);
+                    labelIcon = new ItemStack(state.getBlock());
+                    labelName = state.getBlock().getName();
+                    // Asked straight away when the block (or bookshelf slot) changes, then twice a second
+                    boolean ask = ClientConfig.LABEL_AMOUNTS.get() || newSlot >= 0;
+                    if (ask && (!pos.equals(labelPos) || newSlot != labelSlot || ticks % ASK_EVERY == 0))
+                    {
+                        ClientPacketDistributor.sendToServer(new BlockInfoPayloads.Request(pos, newSlot));
+                    }
+                }
             }
-            if (!ClientConfig.LABEL_ENABLED.get()) return;
-            newLabel = true;
-            newPos = pos;
-            labelIcon = new ItemStack(state.getBlock());
-            labelName = state.getBlock().getName();
-            if (ClientConfig.LABEL_AMOUNTS.get() && (!pos.equals(labelPos) || ticks % ASK_EVERY == 0))
-            {
-                ClientPacketDistributor.sendToServer(new BlockInfoPayloads.Request(pos));
-            }
+            if (!lookingAtBook) book = heldBook(player);
         }
-        // finally: runs however the try block ends, the early returns included
-        finally
+
+        PagedContents newPages = null;
+        List<FormattedCharSequence> newBook = List.of();
+        if (!book.isEmpty() && level != null)
         {
-            bookLines = newBook;
-            bookWidth = width(minecraft.font, newBook);
-            bookPages = newPages;
-            labelShown = newLabel;
-            labelPos = newPos;
-            labelEntity = newEntity;
+            // Storage books: their pages (the item holds them as MowLib's PagedContents)
+            if (book.getItem() instanceof IPagedStorageItem paged) newPages = paged.contents(book);
+            newBook = wrap(minecraft.font, readBook(book, newPages, level, player), ClientConfig.BOOK_MAX_WIDTH.get());
         }
+        bookLines = newBook;
+        bookWidth = width(minecraft.font, newBook);
+        bookPages = newPages;
+        labelShown = newLabel;
+        labelPos = newPos;
+        labelSlot = newSlot;
+        labelEntity = newEntity;
+    }
+
+    // ---- Held books ----
+
+    // Whether the paper shows this held item: a Bibliomania book (its block is a BookBlock), one on its own, while the
+    // player can read and held books are turned on
+    public static boolean showsHeld(Player player, ItemStack stack)
+    {
+        return stack.getCount() == 1 && stack.getItem() instanceof BlockItem item && item.getBlock() instanceof BookBlock
+                && ClientConfig.BOOK_ENABLED.get() && ClientConfig.BOOK_HELD.get() && ReadingGlassesItem.canRead(player);
+    }
+
+    // The held book to show (main hand first), or EMPTY
+    private static ItemStack heldBook(Player player)
+    {
+        for (InteractionHand hand : InteractionHand.values())
+        {
+            ItemStack stack = player.getItemInHand(hand);
+            if (showsHeld(player, stack)) return stack;
+        }
+        return ItemStack.EMPTY;
     }
 
     // ---- Reading a book ----
 
-    private static List<Component> readBook(ItemStack item, @Nullable PagedContents pages, BlockEntity blockEntity, Level level, Player player)
+    private static List<Component> readBook(ItemStack item, @Nullable PagedContents pages, Level level, Player player)
     {
-        // The book as an item with its contents, so its tooltip is the one it has in an inventory
         List<Component> lines = new ArrayList<>(tooltip(item, level, player));
         if (pages != null && !lines.isEmpty())
         {
@@ -198,7 +235,7 @@ public final class ReadingHud
                     ? Component.translatable("hud." + BibliomaniaReferences.MODID + ".empty_page")
                     : Component.translatable("hud." + BibliomaniaReferences.MODID + ".page_item", stack.amount(), stack.resource().getHoverName()));
         }
-        for (ItemStack shown : shownItems(blockEntity))
+        for (ItemStack shown : shownItems(item, pages))
         {
             if (!worthReading(shown)) continue;
             lines.add(Component.empty());
@@ -214,12 +251,12 @@ public final class ReadingHud
     }
 
     // The items a book has on show: a Ledger's trade (what it gives and costs), a storage book's open page
-    private static List<ItemStack> shownItems(BlockEntity blockEntity)
+    private static List<ItemStack> shownItems(ItemStack book, @Nullable PagedContents pages)
     {
         List<ItemStack> items = new ArrayList<>();
-        if (blockEntity instanceof VillagerBookBlockEntity ledger)
+        if (book.getItem() instanceof VillagerBookItem)
         {
-            MerchantOffer offer = ledger.getContents().currentOffer();
+            MerchantOffer offer = VillagerBookItem.contents(book).currentOffer();
             if (offer != null)
             {
                 items.add(offer.getResult());
@@ -227,9 +264,10 @@ public final class ReadingHud
                 items.add(offer.getCostB());
             }
         }
-        else if (blockEntity instanceof ISpinningItemHolder spinning)
+        else if (pages != null)
         {
-            items.add(spinning.getDisplayedItem());
+            ResourceStack<ItemResource> open = pages.stack(pages.selectedPage());
+            if (!open.isEmpty()) items.add(open.resource().toStack(1));
         }
         return items;
     }
@@ -294,7 +332,7 @@ public final class ReadingHud
         // F1 hides the HUD
         if (minecraft.gui.hud.isHidden()) return;
         if (!bookLines.isEmpty()) drawPaper(graphics, minecraft.font);
-        else if (labelShown) drawLabel(graphics, minecraft.font);
+        if (labelShown) drawLabel(graphics, minecraft.font);
     }
 
     private static void drawPaper(GuiGraphicsExtractor graphics, Font font)
@@ -372,7 +410,10 @@ public final class ReadingHud
         // The server's answer, if it's about this block or mob
         List<Component> answer = List.of();
         if (labelEntity >= 0 && labelEntity == BlockInfoPayloads.answeredEntity) answer = BlockInfoPayloads.answeredEntityLines;
-        else if (labelPos != null && ClientConfig.LABEL_AMOUNTS.get() && labelPos.equals(BlockInfoPayloads.answeredPos)) answer = BlockInfoPayloads.answeredLines;
+        else if (labelPos != null && labelPos.equals(BlockInfoPayloads.answeredPos) && labelSlot == BlockInfoPayloads.answeredSlot)
+        {
+            answer = BlockInfoPayloads.answeredLines;
+        }
         List<FormattedCharSequence> extra = new ArrayList<>();
         for (Component line : answer) extra.add(ink(line).getVisualOrderText());
 

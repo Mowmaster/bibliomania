@@ -59,8 +59,9 @@ public final class HeldPageMessages
             Seen before = LAST.put(hand, now);
             // Only a page change of the same book in the same place counts (not switching to another book), and only
             // while no screen is open (scrolling over the book in an inventory shows it in the tooltip already)
+            // ... and not while the Reading Goggles' paper is showing this book (the page is on the paper already)
             if (before != null && before.slot() == now.slot() && before.item() == now.item() && before.page() != now.page()
-                    && minecraft.gui.screen() == null)
+                    && minecraft.gui.screen() == null && !ReadingHud.showsHeld(player, stack))
             {
                 // false: plain white text (true makes it cycle colours, like the "now playing" message)
                 minecraft.gui.hud.setOverlayMessage(describePage(stack, pageable, now.page()), false);

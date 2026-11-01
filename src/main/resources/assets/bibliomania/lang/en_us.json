@@ -105,5 +105,6 @@
   "hud.bibliomania.can_breed": "Ready to breed",
   "hud.bibliomania.page": "%1$s (Page %2$s/%3$s)",
   "hud.bibliomania.page_item": "%1$s %2$s",
-  "hud.bibliomania.empty_page": "Empty page"
+  "hud.bibliomania.empty_page": "Empty page",
+  "bibliomania.configuration.held_books": "Show held books"
 }

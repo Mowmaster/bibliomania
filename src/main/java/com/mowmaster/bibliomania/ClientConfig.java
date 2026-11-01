@@ -53,6 +53,7 @@ public final class ClientConfig
     public static final ModConfigSpec.IntValue BOOK_X;
     public static final ModConfigSpec.IntValue BOOK_Y;
     public static final ModConfigSpec.IntValue BOOK_MAX_WIDTH;
+    public static final ModConfigSpec.BooleanValue BOOK_HELD;
     // [block_label]
     public static final ModConfigSpec.BooleanValue LABEL_ENABLED;
     public static final ModConfigSpec.EnumValue<Anchor> LABEL_ANCHOR;
@@ -69,6 +70,8 @@ public final class ClientConfig
         BOOK_X = BUILDER.comment("Moved this far right from there (negative: left)").defineInRange("x_offset", 0, -4000, 4000);
         BOOK_Y = BUILDER.comment("Moved this far down from there (negative: up)").defineInRange("y_offset", 0, -4000, 4000);
         BOOK_MAX_WIDTH = BUILDER.comment("Longer lines wrap at this width").defineInRange("max_width", 180, 60, 600);
+        BOOK_HELD = BUILDER.comment("Also show a book held in the hand (when not looking at one); turning its pages then",
+                "shows here instead of above the hotbar").define("held_books", true);
         BUILDER.pop();
 
         BUILDER.comment("The small label naming any other block while wearing Reading Goggles").push("block_label");

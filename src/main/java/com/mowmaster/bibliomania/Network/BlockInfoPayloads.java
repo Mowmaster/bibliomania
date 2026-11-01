@@ -16,10 +16,24 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.block.ChiseledBookShelfBlock;
+import net.minecraft.world.level.block.entity.ChiseledBookShelfBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.resource.Resource;
@@ -34,19 +48,26 @@ import java.util.List;
 // - Answer (server -> client): one line per stored thing, e.g. "Energy: 4000 / 10000", "Water: 2000mB / 16000"
 // Every MowLib TransportType is asked for the block's handler (energy, fluids, experience, and any a mod adds), so
 // this works for any mod's blocks that offer those capabilities. Items are left out (a chest would list every slot).
-// Mobs work the same way (EntityRequest / EntityAnswer, by entity id): how long until a baby grows up, or until an
-// adult can breed again (the age counter is only kept on the server).
+// Chiseled bookshelves: the request says which of the six slots is looked at (worked out on the client, the same way
+// vanilla does), and the answer starts with that book's tooltip (name, enchantments...): clients don't know which
+// books a shelf holds, only which slots are full.
+// Mobs work the same way (EntityRequest / EntityAnswer, by entity id): their effects (with level and time left), and
+// how long until a baby grows up, or until an adult can breed again (both only kept on the server).
 public final class BlockInfoPayloads
 {
     private BlockInfoPayloads() {}
 
     // At most this many lines (a block with many tanks shows its first few)
-    private static final int MAX_LINES = 6;
+    private static final int MAX_LINES = 10;
 
-    public record Request(BlockPos pos) implements CustomPacketPayload
+    // slot: the chiseled bookshelf slot looked at (0-5), or -1
+    public record Request(BlockPos pos, int slot) implements CustomPacketPayload
     {
         public static final Type<Request> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "block_info_request"));
-        public static final StreamCodec<ByteBuf, Request> STREAM_CODEC = BlockPos.STREAM_CODEC.map(Request::new, Request::pos);
+        public static final StreamCodec<ByteBuf, Request> STREAM_CODEC = StreamCodec.composite(
+                BlockPos.STREAM_CODEC, Request::pos,
+                ByteBufCodecs.VAR_INT, Request::slot,
+                Request::new);
 
         @Override
         public Type<? extends CustomPacketPayload> type()
@@ -57,11 +78,12 @@ public final class BlockInfoPayloads
 
     // ComponentSerialization.STREAM_CODEC sends text with its styles; .apply(ByteBufCodecs.list(n)) makes it a list
     // codec of at most n entries
-    public record Answer(BlockPos pos, List<Component> lines) implements CustomPacketPayload
+    public record Answer(BlockPos pos, int slot, List<Component> lines) implements CustomPacketPayload
     {
         public static final Type<Answer> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "block_info"));
         public static final StreamCodec<RegistryFriendlyByteBuf, Answer> STREAM_CODEC = StreamCodec.composite(
                 BlockPos.STREAM_CODEC, Answer::pos,
+                ByteBufCodecs.VAR_INT, Answer::slot,
                 ComponentSerialization.STREAM_CODEC.apply(ByteBufCodecs.list(MAX_LINES)), Answer::lines,
                 Answer::new);
 
@@ -115,6 +137,15 @@ public final class BlockInfoPayloads
     public static List<Component> describe(Entity entity)
     {
         List<Component> lines = new ArrayList<>();
+        // Effects first: "Speed II 1:30" in blue (good) or red (bad), like a potion's tooltip
+        if (entity instanceof LivingEntity living)
+        {
+            for (MobEffectInstance instance : living.getActiveEffects())
+            {
+                if (lines.size() >= MAX_LINES - 1) break;
+                lines.add(effect(instance));
+            }
+        }
         if (!(entity instanceof AgeableMob mob)) return lines;
         // getAge: negative while a baby (ticks left to grow up), positive after breeding (ticks left to wait), 0 ready
         int age = mob.getAge();
@@ -125,6 +156,17 @@ public final class BlockInfoPayloads
             lines.add(animal.isInLove() ? hud("in_love").withStyle(ChatFormatting.LIGHT_PURPLE) : hud("can_breed").withStyle(ChatFormatting.DARK_GREEN));
         }
         return lines;
+    }
+
+    private static Component effect(MobEffectInstance instance)
+    {
+        Holder<MobEffect> effect = instance.getEffect();
+        MutableComponent line = Component.translatable(effect.value().getDescriptionId());
+        // Amplifier 0 is level I: "enchantment.level.2" is vanilla's "II"
+        if (instance.getAmplifier() > 0) line.append(" ").append(Component.translatable("enchantment.level." + (instance.getAmplifier() + 1)));
+        line.append(" " + (instance.isInfiniteDuration() ? "\u221E" : time(instance.getDuration())));
+        // getTooltipFormatting: blue for beneficial, red for harmful, like potion tooltips
+        return line.withStyle(effect.value().getCategory().getTooltipFormatting());
     }
 
     // Ticks as minutes:seconds
@@ -146,23 +188,36 @@ public final class BlockInfoPayloads
         if (!(player.level() instanceof ServerLevel level) || !ReadingGlassesItem.canRead(player)) return;
         BlockPos pos = request.pos();
         if (!level.isLoaded(pos) || player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 * 64) return;
-        context.reply(new Answer(pos, describe(level, pos)));
+        context.reply(new Answer(pos, request.slot(), describe(level, pos, request.slot(), player)));
     }
 
-    public static List<Component> describe(ServerLevel level, BlockPos pos)
+    public static List<Component> describe(ServerLevel level, BlockPos pos, int slot, Player player)
     {
         List<Component> lines = new ArrayList<>();
+        // The looked-at book on a chiseled bookshelf: its tooltip (name, then enchantments, author...)
+        if (slot >= 0 && slot < 6 && level.getBlockEntity(pos) instanceof ChiseledBookShelfBlockEntity shelf)
+        {
+            ItemStack book = shelf.getItem(slot);
+            if (!book.isEmpty())
+            {
+                for (Component line : book.getTooltipLines(Item.TooltipContext.of(level), player, TooltipFlag.NORMAL))
+                {
+                    if (lines.size() >= MAX_LINES) break;
+                    lines.add(line);
+                }
+            }
+        }
         for (TransportType<?> type : TransportTypes.REGISTRY)
         {
             if (type == TransportTypes.ITEMS.get()) continue;
-            describe(type, level, pos, lines);
+            describeType(type, level, pos, lines);
             if (lines.size() >= MAX_LINES) break;
         }
         return lines.size() > MAX_LINES ? lines.subList(0, MAX_LINES) : lines;
     }
 
     // <R extends Resource>: a generic method, so the handler's resources and the type's describeAmount agree
-    private static <R extends Resource> void describe(TransportType<R> type, ServerLevel level, BlockPos pos, List<Component> lines)
+    private static <R extends Resource> void describeType(TransportType<R> type, ServerLevel level, BlockPos pos, List<Component> lines)
     {
         ResourceHandler<R> handler = type.getBlockHandler(level, pos, null);
         if (handler == null) return;
@@ -185,12 +240,40 @@ public final class BlockInfoPayloads
     // The last answer, read by ClientSide/ReadingHud. Plain fields (no client classes here, so this class also loads
     // on dedicated servers). Handlers run on the main thread, so there's no threading to worry about.
     public static @Nullable BlockPos answeredPos;
+    public static int answeredSlot = -1;
     public static List<Component> answeredLines = List.of();
 
     public static void handleAnswer(Answer answer, IPayloadContext context)
     {
         answeredPos = answer.pos();
+        answeredSlot = answer.slot();
         answeredLines = answer.lines();
+    }
+
+    // ---- Chiseled bookshelf slots (used on the client) ----
+
+    // Which of a chiseled bookshelf's six slots the crosshair is on (0-2 the top row from the left, 3-5 the bottom), or
+    // -1 (not a chiseled bookshelf, or not its front). The same sums as vanilla's ChiseledBookShelfBlock.
+    public static int bookshelfSlot(BlockState state, BlockHitResult hit)
+    {
+        if (!(state.getBlock() instanceof ChiseledBookShelfBlock) || !state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) return -1;
+        Direction face = hit.getDirection();
+        if (face != state.getValue(BlockStateProperties.HORIZONTAL_FACING)) return -1;
+        // Where on the front face it was hit, 0-1 across (from the left, seen from the front) and 0-1 up
+        BlockPos pos = hit.getBlockPos();
+        Vec3 at = hit.getLocation().subtract(pos.getX(), pos.getY(), pos.getZ());
+        double across = switch (face)
+        {
+            case NORTH -> 1.0 - at.x();
+            case SOUTH -> at.x();
+            case WEST -> at.z();
+            case EAST -> 1.0 - at.z();
+            default -> -1;
+        };
+        if (across < 0) return -1;
+        int column = across < 0.375 ? 0 : across < 0.6875 ? 1 : 2;
+        int row = at.y() >= 0.5 ? 0 : 1;
+        return column + row * 3;
     }
 
     public static int answeredEntity = -1;
