@@ -154,6 +154,20 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
         return parts.isEmpty() ? null : new CombinedResourceHandler<>(parts);
     }
 
+    // One book's own handler for `type` (the Reading Lectern works on single books), or null if it has none
+    public <R extends Resource> @Nullable ResourceHandler<R> bookHandler(int slot, TransportType<R> type)
+    {
+        ItemStack book = books.get(slot);
+        if (book.isEmpty() || !(book.getItem() instanceof ShelvedBook shelved)) return null;
+        return shelved.shelfHandler(type, ItemAccess.forHandlerIndexStrict(books, slot));
+    }
+
+    // A book was changed in place (by the Reading Lectern acting as it): save it and tell clients
+    public void bookUpdated(int slot)
+    {
+        booksChanged(false);
+    }
+
     // Puts all of `items` into the item books, or none of them (a transaction that's only kept if everything fit).
     // For books that should wait while the shelf is full (the Farmer's Almanac stays ripe).
     public boolean storeAll(List<ItemStack> items)

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
@@ -170,6 +171,12 @@ public final class ReadingHud
                     // The placed book as an item with its contents, so its tooltip is the one it has in an inventory
                     if (ClientConfig.BOOK_ENABLED.get()) book = placed.toItem();
                 }
+                else if (blockEntity instanceof ReadingLecternBlockEntity lectern)
+                {
+                    // A Reading Lectern: its open page
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get()) shelfLines = readLectern(state, lectern, level, player);
+                }
                 else if (blockEntity instanceof BookcaseBlockEntity shelf && state.getBlock() instanceof BookcaseBlock bookcase)
                 {
                     // A Bookcase: the book in the space looked at, or else the list of its books
@@ -242,6 +249,49 @@ public final class ReadingHud
                     : hud("shelf_book", slot + 1, shelved.getHoverName()));
         }
         if (!any) lines.add(hud("shelf_empty"));
+        return lines;
+    }
+
+    // ---- Reading Lecterns ----
+
+    // "Reading Lectern (Page 12/340)", then the open page: "24 Cobblestone" (and its tooltip if it's enchanted or a
+    // potion) with "In: Wool Book", or a whole book's own tooltip; or why there's nothing to show
+    private static List<Component> readLectern(BlockState state, ReadingLecternBlockEntity lectern, Level level, Player player)
+    {
+        List<Component> lines = new ArrayList<>();
+        Component name = state.getBlock().getName();
+        if (!lectern.hasCard())
+        {
+            lines.add(name);
+            lines.add(hud("lectern_no_card"));
+            return lines;
+        }
+        if (lectern.getPageCount() <= 0)
+        {
+            lines.add(name);
+            lines.add(hud("lectern_no_cases"));
+            return lines;
+        }
+        lines.add(Component.translatable("hud." + BibliomaniaReferences.MODID + ".page", name, lectern.getPage() + 1, lectern.getPageCount()));
+        ItemStack book = lectern.getShownBook();
+        if (lectern.getShownBookPage() < 0)
+        {
+            // A whole book: the lectern stands in for it
+            lines.addAll(tooltip(book, level, player));
+            return lines;
+        }
+        ItemStack shown = lectern.getShown();
+        if (shown.isEmpty()) lines.add(hud("empty_page"));
+        else
+        {
+            lines.add(hud("page_item", lectern.getShownAmount(), shown.getHoverName()));
+            if (worthReading(shown))
+            {
+                lines.add(Component.empty());
+                lines.addAll(tooltip(shown, level, player));
+            }
+        }
+        if (!book.isEmpty()) lines.add(hud("lectern_in", book.getHoverName(), lectern.getShownBookPage() + 1));
         return lines;
     }
 

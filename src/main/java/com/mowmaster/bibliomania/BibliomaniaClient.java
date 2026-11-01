@@ -66,6 +66,8 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BARTER_BOOK.get(), BarterBookRenderer::new);
         // The books standing on a Bookcase's shelves
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOKCASE.get(), BookcaseRenderer::new);
+        // The Reading Lectern's open page, spinning above it (ReadingLecternBlockEntity is an ISpinningItemHolder)
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.READING_LECTERN.get(), SpinningItemRenderer::new);
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it

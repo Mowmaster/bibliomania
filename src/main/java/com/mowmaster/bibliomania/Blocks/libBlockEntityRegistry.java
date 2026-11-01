@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
@@ -62,6 +63,10 @@ public class libBlockEntityRegistry
     // Both Bookcases (full and half)
     public static final Supplier<BlockEntityType<BookcaseBlockEntity>> BOOKCASE = CBBLOCKENTITIES.register("bookcase",
             () -> new BlockEntityType<>(BookcaseBlockEntity::new, BlockRegistry.BOOKCASE.get(), BlockRegistry.HALF_BOOKCASE.get()));
+
+    // The Reading Lectern
+    public static final Supplier<BlockEntityType<ReadingLecternBlockEntity>> READING_LECTERN = CBBLOCKENTITIES.register("reading_lectern",
+            () -> new BlockEntityType<>(ReadingLecternBlockEntity::new, BlockRegistry.READING_LECTERN.get()));
 
     public static void register(IEventBus eventBus)
     {

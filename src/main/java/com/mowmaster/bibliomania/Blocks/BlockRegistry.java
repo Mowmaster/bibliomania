@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.HalfBookcaseBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlock;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -96,6 +97,10 @@ public class BlockRegistry
             properties -> new BookcaseBlock(bookcaseProperties(properties)));
     public static final DeferredBlock<HalfBookcaseBlock> HALF_BOOKCASE = registerBlock("half_bookcase",
             properties -> new HalfBookcaseBlock(bookcaseProperties(properties)));
+
+    // The Reading Lectern: the way into the Bookcases a work card points at (see ReadingLecternBlock)
+    public static final DeferredBlock<ReadingLecternBlock> READING_LECTERN = registerBlock("reading_lectern",
+            properties -> new ReadingLecternBlock(properties.strength(2.5f).sound(SoundType.WOOD).noOcclusion().ignitedByLava()));
 
     // Wood, mined with an axe like a chiseled bookshelf, and see-through (it's open at the front)
     private static BlockBehaviour.Properties bookcaseProperties(BlockBehaviour.Properties properties)

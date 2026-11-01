@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "SSS",
+    " B ",
+    " S "
+  ],
+  "key": {
+    "S": "#minecraft:wooden_slabs",
+    "B": "bibliomania:half_bookcase"
+  },
+  "result": {
+    "id": "bibliomania:reading_lectern",
+    "count": 1
+  }
+}

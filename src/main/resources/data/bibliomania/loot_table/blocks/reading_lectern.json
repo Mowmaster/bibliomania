@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "bibliomania:reading_lectern",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": [
+                "minecraft:dyed_color"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "random_sequence": "bibliomania:blocks/reading_lectern"
+}
