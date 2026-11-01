@@ -20,11 +20,14 @@ public final class RequestPattern
 {
     public static final int MAX_COUNT = 64;
     private static final String TAG_PATTERN = "pattern";
+    private static final String TAG_EXACT = "exact";
 
     private final ItemStack[] items;
     private final int[] counts;
     private final int maxCount;
     private final Runnable onChanged;
+    // How stored items are matched: false (fuzzy, the default) ignores damage; true (exact) doesn't
+    private boolean exact;
 
     // onChanged: the block entity saving itself and telling clients
     public RequestPattern(int size, int maxCount, Runnable onChanged)
@@ -86,6 +89,21 @@ public final class RequestPattern
         return true;
     }
 
+    // ---- Matching (the Filter Tool switches it) ----
+
+    public boolean exact()
+    {
+        return exact;
+    }
+
+    // Switches between fuzzy and exact; returns the new setting
+    public boolean toggleExact()
+    {
+        exact = !exact;
+        onChanged.run();
+        return exact;
+    }
+
     // ---- Saving ----
 
     // One set slot as saved: [{slot: 0, item: {id: "minecraft:stone"}, count: 32}, ...]
@@ -107,12 +125,14 @@ public final class RequestPattern
             if (!items[slot].isEmpty()) saved.add(new Saved(slot, items[slot], counts[slot]));
         }
         output.store(TAG_PATTERN, Saved.CODEC.listOf(), saved);
+        output.putBoolean(TAG_EXACT, exact);
     }
 
     public void load(ValueInput input)
     {
         Arrays.fill(items, ItemStack.EMPTY);
         Arrays.fill(counts, 0);
+        exact = input.getBooleanOr(TAG_EXACT, false);
         for (Saved saved : input.read(TAG_PATTERN, Saved.CODEC.listOf()).orElse(List.of()))
         {
             if (saved.slot() < 0 || saved.slot() >= items.length || saved.item().isEmpty()) continue;

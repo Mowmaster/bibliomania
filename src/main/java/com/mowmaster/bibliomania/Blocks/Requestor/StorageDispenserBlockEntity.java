@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Requestor;
 
+import java.util.List;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
@@ -56,7 +57,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
 
     // 1. Anything that isn't the set item (what an earlier use turned it into, if the library was full then; the old
     //    item after the setting changed) goes back to the library first.
-    // 2. No item in hand: one is taken from the library (a damageable one at any damage).
+    // 2. No item in hand: one is taken from the library (fuzzy: at any damage; exact: only one just like the set one).
     // 3. It's used as a Dispenser would use it. The result: the same item (worn shears, bone meal that found nothing
     //    to grow) stays in hand for next time; nothing (used up, or broken) leaves the hand empty; anything else (an
     //    empty bucket, a honey bottle, a water bucket) is stored in the library (a water bucket as water and a bucket).
@@ -93,12 +94,11 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
     {
         try (Transaction transaction = Transaction.openRoot())
         {
-            ItemStack got;
-            if (wanted.isDamageableItem()) got = LibraryDeposit.takeAnyDamage(library, wanted, transaction);
-            else got = LibraryDeposit.take(library, wanted, 1, transaction) == 1 ? wanted.copyWithCount(1) : ItemStack.EMPTY;
+            List<ItemStack> got = LibraryDeposit.take(library, wanted, 1, pattern.exact(), transaction);
             if (got.isEmpty()) return false;
             transaction.commit();
-            setItem(0, got);
+            // getFirst (Java 21): the list's first element
+            setItem(0, got.getFirst());
             return true;
         }
     }

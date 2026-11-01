@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Requestor;
 
+import com.mowmaster.mowlib.items.tools.FilterToolItem;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
 import net.minecraft.core.BlockPos;
@@ -25,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 // - right-click a cell with an item: the cell is set to it, its stack size the count (the dispenser: always 1)
 // - right-click a set cell with an empty hand: cleared
 // - the page keys while looking at a cell: one more or fewer (sneaking: 8); Requestor only, see its block entity
+// - right-click with MowLib's Filter Tool: fuzzy matching (the default: stored items at any damage count) or exact
 // The Librarian's Seal locks the pattern. The Bookbinder's Bone Folder turns the block to face another way.
 public abstract class PatternDispenserBlock extends DispenserBlock
 {
@@ -53,6 +55,18 @@ public abstract class PatternDispenserBlock extends DispenserBlock
     {
         PatternHolder holder = holder(level, pos);
         if (stack.isEmpty() || holder == null) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        // MowLib's Filter Tool, anywhere on the block: switches between fuzzy (any damage) and exact matching
+        if (stack.getItem() instanceof FilterToolItem)
+        {
+            if (holder instanceof LibraryMember member && member.isLocked()) return locked(level, player);
+            if (!level.isClientSide())
+            {
+                boolean exact = holder.pattern().toggleExact();
+                player.sendOverlayMessage(Component.translatable("message." + BibliomaniaReferences.MODID + ".requestor." + (exact ? "match_exact" : "match_fuzzy")));
+                level.playSound(null, pos, SoundEvents.COMPARATOR_CLICK, SoundSource.BLOCKS, 0.6f, exact ? 0.55f : 0.5f);
+            }
+            return InteractionResult.SUCCESS;
+        }
         int cell = cellAt(state, hitResult, holder);
         if (cell < 0) return InteractionResult.PASS;
         if (holder instanceof LibraryMember member && member.isLocked()) return locked(level, player);

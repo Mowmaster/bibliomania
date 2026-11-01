@@ -77,9 +77,14 @@ public class StorageRequestorBlockEntity extends BlockEntity implements LibraryM
                 ItemStack wanted = pattern.item(slot);
                 int count = pattern.count(slot);
                 if (wanted.isEmpty()) continue;
-                if (LibraryDeposit.take(library, wanted, count, transaction) < count) return false;
-                if (target == null) dropped.add(wanted.copyWithCount(count));
-                else if (ResourceHandlerUtil.insertStacking(target, ItemResource.of(wanted), count, transaction) < count) return false;
+                // The real items taken (fuzzy matching can find several, worn differently)
+                List<ItemStack> got = LibraryDeposit.take(library, wanted, count, pattern.exact(), transaction);
+                if (LibraryDeposit.total(got) < count) return false;
+                for (ItemStack stack : got)
+                {
+                    if (target == null) dropped.add(stack);
+                    else if (ResourceHandlerUtil.insertStacking(target, ItemResource.of(stack), stack.getCount(), transaction) < stack.getCount()) return false;
+                }
             }
             transaction.commit();
         }

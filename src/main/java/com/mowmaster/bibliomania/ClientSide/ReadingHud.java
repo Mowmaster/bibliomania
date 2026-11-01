@@ -362,6 +362,7 @@ public final class ReadingHud
             lines.add(hud("pattern_empty"));
             return lines;
         }
+        lines.add(hud(pattern.exact() ? "pattern_match_exact" : "pattern_match_fuzzy"));
         if (!pattern.item(cell).isEmpty() && pattern.size() > 1)
         {
             lines.add(hud("page_item", pattern.count(cell), pattern.item(cell).getHoverName()));

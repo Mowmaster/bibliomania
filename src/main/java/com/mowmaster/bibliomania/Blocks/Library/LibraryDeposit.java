@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import java.util.List;
+import java.util.ArrayList;
+import net.minecraft.core.component.DataComponents;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import net.minecraft.world.item.BucketItem;
@@ -113,17 +116,39 @@ public final class LibraryDeposit
 
     // ---- Out ----
 
-    // Takes up to `count` of `wanted` (its exact components) from the library. A fluid bucket the library doesn't
-    // have enough of as items is made from an empty bucket (item books) and a bucket's worth of its fluid (fluid
-    // books), one at a time. Returns how many it got.
-    public static int take(LibraryControllerBlockEntity library, ItemStack wanted, int count, TransactionContext transaction)
+    // Whether a stored item counts as `wanted`. Exact: the same item with the same components. Fuzzy: the same apart
+    // from damage (worn shears are still shears; enchantments, names and the rest still have to match).
+    public static boolean matches(ItemResource resource, ItemStack wanted, boolean exact)
     {
+        if (!resource.is(wanted.getItem())) return false;
+        ItemStack stored = resource.toStack(1);
+        if (exact) return ItemStack.isSameItemSameComponents(stored, wanted);
+        ItemStack want = wanted.copyWithCount(1);
+        stored.remove(DataComponents.DAMAGE);
+        want.remove(DataComponents.DAMAGE);
+        return ItemStack.isSameItemSameComponents(stored, want);
+    }
+
+    // Takes up to `count` of `wanted` from the library (matches: exact or fuzzy). What it got, as the real stacks
+    // (fuzzy: possibly several, each worn differently). A fluid bucket the library doesn't have enough of as items is
+    // made from an empty bucket (item books) and a bucket's worth of its fluid (fluid books), one at a time.
+    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, TransactionContext transaction)
+    {
+        List<ItemStack> got = new ArrayList<>();
         ResourceHandler<ItemResource> items = library.typeHandler(TransportTypes.ITEMS.get());
-        if (items == null || wanted.isEmpty() || count <= 0) return 0;
-        int taken = items.extract(ItemResource.of(wanted), count, transaction);
-        if (taken >= count || !isFluidBucket(wanted)) return taken;
+        if (items == null || wanted.isEmpty() || count <= 0) return got;
+        int taken = 0;
+        while (taken < count)
+        {
+            // extractFirst: takes from the first stored resource the test accepts (a lambda: resource -> true/false)
+            ResourceStack<ItemResource> each = ResourceHandlerUtil.extractFirst(items, resource -> matches(resource, wanted, exact), count - taken, transaction);
+            if (each == null || each.amount() <= 0) break;
+            got.add(each.resource().toStack(each.amount()));
+            taken += each.amount();
+        }
+        if (taken >= count || !isFluidBucket(wanted)) return got;
         ResourceHandler<FluidResource> fluids = library.typeHandler(TransportTypes.FLUIDS.get());
-        if (fluids == null) return taken;
+        if (fluids == null) return got;
         FluidStack fluid = FluidUtil.getFirstStackContained(wanted);
         FluidResource resource = FluidResource.of(fluid);
         while (taken < count)
@@ -134,20 +159,18 @@ public final class LibraryDeposit
                 if (fluids.extract(resource, fluid.getAmount(), fill) < fluid.getAmount()) break;
                 fill.commit();
             }
+            got.add(wanted.copyWithCount(1));
             taken++;
         }
-        return taken;
+        return got;
     }
 
-    // Takes one of `wanted`'s item, whatever its damage (a worn pair of shears is still shears). Returns what it got,
-    // or EMPTY.
-    public static ItemStack takeAnyDamage(LibraryControllerBlockEntity library, ItemStack wanted, TransactionContext transaction)
+    // How many items in all
+    public static int total(List<ItemStack> stacks)
     {
-        ResourceHandler<ItemResource> items = library.typeHandler(TransportTypes.ITEMS.get());
-        if (items == null || wanted.isEmpty()) return ItemStack.EMPTY;
-        // extractFirst: the first resource the test accepts (a lambda: resource -> true or false)
-        ResourceStack<ItemResource> got = ResourceHandlerUtil.extractFirst(items, resource -> resource.is(wanted.getItem()), 1, transaction);
-        return got == null ? ItemStack.EMPTY : got.resource().toStack(got.amount());
+        int total = 0;
+        for (ItemStack stack : stacks) total += stack.getCount();
+        return total;
     }
 
     // ---- Hoppers and pipes ----
