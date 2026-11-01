@@ -77,7 +77,15 @@ public final class CropBookActions
         CropProfile profile = contents.profile();
         if (!contents.planted() || contents.grown() || profile == null || profile.flower()) return null;
         if (random.nextFloat() >= growChance(contents)) return null;
-        return contents.withStage(contents.stage() + 1);
+        return nextStage(contents, profile, random);
+    }
+
+    // One stage further. A tree picks its leaves as it grows (a poplar: yellow, orange or red, a third each).
+    private static CropContents nextStage(CropContents contents, CropProfile profile, RandomSource random)
+    {
+        CropContents next = contents.withStage(contents.stage() + 1);
+        if (profile.tree() != null) next = next.withVariant(random.nextInt(profile.tree().leafOptions().size()));
+        return next;
     }
 
     // Bone meal: straight to the next stage (null if nothing's growing)
@@ -94,7 +102,7 @@ public final class CropBookActions
         if (profile.flower()) return new BoneMeal(contents, List.of(new ItemStack(profile.seed())));
         if (contents.grown()) return null;
         if (profile.tree() != null && random.nextFloat() >= ServerConfig.treeBoneMealChance()) return new BoneMeal(contents, List.of());
-        return new BoneMeal(contents.withStage(contents.stage() + 1), List.of());
+        return new BoneMeal(nextStage(contents, profile, random), List.of());
     }
 
     // ---- Harvesting ----
@@ -111,7 +119,7 @@ public final class CropBookActions
     {
         CropProfile profile = contents.profile();
         if (profile == null || !contents.grown()) return List.of();
-        List<ItemStack> drops = profile.drops(level, pos, tool, harvester, stripped && profile.tree() != null);
+        List<ItemStack> drops = profile.drops(level, pos, tool, harvester, stripped && profile.tree() != null, contents.variant());
         double multiplier = yieldMultiplier(contents);
         if (multiplier == 1.0) return drops;
         List<ItemStack> bigger = new ArrayList<>();

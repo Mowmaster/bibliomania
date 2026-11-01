@@ -81,7 +81,7 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         {
             state.pattern = profile.tree().pattern();
             resolver.update(state.log, profile.tree().log().defaultBlockState(), DISPLAY);
-            resolver.update(state.leaves, profile.tree().leaves().defaultBlockState(), DISPLAY);
+            resolver.update(state.leaves, profile.tree().leaves(contents.variant()).defaultBlockState(), DISPLAY);
         }
         if (profile != null && state.hasSoil)
         {

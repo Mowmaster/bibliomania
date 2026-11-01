@@ -113,8 +113,22 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
     // namespace, so modded trees named the usual way work too; "_propagule" for mangroves). Huge mushrooms and nether
     // fungi are listed in Tree.of.
     // List<String> rather than String[]: a record compares its fields with equals, which a List does by content.
-    public record Tree(Block log, Block leaves, @Nullable Block strippedLog, List<String> pattern)
+    // leafOptions: the leaves it can grow with, one picked at random each time it grows (poplars: yellow, orange or
+    // red; most trees have just one). The pick is saved in the book (CropContents#variant).
+    public record Tree(Block log, List<Block> leafOptions, @Nullable Block strippedLog, List<String> pattern)
     {
+        // One kind of leaves
+        public Tree(Block log, Block leaves, @Nullable Block strippedLog, List<String> pattern)
+        {
+            this(log, List.of(leaves), strippedLog, pattern);
+        }
+
+        // The leaves for a grown tree's variant (floorMod: always 0 to size - 1, even for an old or odd number)
+        public Block leaves(int variant)
+        {
+            return leafOptions.get(Math.floorMod(variant, leafOptions.size()));
+        }
+
         // Patterns, top row first. L or S: log/stem; X or B: leaves/cap blocks; space: nothing.
         // Drawn as square layers (see CropBookRenderer#tree); a harvest gives one block per letter.
         public static final List<String> SAPLING = List.of(
@@ -192,27 +206,29 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             while (block(namespace, wood + "_log") == null && wood.contains("_")) wood = wood.substring(wood.indexOf('_') + 1);
             Block log = block(namespace, wood + "_log");
             if (log == null) return null;
-            Block leaves = leaves(namespace, name, wood);
-            if (leaves == null) return null;
+            List<Block> leaves = leaves(namespace, name, wood);
+            if (leaves.isEmpty()) return null;
             // A sapling's tree with no stripped log of its own still "strips" (into its plain logs)
             Block stripped = block(namespace, "stripped_" + wood + "_log");
             return new Tree(log, leaves, stripped != null ? stripped : log, SAPLING);
         }
 
-        // "<sapling name>_leaves", then "<wood>_leaves", then any "<colour>_<wood>_leaves" (poplars have no plain
-        // poplar_leaves, only yellow_, orange_ and red_: the first one registered is used)
-        private static @Nullable Block leaves(String namespace, String name, String wood)
+        // "<sapling name>_leaves", then "<wood>_leaves", or else every "<colour>_<wood>_leaves" (poplars have no plain
+        // poplar_leaves, only yellow_, orange_ and red_: each is equally likely). Empty if there are none.
+        private static List<Block> leaves(String namespace, String name, String wood)
         {
             Block leaves = block(namespace, name + "_leaves");
             if (leaves == null) leaves = block(namespace, wood + "_leaves");
-            if (leaves != null) return leaves;
+            if (leaves != null) return List.of(leaves);
             String suffix = "_" + wood + "_leaves";
+            List<Block> colours = new ArrayList<>();
             for (Block block : BuiltInRegistries.BLOCK)
             {
                 Identifier other = BuiltInRegistries.BLOCK.getKey(block);
-                if (other.getNamespace().equals(namespace) && other.getPath().endsWith(suffix)) return block;
+                if (other.getNamespace().equals(namespace) && other.getPath().endsWith(suffix)) colours.add(block);
             }
-            return null;
+            // List.copyOf: an unchangeable copy, so the record can't be changed through it
+            return List.copyOf(colours);
         }
 
         private static @Nullable Block block(String namespace, String path)
@@ -230,21 +246,23 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
 
     // A tree's harvest: shears give its leaves (the blocks, and a roll of the leaves' own drops for each: saplings,
     // sticks, apples, mushrooms); anything else its logs, stripped ones if `stripped` (and it has them)
-    public List<ItemStack> treeDrops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
+    // `variant`: which of its leaves the tree grew with (CropContents#variant)
+    public List<ItemStack> treeDrops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped, int variant)
     {
         List<ItemStack> drops = new ArrayList<>();
         if (tree == null) return drops;
         if (tool.is(Tags.Items.TOOLS_SHEAR))
         {
             int leaves = tree.leavesCount();
-            drops.add(new ItemStack(tree.leaves(), leaves));
+            Block leafBlock = tree.leaves(variant);
+            drops.add(new ItemStack(leafBlock, leaves));
             for (int leaf = 0; leaf < leaves; leaf++)
             {
                 // Rolled without the shears (with them, leaves drop themselves). Blocks that always drop themselves
                 // (wart blocks) would come twice, so the leaves block itself is left out of the roll.
-                for (ItemStack drop : Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY))
+                for (ItemStack drop : Block.getDrops(leafBlock.defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY))
                 {
-                    if (!drop.is(tree.leaves().asItem())) drops.add(drop);
+                    if (!drop.is(leafBlock.asItem())) drops.add(drop);
                 }
             }
         }
@@ -284,18 +302,18 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
     // less for plants that are replanted (if a seed dropped)
     // A bibliomania:crop_drops entry replaces all of it, or (with "replace": false) adds to it. `stripped`: a tree
     // right-clicked with an axe gives stripped logs.
-    public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
+    public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped, int variant)
     {
         CropDrops.Override override = CropDrops.overrideFor(plant);
         if (override != null && override.replace()) return override.roll(level.getRandom(), tool);
-        List<ItemStack> drops = tree != null ? treeDrops(level, pos, tool, harvester, stripped) : ownDrops(level, pos, tool, harvester);
+        List<ItemStack> drops = tree != null ? treeDrops(level, pos, tool, harvester, stripped, variant) : ownDrops(level, pos, tool, harvester);
         if (override != null) drops.addAll(override.roll(level.getRandom(), tool));
         return drops;
     }
 
     public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
     {
-        return drops(level, pos, tool, harvester, false);
+        return drops(level, pos, tool, harvester, false, 0);
     }
 
     // The harvested states' own loot, less the replanted seed
