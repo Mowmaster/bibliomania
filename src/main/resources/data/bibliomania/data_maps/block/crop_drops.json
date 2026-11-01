@@ -1,5 +1,16 @@
 {
   "values": {
+    "minecraft:mangrove_propagule": {
+      "replace": false,
+      "drops": [
+        {
+          "item": "minecraft:mangrove_propagule",
+          "chance": 0.05,
+          "rolls": 8,
+          "tool": "#c:tools/shear"
+        }
+      ]
+    },
     "minecraft:chorus_flower": {
       "drops": [
         {

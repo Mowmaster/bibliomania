@@ -173,9 +173,6 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
         }
     }
 
-    // Per leaf rolled with shears: a mangrove propagule (oak leaves drop a sapling 1 time in 20)
-    private static final float PROPAGULE_CHANCE = 0.05f;
-
     // Tools that harvest a grown tree: an axe (logs) or shears (leaves). Other plants take anything (the hand too).
     public boolean canHarvestWith(ItemStack tool)
     {
@@ -195,12 +192,6 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             {
                 // Rolled without the shears (with them, leaves drop themselves)
                 drops.addAll(Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY));
-                // Mangrove leaves never drop propagules (they grow on the leaves instead): give them the same chance
-                // other leaves have of dropping their sapling
-                if (plant == Blocks.MANGROVE_PROPAGULE && level.getRandom().nextFloat() < PROPAGULE_CHANCE)
-                {
-                    drops.add(new ItemStack(Blocks.MANGROVE_PROPAGULE));
-                }
             }
         }
         else
@@ -236,12 +227,25 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
 
     // What a full harvest drops: each harvested state's own loot (with the tool, so Fortune works), and one seed
     // less for plants that are replanted (if a seed dropped)
+    // A bibliomania:crop_drops entry replaces all of it, or (with "replace": false) adds to it. `stripped`: a tree
+    // right-clicked with an axe gives stripped logs.
+    public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
+    {
+        CropDrops.Override override = CropDrops.overrideFor(plant);
+        if (override != null && override.replace()) return override.roll(level.getRandom(), tool);
+        List<ItemStack> drops = tree != null ? treeDrops(level, pos, tool, harvester, stripped) : ownDrops(level, pos, tool, harvester);
+        if (override != null) drops.addAll(override.roll(level.getRandom(), tool));
+        return drops;
+    }
+
     public List<ItemStack> drops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
     {
-        // A data map override replaces all of this
-        CropDrops.Override override = CropDrops.overrideFor(plant);
-        if (override != null) return override.roll(level.getRandom());
-        if (tree != null) return treeDrops(level, pos, tool, harvester, false);
+        return drops(level, pos, tool, harvester, false);
+    }
+
+    // The harvested states' own loot, less the replanted seed
+    private List<ItemStack> ownDrops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
+    {
         List<ItemStack> drops = new ArrayList<>();
         for (BlockState state : harvest)
         {

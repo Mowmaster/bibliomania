@@ -111,9 +111,7 @@ public final class CropBookActions
     {
         CropProfile profile = contents.profile();
         if (profile == null || !contents.grown()) return List.of();
-        List<ItemStack> drops = stripped && profile.tree() != null
-                ? profile.treeDrops(level, pos, tool, harvester, true)
-                : profile.drops(level, pos, tool, harvester);
+        List<ItemStack> drops = profile.drops(level, pos, tool, harvester, stripped && profile.tree() != null);
         double multiplier = yieldMultiplier(contents);
         if (multiplier == 1.0) return drops;
         List<ItemStack> bigger = new ArrayList<>();
