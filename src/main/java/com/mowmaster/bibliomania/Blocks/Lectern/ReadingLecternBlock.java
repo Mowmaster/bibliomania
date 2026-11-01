@@ -39,8 +39,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 // The Reading Lectern: the player's way into the Bookcases a MowLib work card (area or locations) points at.
-// - Right-click with an area or locations card: puts it in (swapping out any card it had). Sneak + right-click with
-//   an empty hand: takes the card out.
+// - Right-click with an area or locations card in the offhand: puts it in (swapping out any card it had). Sneak +
+//   right-click with an empty hand: takes the card out.
 // - Arrows on the top (or MowLib's page keys while looking at it): turn through every page of every book in the
 //   linked cases (ReadingLecternBlockEntity). Sneak + an arrow turns the open book's own pages (a Ledger's trades).
 // - Right-click with anything else: the open book uses it if it's a book the lectern stands in for (LecternActions:
@@ -140,18 +140,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
             return dyed;
         }
 
-        // An area or locations card: in it goes, and any card it had comes back
-        if (stack.getItem() instanceof IWorkCard card && WorkCardType.AREA_OR_LOCATIONS.accepts(card.getWorkCardType()))
-        {
-            if (!level.isClientSide())
-            {
-                ItemStack old = lectern.swapCard(stack.copyWithCount(1));
-                stack.consume(1, player);
-                if (!old.isEmpty()) StorageInteractions.giveToPlayer(player, old);
-                level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1f, 1f);
-            }
-            return InteractionResult.SUCCESS;
-        }
+        if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
 
         // The open book uses it, or else it's stored. The client can't tell which (it doesn't know the cases), so it
         // always says SUCCESS and the server decides.
@@ -169,6 +158,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     {
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.PASS;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
+        if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
         if (!player.isShiftKeyDown() || !lectern.hasCard()) return InteractionResult.PASS;
         if (!level.isClientSide())
         {
@@ -176,6 +166,22 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
             level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1f);
         }
         return InteractionResult.SUCCESS;
+    }
+
+    // An area or locations card in the offhand: in it goes (whatever the main hand holds), and any card the lectern had
+    // comes back. Checked first on every right-click, so the main hand's item isn't stored instead.
+    private static boolean insertCard(Level level, BlockPos pos, Player player, ReadingLecternBlockEntity lectern)
+    {
+        ItemStack offhand = player.getOffhandItem();
+        if (!(offhand.getItem() instanceof IWorkCard card) || !WorkCardType.AREA_OR_LOCATIONS.accepts(card.getWorkCardType())) return false;
+        if (!level.isClientSide())
+        {
+            ItemStack old = lectern.swapCard(offhand.copyWithCount(1));
+            offhand.consume(1, player);
+            if (!old.isEmpty()) StorageInteractions.giveToPlayer(player, old);
+            level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1f, 1f);
+        }
+        return true;
     }
 
     // An arrow: the lectern's pages, or with sneak the open book's own (a Ledger's trades)

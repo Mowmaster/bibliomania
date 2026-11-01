@@ -114,7 +114,7 @@
   "hud.bibliomania.shelf_book": "%1$s. %2$s",
   "hud.bibliomania.shelf_empty": "No books: right-click a shelf space with one",
   "block.bibliomania.reading_lectern": "Reading Lectern",
-  "hud.bibliomania.lectern_no_card": "No work card: right-click it with an area or locations card that covers your Bookcases",
+  "hud.bibliomania.lectern_no_card": "No work card: hold an area or locations card that covers your Bookcases in your offhand and right-click it",
   "hud.bibliomania.lectern_no_cases": "No Bookcases (with books) on its work card, within 16 blocks",
   "hud.bibliomania.lectern_in": "In: %1$s, page %2$s"
 }
