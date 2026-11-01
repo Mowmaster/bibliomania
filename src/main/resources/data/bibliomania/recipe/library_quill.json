@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "tools",
+  "ingredients": [
+    "minecraft:feather",
+    "minecraft:ink_sac",
+    "minecraft:gold_nugget"
+  ],
+  "result": {
+    "id": "bibliomania:library_quill",
+    "count": 1
+  }
+}

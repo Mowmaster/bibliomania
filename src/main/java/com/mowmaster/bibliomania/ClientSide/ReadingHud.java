@@ -260,7 +260,8 @@ public final class ReadingHud
     {
         List<Component> lines = new ArrayList<>();
         Component name = state.getBlock().getName();
-        if (!lectern.hasCard())
+        // Not in a library and no work card of its own
+        if (!lectern.hasCard() && lectern.getLibrary() == null)
         {
             lines.add(name);
             lines.add(hud("lectern_no_card"));

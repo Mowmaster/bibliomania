@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.HalfBookcaseBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlock;
@@ -97,6 +98,10 @@ public class BlockRegistry
             properties -> new BookcaseBlock(bookcaseProperties(properties)));
     public static final DeferredBlock<HalfBookcaseBlock> HALF_BOOKCASE = registerBlock("half_bookcase",
             properties -> new HalfBookcaseBlock(bookcaseProperties(properties)));
+
+    // The Library Controller: the core of a library (see LibraryControllerBlock)
+    public static final DeferredBlock<LibraryControllerBlock> LIBRARY_CONTROLLER = registerBlock("library_controller",
+            properties -> new LibraryControllerBlock(properties.strength(2.5f).sound(SoundType.CHISELED_BOOKSHELF)));
 
     // The Reading Lectern: the way into the Bookcases a work card points at (see ReadingLecternBlock)
     public static final DeferredBlock<ReadingLecternBlock> READING_LECTERN = registerBlock("reading_lectern",

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "tools",
+  "ingredients": [
+    "minecraft:honeycomb",
+    "minecraft:red_dye",
+    "minecraft:gold_nugget"
+  ],
+  "result": {
+    "id": "bibliomania:library_seal",
+    "count": 1
+  }
+}

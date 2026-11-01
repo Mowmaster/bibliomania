@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "bibliomania:library_controller"
+        }
+      ]
+    }
+  ],
+  "random_sequence": "bibliomania:blocks/library_controller"
+}

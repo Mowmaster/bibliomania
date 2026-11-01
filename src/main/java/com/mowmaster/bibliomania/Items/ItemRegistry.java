@@ -46,12 +46,19 @@ public class ItemRegistry {
     public static final DeferredItem<ReadingGlassesItem> READING_GLASSES = CBITEMS.registerItem("reading_glasses",
             properties -> new ReadingGlassesItem(properties.humanoidArmor(ReadingGlassesItem.MATERIAL, ArmorType.HELMET)));
 
+    // ---- Library tools ----
+    // The Librarian's Quill links blocks to a library (LibraryQuillItem); the Librarian's Seal locks settings
+    public static final DeferredItem<LibraryQuillItem> LIBRARY_QUILL = CBITEMS.registerItem("library_quill",
+            properties -> new LibraryQuillItem(properties.stacksTo(1)));
+    public static final DeferredItem<LibrarySealItem> LIBRARY_SEAL = CBITEMS.registerItem("library_seal",
+            properties -> new LibrarySealItem(properties.stacksTo(1)));
+
     // In creative tab order
     public static final List<DeferredItem<? extends Item>> MATERIALS = List.of(
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,
             FIBERS_GRASS, THREAD_TWISTED_GRASS, WEAVE_GRASS,
             FIBERS_WOOL, THREAD_TWISTED_WOOL, WEAVE_WOOL,
-            BOOKBLOCK_STARTER, READING_GLASSES);
+            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL);
 
     public static void register(IEventBus eventBus)
     {

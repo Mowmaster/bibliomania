@@ -1,7 +1,5 @@
 {
   "values": [
-    "bibliomania:bookcase",
-    "bibliomania:half_bookcase",
-    "bibliomania:reading_lectern"
+    "bibliomania:library_controller"
   ]
 }

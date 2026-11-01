@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryLockable;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -196,7 +197,9 @@ public class BookcaseBlock extends Block implements IColorableBlock
                                                    Player player, InteractionHand hand, BlockHitResult hitResult)
     {
         // A dye: tint it, and swap to the grey textures the first time
-        InteractionResult dyed = tryDyeBlock(stack, state, level, pos, player, hitResult);
+        // Dyeing is a setting: not while locked (Librarian's Seal)
+        boolean locked = level.getBlockEntity(pos) instanceof LibraryLockable lockable && lockable.isLocked();
+        InteractionResult dyed = locked ? InteractionResult.TRY_WITH_EMPTY_HAND : tryDyeBlock(stack, state, level, pos, player, hitResult);
         if (dyed == InteractionResult.SUCCESS)
         {
             if (!level.isClientSide() && !state.getValue(DYED)) level.setBlock(pos, state.setValue(DYED, true), Block.UPDATE_ALL);

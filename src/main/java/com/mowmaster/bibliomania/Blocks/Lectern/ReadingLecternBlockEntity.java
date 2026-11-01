@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.entity.player.Player;
@@ -55,7 +58,7 @@ import java.util.Set;
 //   No sorting and no merging: the n-th page is simply the n-th slot. The open page number is saved.
 // - Only the server walks the cases. Clients get the open page's item, its amount and its book, and the page count:
 //   enough to draw it (MowLib's spinning item) and for the Reading Goggles, whatever the size of the library.
-public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolder, IWorkCardHolder, IPageHolder, ISpinningItemHolder
+public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolder, IWorkCardHolder, IPageHolder, ISpinningItemHolder, LibraryMember
 {
     // How far (each way) the work card's positions may be
     public static final int RANGE = 16;
@@ -72,6 +75,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     private static final String TAG_BOOK_PAGE = "book_page";
 
     private final CBTintData tints;
+    private final LibraryLink libraryLink = new LibraryLink(this::libraryChanged);
     private ItemStack card = ItemStack.EMPTY;
     private int page;
     // Server: the linked cases' positions
@@ -123,9 +127,12 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         return RANGE * 2;
     }
 
-    // The linked cases, in the card's order (those still there)
+    // The cases it reads: in a library, the library's Bookcases (its own work card is ignored); otherwise the work
+    // card's, in the card's order (those still there)
     public List<BookcaseBlockEntity> cases()
     {
+        LibraryControllerBlockEntity library = library(level, worldPosition);
+        if (library != null) return library.bookcases();
         List<BookcaseBlockEntity> found = new ArrayList<>();
         if (level == null) return found;
         for (BlockPos pos : cases)
@@ -417,6 +424,21 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         return extracted > 0 ? resource.toStack(extracted) : ItemStack.EMPTY;
     }
 
+
+    // ---- Library (LibraryMember: which library it's in, and the Librarian's Seal lock) ----
+
+    @Override public @Nullable BlockPos getLibrary() { return libraryLink.library(); }
+    @Override public void setLibrary(@Nullable BlockPos controller) { libraryLink.setLibrary(controller); }
+    @Override public boolean isLocked() { return libraryLink.locked(); }
+    @Override public void setLocked(boolean locked) { libraryLink.setLocked(locked); }
+
+    // Saved, and clients told (the Reading Goggles show it)
+    private void libraryChanged()
+    {
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
     // ---- Colour ----
 
     @Override public int getColor(int region) { return tints.getColor(region); }
@@ -459,6 +481,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         output.store(TAG_BOOK, ItemStack.OPTIONAL_CODEC, shownBook);
         output.putInt(TAG_BOOK_PAGE, shownBookPage);
         tints.save(output);
+        libraryLink.save(output);
     }
 
     @Override
@@ -472,6 +495,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         shownAmount = input.getIntOr(TAG_AMOUNT, 0);
         shownBook = input.read(TAG_BOOK, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
         shownBookPage = input.getIntOr(TAG_BOOK_PAGE, -1);
+        libraryLink.load(input);
         // Only re-mesh the chunk on clients when the colour really changed (pages change often)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))
         {

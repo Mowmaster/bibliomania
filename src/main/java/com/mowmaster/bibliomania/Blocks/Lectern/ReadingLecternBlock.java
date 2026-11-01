@@ -155,7 +155,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
 
-        InteractionResult dyed = tryDyeBlock(stack, state, level, pos, player, hitResult);
+        // Dyeing is a setting: not while locked (Librarian's Seal)
+        InteractionResult dyed = lectern.isLocked() ? InteractionResult.TRY_WITH_EMPTY_HAND : tryDyeBlock(stack, state, level, pos, player, hitResult);
         if (dyed == InteractionResult.SUCCESS)
         {
             if (!level.isClientSide() && !state.getValue(DYED)) level.setBlock(pos, state.setValue(DYED, true), Block.UPDATE_ALL);
@@ -189,7 +190,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
             if (level instanceof ServerLevel serverLevel) LecternActions.use(serverLevel, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY, lectern);
             return InteractionResult.SUCCESS;
         }
-        if (!player.isShiftKeyDown() || !lectern.hasCard()) return InteractionResult.PASS;
+        if (!player.isShiftKeyDown() || !lectern.hasCard() || lectern.isLocked()) return InteractionResult.PASS;
         if (!level.isClientSide())
         {
             StorageInteractions.giveToPlayer(player, lectern.swapCard(ItemStack.EMPTY));
@@ -204,6 +205,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     {
         ItemStack offhand = player.getOffhandItem();
         if (!(offhand.getItem() instanceof IWorkCard card) || !WorkCardType.AREA_OR_LOCATIONS.accepts(card.getWorkCardType())) return false;
+        // The card is a setting: not while locked (the click is still used, so the card isn't stored instead)
+        if (lectern.isLocked()) return true;
         if (!level.isClientSide())
         {
             ItemStack old = lectern.swapCard(offhand.copyWithCount(1));

@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.tint.CBTintBlockEntity;
 import com.mowmaster.mowlib.tint.CBTintData;
@@ -44,7 +46,7 @@ import java.util.List;
 //   the slot inside the transaction, so a hopper's simulated insert changes nothing.
 // - Ticking: each book's ShelvedBook#shelfTick; what they make goes into the item books (store), or out of the front.
 // - Clients get the books (to draw them, and for the Reading Goggles) at most every 4 ticks.
-public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
+public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, LibraryMember
 {
     public static final int SLOTS = 6;
     private static final String TAG_BOOKS = "books";
@@ -52,6 +54,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
     private final CBTintData tints;
     private final BookSlots books = new BookSlots();
     private boolean needsSync;
+    private final LibraryLink libraryLink = new LibraryLink(this::libraryChanged);
 
     public BookcaseBlockEntity(BlockPos pos, BlockState state)
     {
@@ -234,6 +237,21 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
         }
     }
 
+
+    // ---- Library (LibraryMember: which library it's in, and the Librarian's Seal lock) ----
+
+    @Override public @Nullable BlockPos getLibrary() { return libraryLink.library(); }
+    @Override public void setLibrary(@Nullable BlockPos controller) { libraryLink.setLibrary(controller); }
+    @Override public boolean isLocked() { return libraryLink.locked(); }
+    @Override public void setLocked(boolean locked) { libraryLink.setLocked(locked); }
+
+    // Saved, and clients told (the Reading Goggles show it)
+    private void libraryChanged()
+    {
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
     // ---- Colour (ITintHolder, read by MowLib's tint source and the colour picker) ----
 
     @Override public int getColor(int region) { return tints.getColor(region); }
@@ -277,6 +295,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
         // putChild: the handler saves itself into its own sub-object (NeoForge's ValueIOSerializable)
         output.putChild(TAG_BOOKS, books);
         tints.save(output);
+        libraryLink.save(output);
     }
 
     @Override
@@ -284,6 +303,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder
     {
         super.loadAdditional(input);
         books.deserialize(input.childOrEmpty(TAG_BOOKS));
+        libraryLink.load(input);
         // CBTintData#load re-meshes the chunk on clients: only when the colour actually changed (book updates come
         // often while hoppers run)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import net.minecraft.core.BlockPos;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropContents;
 import com.mowmaster.bibliomania.Blocks.BarterBook.BarterContents;
@@ -53,6 +54,10 @@ public class DataComponentRegistry
     // What a Trader's Ledger holds (VillagerContents)
     public static final Supplier<DataComponentType<VillagerContents>> VILLAGER_CONTENTS = COMPONENTS.registerComponentType(
             "villager_contents", builder -> builder.persistent(VillagerContents.CODEC).networkSynchronized(VillagerContents.STREAM_CODEC));
+
+    // The Library Controller a Librarian's Quill is working on (BlockPos.CODEC saves [x, y, z]; STREAM_CODEC sends it)
+    public static final Supplier<DataComponentType<BlockPos>> LIBRARY_LINK = COMPONENTS.registerComponentType(
+            "library_link", builder -> builder.persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC));
 
     // What a Book of Barter holds (BarterContents)
     public static final Supplier<DataComponentType<BarterContents>> BARTER_CONTENTS = COMPONENTS.registerComponentType(
