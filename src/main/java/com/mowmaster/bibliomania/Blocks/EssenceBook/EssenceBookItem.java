@@ -193,6 +193,13 @@ public class EssenceBookItem extends BlockItem implements ShelvedBook
     }
 
     // The book `self` used with `other` (a boost item or a sword). Returns true if something happened.
+    // The Reading Lectern standing in for this book: boost items (left-click) and swords (right-click). Server.
+    public static boolean lecternUse(ItemStack book, ItemStack held, Player player)
+    {
+        if (held.isEmpty()) return false;
+        return useOn(book, held, ClickAction.PRIMARY, player) || useOn(book, held, ClickAction.SECONDARY, player);
+    }
+
     private static boolean useOn(ItemStack self, ItemStack other, ClickAction clickAction, Player player)
     {
         Level level = player.level();

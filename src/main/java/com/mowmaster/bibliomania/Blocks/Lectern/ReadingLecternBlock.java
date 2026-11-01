@@ -43,8 +43,9 @@ import org.jetbrains.annotations.Nullable;
 //   right-click with an empty hand: takes the card out.
 // - Arrows on the top (or MowLib's page keys while looking at it): turn through every page of every book in the
 //   linked cases (ReadingLecternBlockEntity). Sneak + an arrow turns the open book's own pages (a Ledger's trades).
-// - Right-click with anything else: the open book uses it if it's a book the lectern stands in for (LecternActions:
-//   Almanac, Ledger, Books of Fluids and Energy); otherwise it's stored in the linked cases' item books.
+// - Right-click with anything else: on a page of items it's stored in the linked cases' item books; with a whole book
+//   open the lectern is that book (LecternActions), and only the book's own action happens (nothing if it can't use
+//   the item, which stays in the hand). An empty hand on a whole book too (a Book of Experience stores your levels).
 // - Left-click (LecternEvents): takes one of the open page's item (sneak: a stack), or harvests an open Almanac.
 // - Dyes tint it, like the Bookcase (the first dye swaps to grey textures).
 public class ReadingLecternBlock extends Block implements IColorableBlock
@@ -142,11 +143,13 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
 
         if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
 
-        // The open book uses it, or else it's stored. The client can't tell which (it doesn't know the cases), so it
-        // always says SUCCESS and the server decides.
-        if (level instanceof ServerLevel serverLevel && !LecternActions.use(serverLevel, player, hand, stack, lectern))
+        // A whole book open: only the book uses it (if it can't, nothing happens and the item stays in the hand).
+        // A page of items: it's stored. The client can't tell for sure (it doesn't know the cases), so it always says
+        // SUCCESS and the server decides.
+        if (level instanceof ServerLevel serverLevel)
         {
-            if (lectern.store(stack) > 0) level.playSound(null, pos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1f);
+            if (lectern.isBookOpen(serverLevel)) LecternActions.use(serverLevel, player, hand, stack, lectern);
+            else if (lectern.store(stack) > 0) level.playSound(null, pos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1f);
             else level.playSound(null, pos, SoundEvents.BUNDLE_INSERT_FAIL, SoundSource.BLOCKS, 0.8f, 1f);
         }
         return InteractionResult.SUCCESS;
@@ -159,6 +162,12 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.PASS;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
         if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
+        // A whole book open: an empty hand on it (a Book of Experience gives its levels...)
+        if (!player.isShiftKeyDown() && lectern.getShownBookPage() < 0 && !lectern.getShownBook().isEmpty())
+        {
+            if (level instanceof ServerLevel serverLevel) LecternActions.use(serverLevel, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY, lectern);
+            return InteractionResult.SUCCESS;
+        }
         if (!player.isShiftKeyDown() || !lectern.hasCard()) return InteractionResult.PASS;
         if (!level.isClientSide())
         {

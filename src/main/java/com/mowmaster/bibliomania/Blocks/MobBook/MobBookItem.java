@@ -170,6 +170,14 @@ public class MobBookItem extends BlockItem implements ShelvedBook
     }
 
     // The book `self` used with `other` (food, a dye, a sword or shears). Returns true if something happened.
+    // The Reading Lectern standing in for this book: `held` used on it as if clicked onto it in an inventory, first
+    // as a left-click (breeding food, dyes), then as a right-click (milking, shearing, killing). Server.
+    public static boolean lecternUse(ItemStack book, ItemStack held, Player player)
+    {
+        if (held.isEmpty()) return false;
+        return useOn(book, held, ClickAction.PRIMARY, player) || useOn(book, held, ClickAction.SECONDARY, player);
+    }
+
     private static boolean useOn(ItemStack self, ItemStack other, ClickAction clickAction, Player player)
     {
         Level level = player.level();

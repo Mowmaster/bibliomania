@@ -212,8 +212,11 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
     }
 
     // Called by the block entity whenever the contents change
+    // Only if this book is really the block there: a Reading Lectern runs a book's placed actions on a block entity
+    // copy at its own position, and that must never turn the lectern into a book
     public void updateThickness(Level level, BlockPos pos, BlockState state, float fullness)
     {
+        if (level.getBlockState(pos).getBlock() != this) return;
         int thickness = thicknessFor(fullness);
         if (state.getValue(THICKNESS) != thickness)
         {

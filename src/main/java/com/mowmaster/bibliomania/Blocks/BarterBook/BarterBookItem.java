@@ -141,6 +141,12 @@ public class BarterBookItem extends BlockItem implements ShelvedBook
     }
 
     // Gold (as much of the stack as fits) or an upgrade (one) from `item` into the book. false if it's neither.
+    // The Reading Lectern standing in for this book: gold for the piglin (as much as fits), or an upgrade. Server.
+    public static boolean lecternUse(ItemStack book, ItemStack held, Player player)
+    {
+        return !held.isEmpty() && give(book, held, player);
+    }
+
     private static boolean give(ItemStack book, ItemStack item, Player player)
     {
         BarterContents contents = contents(book);

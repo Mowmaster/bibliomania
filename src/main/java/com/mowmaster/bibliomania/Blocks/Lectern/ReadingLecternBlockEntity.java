@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.entity.player.Player;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.display.ISpinningItemHolder;
@@ -192,7 +195,39 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         return resolve(page);
     }
 
+    // Server: whether the open page is a whole book (the lectern then acts as that book)
+    public boolean isBookOpen(ServerLevel level)
+    {
+        Page current = currentPage();
+        return current != null && current.bookPage() < 0;
+    }
+
     // ---- IPageHolder: arrows and MowLib's page keys ----
+
+    // MowLib's page keys call this (without saying who pressed them): if a sneaking player is looking at this
+    // lectern, the open book's own pages turn instead (a Ledger's trades)
+    @Override
+    public void turnPage(int direction)
+    {
+        if (level instanceof ServerLevel serverLevel && sneakingReader(serverLevel) && LecternActions.turnBookPage(serverLevel, direction, this)) return;
+        IPageHolder.super.turnPage(direction);
+    }
+
+    private boolean sneakingReader(ServerLevel level)
+    {
+        for (Player player : level.players())
+        {
+            if (!player.isShiftKeyDown() || player.distanceToSqr(center()) > 64) continue;
+            // pick: what the player's crosshair is on, worked out on the server (blocks only: false = no fluids)
+            if (player.pick(player.blockInteractionRange(), 1f, false) instanceof BlockHitResult hit && hit.getBlockPos().equals(worldPosition)) return true;
+        }
+        return false;
+    }
+
+    private Vec3 center()
+    {
+        return new Vec3(worldPosition.getX() + 0.5, worldPosition.getY() + 0.5, worldPosition.getZ() + 0.5);
+    }
 
     @Override
     public int getPageCount()

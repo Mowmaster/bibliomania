@@ -86,6 +86,8 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
             // Centred on the top, turned like the lectern (the book's own model and renderer already face its FACING,
             // which is the lectern's), shrunk round the middle of its block space
             poseStack.translate(0.5, TOP, 0.5);
+            // Half a turn: a placed book faces the way its placer looked, so as is it would face away from the reader
+            poseStack.rotate(Axis.YP.rotationDegrees(180));
             poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE);
             poseStack.translate(-0.5, 0, -0.5);
             state.bookModel.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
@@ -95,7 +97,8 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
         }
         if (state.item.isEmpty()) return;
         poseStack.pushPose();
-        poseStack.translate(0.5, TOP + 0.1, 0.5);
+        // A little below the top: a ground item's model already sits up off its origin
+        poseStack.translate(0.5, TOP - 0.15, 0.5);
         poseStack.rotate(Axis.YP.rotationDegrees(state.spin));
         poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
         state.item.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
