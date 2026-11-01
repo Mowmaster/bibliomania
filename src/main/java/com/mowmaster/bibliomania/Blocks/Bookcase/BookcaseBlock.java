@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.tint.IColorableBlock;
@@ -32,11 +33,11 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-// A Bookcase: two shelves of three Bibliomania books each (slots 0-2 the top shelf from the left, 3-5 the bottom, as
-// seen from the front). The books keep working while shelved (ShelvedBook#shelfTick), and hoppers, pipes and copper
+// A Bookcase: two shelves of three Bibliomania books each (slots 0-2 the top shelf, 3-5 the bottom; each shelf's books
+// stand from its left end as seen from the front, as thick as they are: see slotAt). The books keep working while shelved (ShelvedBook#shelfTick), and hoppers, pipes and copper
 // golems reach all their storage as one block: items into the item books, fluids into Books of Fluids, and so on,
 // the first book first (BookcaseBlockEntity). Types it has no book for aren't offered at all.
-// - Right-click a shelf space with a book: puts it there. With an empty hand: takes that book out.
+// - Right-click a shelf with a book: puts it on that shelf (after its books). With an empty hand on a book: takes it.
 //   (Items themselves only go in and out through automation, never by hand.)
 // - Right-click with a dye (or the Color Palette): dyes it (MowLib's tinting, mixed like leather armour). The first
 //   dye swaps the models to grey textures (the "dyed" state), which the colour then tints.
@@ -96,8 +97,36 @@ public class BookcaseBlock extends Block implements IColorableBlock
         return row == 0 ? 8.5f : 1f;
     }
 
-    // Which slot (0-5) a click or the crosshair is on, or -1. Only the open side counts.
-    public int slotAt(BlockState state, BlockHitResult hit)
+    // ---- Books standing on a shelf ----
+    // Each shelf's books stand side by side from its left end (as seen from the front), in slot order, each taking as
+    // much room as its item model is thick, scaled to BOOK_SCALE. The renderer draws them there, and clicks and the
+    // Reading Goggles find them there.
+
+    // Book models scaled to 0.44: 6.2 px tall (shelves are 6.5); three of the thickest (10 px) take 13.2 of the 14 px
+    public static final float BOOK_SCALE = 0.44f;
+    // Between books, in model pixels
+    public static final float BOOK_GAP = 0.15f;
+    // Thickness of books whose model doesn't change (Bestiary, Almanac, storage books...), in model pixels
+    private static final float FIXED_THICKNESS = 5f;
+
+    // How thick a book's item model is, in model pixels: item books grow with their fullness the way their item models
+    // pick a size (mowlib:paged_fullness, one size per tenth: 1.5 px empty, then 2 to 10 px); the rest are 5 px
+    public static float bookThickness(ItemStack book)
+    {
+        if (!(book.getItem() instanceof IPagedStorageItem paged)) return FIXED_THICKNESS;
+        int size = Math.clamp((int) Math.floor(paged.fullness(book) * 10 + 1e-4), 0, 9);
+        return size == 0 ? 1.5f : size + 1;
+    }
+
+    // The room a book takes on the shelf (with its gap), in model pixels
+    public static float bookWidth(ItemStack book)
+    {
+        return book.isEmpty() ? 0f : bookThickness(book) * BOOK_SCALE + BOOK_GAP;
+    }
+
+    // Which slot (0-5) a click or the crosshair is on, or -1. Only the open side counts. On a book: that book's slot;
+    // in the empty space after a shelf's books: the first empty slot on that shelf (where a book put there goes).
+    public int slotAt(BlockState state, BlockHitResult hit, BookcaseBlockEntity shelf)
     {
         Direction facing = state.getValue(FACING);
         if (hit.getDirection() != facing) return -1;
@@ -112,19 +141,23 @@ public class BookcaseBlock extends Block implements IColorableBlock
             case WEST -> 1.0 - at.z();
             default -> at.x();
         };
-        double pixels = modelX * 16.0 - SHELF_LEFT;
-        if (pixels < 0 || pixels >= SHELF_WIDTH) return -1;
-        // Model column 0 is at the low x, which is the viewer's right: the viewer's left column is model column 2
-        int modelColumn = Math.min(2, (int) (pixels / (SHELF_WIDTH / 3)));
-        int row = at.y() >= 0.5 ? 0 : 1;
-        return (2 - modelColumn) + row * 3;
-    }
-
-    // The left edge of a slot's space, in model pixels
-    public static float slotLeft(int slot)
-    {
-        int modelColumn = 2 - slot % 3;
-        return SHELF_LEFT + modelColumn * SHELF_WIDTH / 3;
+        // From the shelf's left end as seen from the front (the model's x 15), in pixels
+        double fromLeft = SHELF_LEFT + SHELF_WIDTH - modelX * 16.0;
+        if (fromLeft < 0 || fromLeft >= SHELF_WIDTH) return -1;
+        int first = at.y() >= 0.5 ? 0 : 3;
+        float cursor = 0f;
+        for (int slot = first; slot < first + 3; slot++)
+        {
+            ItemStack book = shelf.getBook(slot);
+            if (book.isEmpty()) continue;
+            cursor += bookWidth(book);
+            if (fromLeft < cursor) return slot;
+        }
+        for (int slot = first; slot < first + 3; slot++)
+        {
+            if (shelf.getBook(slot).isEmpty()) return slot;
+        }
+        return -1;
     }
 
     // Any Bibliomania book (its block is a BookBlock) can stand on a shelf
@@ -169,9 +202,9 @@ public class BookcaseBlock extends Block implements IColorableBlock
             if (!level.isClientSide() && !state.getValue(DYED)) level.setBlock(pos, state.setValue(DYED, true), Block.UPDATE_ALL);
             return dyed;
         }
-        if (!isShelfBook(stack)) return InteractionResult.TRY_WITH_EMPTY_HAND;
-        int slot = slotAt(state, hitResult);
-        if (slot < 0 || !(level.getBlockEntity(pos) instanceof BookcaseBlockEntity shelf) || !shelf.getBook(slot).isEmpty())
+        if (!isShelfBook(stack) || !(level.getBlockEntity(pos) instanceof BookcaseBlockEntity shelf)) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        int slot = slotAt(state, hitResult, shelf);
+        if (slot < 0 || !shelf.getBook(slot).isEmpty())
         {
             return InteractionResult.TRY_WITH_EMPTY_HAND;
         }
@@ -188,8 +221,9 @@ public class BookcaseBlock extends Block implements IColorableBlock
     @Override
     protected @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult)
     {
-        int slot = slotAt(state, hitResult);
-        if (slot < 0 || !(level.getBlockEntity(pos) instanceof BookcaseBlockEntity shelf) || shelf.getBook(slot).isEmpty())
+        if (!(level.getBlockEntity(pos) instanceof BookcaseBlockEntity shelf)) return InteractionResult.PASS;
+        int slot = slotAt(state, hitResult, shelf);
+        if (slot < 0 || shelf.getBook(slot).isEmpty())
         {
             return InteractionResult.PASS;
         }

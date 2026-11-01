@@ -27,12 +27,16 @@ import org.jetbrains.annotations.Nullable;
 //   as thick as its pages (y 0 up)
 // - turned a quarter round the vertical axis, the spine faces the front (north); then a quarter round the front-to-back
 //   axis, it stands up: its thickness now runs along x (from x = -8 px, the cover it lay on), 14 tall, 12 deep
-// Each slot's space is a third of the 14 px between the sides; the model is scaled to fit and stood on the shelf.
+// Each shelf's books stand side by side from its left end (as seen from the front), in slot order, each taking as much
+// room as it's thick: thin books bunch up at the left, and fuller ones push the rest along to the right. Three of the
+// thickest (10 px each, scaled) still fit in the 14 px between the sides.
 public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity, BookcaseRenderer.State>
 {
-    // A book model scaled to 0.44: 6.2 px tall (shelves are 6.5), up to 4.4 px thick (spaces are 4.67 wide)
-    private static final float BOOK_SCALE = 0.44f;
+    // Book sizes and spacing are BookcaseBlock's (clicks and the Reading Goggles use the same)
+    private static final float BOOK_SCALE = BookcaseBlock.BOOK_SCALE;
     private static final float PX = 1f / 16f;
+    // The shelf's inside, left end as seen from the front (model x 15, the model's east side)
+    private static final float SHELF_LEFT_END = 15f;
 
     private final ItemModelResolver itemModelResolver;
 
@@ -64,6 +68,7 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
             ItemStack book = shelf.getBook(slot);
             // NONE: the model as built (no hand, ground or GUI transform); the last number varies each book's seed
             itemModelResolver.updateForTopItem(state.books[slot], book, ItemDisplayContext.NONE, level, null, slot);
+            state.thickness[slot] = book.isEmpty() ? 0f : BookcaseBlock.bookThickness(book);
         }
     }
 
@@ -76,16 +81,21 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
         poseStack.translate(0.5, 0, 0.5);
         poseStack.rotate(Axis.YP.rotationDegrees(-modelRotation(state.facing)));
         poseStack.translate(-0.5, 0, -0.5);
+        // Where the next book's left side goes on each shelf, in model pixels: model x falls towards the viewer's right
+        float cursor = SHELF_LEFT_END;
         for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
         {
+            if (slot == 3) cursor = SHELF_LEFT_END; // the bottom shelf starts again at the left
             ItemStackRenderState book = state.books[slot];
             if (book.isEmpty()) continue;
+            float width = state.thickness[slot] * BOOK_SCALE;
+            float gap = BookcaseBlock.BOOK_GAP;
             float floor = slot < 3 ? state.floorTop : state.floorBottom;
             poseStack.pushPose();
-            // The point where the book's standing-up model (centred at its origin, see the class comment) lands: its
-            // lying cover (x = -8 px) at the slot's left edge plus a hair, its bottom (-7 px) on the floor, its spine
-            // (z = -6 px) half a pixel in from the front
-            poseStack.translate((BookcaseBlock.slotLeft(slot) + 0.15f) * PX + 8 * PX * BOOK_SCALE,
+            // The point where the book's standing-up model (centred at its origin, see the class comment) lands: it
+            // spans x from (that point - 8 px x scale) for its thickness, so that span ends at the cursor; its bottom
+            // (-7 px) on the floor; its spine (z = -6 px) half a pixel in from the front
+            poseStack.translate((cursor - gap - width) * PX + 8 * PX * BOOK_SCALE,
                     floor * PX + 7 * PX * BOOK_SCALE,
                     (state.front + 0.5f) * PX + 6 * PX * BOOK_SCALE);
             poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE);
@@ -94,6 +104,7 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
             poseStack.rotate(Axis.YP.rotationDegrees(-90));
             book.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();
+            cursor -= gap + width;
         }
         poseStack.popPose();
     }
@@ -112,6 +123,7 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
     public static class State extends BlockEntityRenderState
     {
         final ItemStackRenderState[] books = new ItemStackRenderState[BookcaseBlockEntity.SLOTS];
+        final float[] thickness = new float[BookcaseBlockEntity.SLOTS];
         Direction facing = Direction.NORTH;
         float front;
         float floorTop;

@@ -176,7 +176,7 @@ public final class ReadingHud
                     lookingAtBook = true;
                     if (ClientConfig.BOOK_ENABLED.get())
                     {
-                        int slot = bookcase.slotAt(state, hit);
+                        int slot = bookcase.slotAt(state, hit, shelf);
                         ItemStack shelved = slot >= 0 ? shelf.getBook(slot) : ItemStack.EMPTY;
                         if (!shelved.isEmpty()) book = shelved.copy();
                         else shelfLines = readShelf(state, shelf);
