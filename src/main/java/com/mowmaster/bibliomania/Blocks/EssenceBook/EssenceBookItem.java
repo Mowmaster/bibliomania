@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.EssenceBook;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobAppearance;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
@@ -51,8 +53,18 @@ import java.util.function.Consumer;
 //     a speed item (nether star) or size item (heavy core), left-click: boosts the spawning
 //     a sword, right-click:  kills one stored mob; the drops go into your inventory and the XP to you
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class EssenceBookItem extends BlockItem
+public class EssenceBookItem extends BlockItem implements ShelvedBook
 {
+    // On a Bookcase (ShelvedBook): its essence ticks on as in an inventory
+    @Override
+    public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        EssenceContents updated = contents(book).tick(level.getGameTime(), level.getRandom());
+        if (updated == null) return false;
+        setContents(book, updated);
+        return true;
+    }
+
     public EssenceBookItem(Block block, Properties properties)
     {
         super(block, properties);

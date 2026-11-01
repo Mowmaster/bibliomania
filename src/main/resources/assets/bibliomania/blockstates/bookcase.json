@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "dyed=false,facing=north": {
+      "model": "bibliomania:block/bookshelf/bookcase_full"
+    },
+    "dyed=true,facing=north": {
+      "model": "bibliomania:block/bookshelf/bookcase_full_dyed"
+    },
+    "dyed=false,facing=east": {
+      "model": "bibliomania:block/bookshelf/bookcase_full",
+      "y": 90
+    },
+    "dyed=true,facing=east": {
+      "model": "bibliomania:block/bookshelf/bookcase_full_dyed",
+      "y": 90
+    },
+    "dyed=false,facing=south": {
+      "model": "bibliomania:block/bookshelf/bookcase_full",
+      "y": 180
+    },
+    "dyed=true,facing=south": {
+      "model": "bibliomania:block/bookshelf/bookcase_full_dyed",
+      "y": 180
+    },
+    "dyed=false,facing=west": {
+      "model": "bibliomania:block/bookshelf/bookcase_full",
+      "y": 270
+    },
+    "dyed=true,facing=west": {
+      "model": "bibliomania:block/bookshelf/bookcase_full_dyed",
+      "y": 270
+    }
+  }
+}

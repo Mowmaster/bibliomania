@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.CropBook;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.ServerConfig;
@@ -32,8 +34,35 @@ import java.util.function.Consumer;
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
-public class CropBookItem extends BlockItem
+public class CropBookItem extends BlockItem implements ShelvedBook
 {
+    // ---- On a Bookcase (ShelvedBook): grows on the same timer as in an inventory; the harvest goes into the
+    // bookcase's item books, and if they can't take all of it the crop stays ripe and tries again next time ----
+
+    @Override
+    public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        CropContents contents = contents(book);
+        if (!contents.planted()) return false;
+        long now = level.getGameTime();
+        int interval = CropBookActions.inventoryInterval(contents);
+        if (contents.nextTick() == 0 || contents.nextTick() > now + interval)
+        {
+            setContents(book, contents.withNextTick(now + interval));
+            return true;
+        }
+        if (now < contents.nextTick()) return false;
+        CropContents grown = CropBookActions.tryGrow(contents, level.getRandom());
+        CropContents next = (grown != null ? grown : contents).withNextTick(now + interval);
+        // No tool and no harvester: like the inventory's harvest
+        if (next.grown() && shelf.storeAll(CropBookActions.harvest(level, next, shelf.getBlockPos(), ItemStack.EMPTY, null)))
+        {
+            next = next.withStage(0);
+        }
+        setContents(book, next);
+        return true;
+    }
+
     public CropBookItem(Block block, Properties properties)
     {
         super(block, properties);

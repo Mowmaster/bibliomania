@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "dyed=false,facing=north,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half"
+    },
+    "dyed=false,facing=north,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front"
+    },
+    "dyed=true,facing=north,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_dyed"
+    },
+    "dyed=true,facing=north,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front_dyed"
+    },
+    "dyed=false,facing=east,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half",
+      "y": 90
+    },
+    "dyed=false,facing=east,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front",
+      "y": 90
+    },
+    "dyed=true,facing=east,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_dyed",
+      "y": 90
+    },
+    "dyed=true,facing=east,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front_dyed",
+      "y": 90
+    },
+    "dyed=false,facing=south,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half",
+      "y": 180
+    },
+    "dyed=false,facing=south,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front",
+      "y": 180
+    },
+    "dyed=true,facing=south,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_dyed",
+      "y": 180
+    },
+    "dyed=true,facing=south,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front_dyed",
+      "y": 180
+    },
+    "dyed=false,facing=west,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half",
+      "y": 270
+    },
+    "dyed=false,facing=west,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front",
+      "y": 270
+    },
+    "dyed=true,facing=west,front=false": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_dyed",
+      "y": 270
+    },
+    "dyed=true,facing=west,front=true": {
+      "model": "bibliomania:block/bookshelf/bookcase_half_front_dyed",
+      "y": 270
+    }
+  }
+}

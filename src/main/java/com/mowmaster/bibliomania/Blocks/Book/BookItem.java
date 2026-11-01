@@ -1,5 +1,14 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.transfer.resource.Resource;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import com.mowmaster.mowlib.transport.TransportTypes;
+import com.mowmaster.mowlib.transport.TransportType;
+import com.mowmaster.bibliomania.Blocks.Bookcase.PagedShelfHandler;
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import com.mowmaster.mowlib.paging.PagedStorageInteractions;
 import net.minecraft.world.entity.SlotAccess;
@@ -18,8 +27,24 @@ import java.util.Optional;
 // - In inventories it works like a bundle (PagedStorageInteractions): click items in and out, the page grid tooltip.
 // - Scrolling over it, or the page keys (MowLib's, default Page Down / Page Up), select a page.
 // - The death book can be emptied this way but not filled. In the world the book is placed and used as a block.
-public class BookItem extends BlockItem implements IPagedStorageItem
+public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBook
 {
+    // ---- On a Bookcase (ShelvedBook): its pages are the bookcase's item storage ----
+
+    @Override
+    @SuppressWarnings("unchecked") // R is ItemResource whenever type is the items type
+    public <R extends Resource> @Nullable ResourceHandler<R> shelfHandler(TransportType<R> type, ItemAccess access)
+    {
+        if (type != TransportTypes.ITEMS.get()) return null;
+        return (ResourceHandler<R>) new PagedShelfHandler(access, this);
+    }
+
+    @Override
+    public float shelfFullness(ItemStack book)
+    {
+        return fullness(book);
+    }
+
     public BookItem(Block block, Properties properties)
     {
         super(block, properties);

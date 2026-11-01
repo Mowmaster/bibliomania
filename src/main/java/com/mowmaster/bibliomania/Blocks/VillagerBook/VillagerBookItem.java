@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
@@ -60,8 +62,18 @@ import java.util.function.Consumer;
 // Both right-clicks are NeoForge events, which come before the villager's trading screen or the block's own screen.
 // IPageable (MowLib): the trades are its pages; MowLib does the scrolling, the keys and telling the server.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class VillagerBookItem extends BlockItem implements IPageable
+public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBook
 {
+    // On a Bookcase (ShelvedBook): restocks on its timer, as in an inventory
+    @Override
+    public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        VillagerContents contents = contents(book);
+        if (contents.restockAt() == 0 || level.getGameTime() < contents.restockAt()) return false;
+        setContents(book, VillagerBookActions.restock(contents));
+        return true;
+    }
+
     public VillagerBookItem(Block block, Properties properties)
     {
         super(block, properties);

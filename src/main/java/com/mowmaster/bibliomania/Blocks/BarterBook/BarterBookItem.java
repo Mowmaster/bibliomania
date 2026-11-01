@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.BarterBook;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
@@ -40,8 +42,20 @@ import java.util.function.Consumer;
 // - In a player's inventory it barters too: the items go into the inventory, and drop at the player's feet once
 //   it's full.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class BarterBookItem extends BlockItem
+public class BarterBookItem extends BlockItem implements ShelvedBook
 {
+    // On a Bookcase (ShelvedBook): bartering goes on as in an inventory, the goods into the bookcase's item books
+    // (what doesn't fit pops out of the front)
+    @Override
+    public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        BarterActions.Result result = BarterActions.tick(level, contents(book), shelf.center());
+        if (result.contents() == null) return false;
+        setContents(book, result.contents());
+        for (ItemStack item : result.items()) shelf.storeOrDrop(item);
+        return true;
+    }
+
     public BarterBookItem(Block block, Properties properties)
     {
         super(block, properties);

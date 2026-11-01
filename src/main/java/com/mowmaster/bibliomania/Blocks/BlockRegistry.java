@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.HalfBookcaseBlock;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlock;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.BookItem;
@@ -88,6 +90,18 @@ public class BlockRegistry
     // The Builder's Book: blocks only, and places them from the hand (BuilderBookItem)
     public static final DeferredBlock<BuilderBookBlock> BUILDER_BOOK = registerBuilderBook("builder_book",
             properties -> new BuilderBookBlock(bookProperties(properties, SoundType.WOOD)));
+
+    // ---- Bookcases: six books each, working on the shelf and reachable by hoppers (see BookcaseBlock) ----
+    public static final DeferredBlock<BookcaseBlock> BOOKCASE = registerBlock("bookcase",
+            properties -> new BookcaseBlock(bookcaseProperties(properties)));
+    public static final DeferredBlock<HalfBookcaseBlock> HALF_BOOKCASE = registerBlock("half_bookcase",
+            properties -> new HalfBookcaseBlock(bookcaseProperties(properties)));
+
+    // Wood, mined with an axe like a chiseled bookshelf, and see-through (it's open at the front)
+    private static BlockBehaviour.Properties bookcaseProperties(BlockBehaviour.Properties properties)
+    {
+        return properties.strength(1.5f).sound(SoundType.CHISELED_BOOKSHELF).noOcclusion().ignitedByLava();
+    }
 
     // Every item book, for the creative tab and the block entity type
     public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK, BREAKFAST_BOOK, BUILDER_BOOK);

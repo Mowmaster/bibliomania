@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.mowlib.storage.StorageInteractions;
@@ -47,8 +49,20 @@ import java.util.function.Consumer;
 //   cursor) onto anything else just swaps them as normal.
 // - Egg layers (chickens...) lay into your inventory every ServerConfig.dropInterval() ticks while the book is in it (MobBookDrops).
 // - Tooltip: text lines (appendHoverText) for the mob, count, babies and breeding; the mob's spawn egg as a picture.
-public class MobBookItem extends BlockItem
+public class MobBookItem extends BlockItem implements ShelvedBook
 {
+    // On a Bookcase (ShelvedBook): eggs, scutes and the rest as in an inventory, into the bookcase's item books (what
+    // doesn't fit pops out of the front)
+    @Override
+    public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        MobBookDrops.Result result = MobBookDrops.tick(level, settled(book, level), shelf.center());
+        if (result.contents() == null) return false;
+        setContents(book, result.contents());
+        for (ItemStack item : result.items()) shelf.storeOrDrop(item);
+        return true;
+    }
+
     public MobBookItem(Block block, Properties properties)
     {
         super(block, properties);

@@ -1,5 +1,12 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import net.neoforged.neoforge.transfer.resource.Resource;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import com.mowmaster.mowlib.transport.TransportType;
+import com.mowmaster.bibliomania.Blocks.Bookcase.TransportShelfHandler;
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.ActivatableBook;
 import net.minecraft.ChatFormatting;
@@ -32,8 +39,23 @@ import java.util.function.Consumer;
 // item's hooks on. The contents are in "mowlib:transport_contents" (opened with BookStorage).
 // The durability-style bar under the item shows how full it is, in the type's colour.
 // Books with activation (fluids, experience) are placed like any book until activated (see "Activation" below).
-public class StorageBookItem extends BlockItem implements ActivatableBook
+public class StorageBookItem extends BlockItem implements ActivatableBook, ShelvedBook
 {
+    // ---- On a Bookcase (ShelvedBook): its fluid, experience or energy is the bookcase's ----
+
+    @Override
+    public <R extends Resource> @Nullable ResourceHandler<R> shelfHandler(TransportType<R> type, ItemAccess access)
+    {
+        return type == book().type() ? new TransportShelfHandler<>(access, type) : null;
+    }
+
+    @Override
+    public float shelfFullness(ItemStack book)
+    {
+        BookStorage storage = BookStorage.open(book);
+        return storage == null || storage.capacity() <= 0 ? -1f : Math.min(1f, (float) storage.amount() / storage.capacity());
+    }
+
     public StorageBookItem(Block block, Properties properties)
     {
         super(block, properties);

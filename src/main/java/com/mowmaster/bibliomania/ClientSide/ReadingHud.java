@@ -3,6 +3,9 @@ package com.mowmaster.bibliomania.ClientSide;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlock;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
 import com.mowmaster.bibliomania.ClientConfig;
 import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
@@ -60,6 +63,8 @@ import java.util.Optional;
 //   and what's on it, with a grid of every page's item at the bottom, no wider than a third of the screen.
 // - Holding a Bibliomania book (main hand first) and not looking at one: the same paper for the held book, so turning
 //   its pages shows on the paper (HeldPageMessages then skips its message above the hotbar).
+// - Looking at a Bookcase: the book in the space looked at, like a placed book; between books, the list of its books
+//   and how full they are.
 // - Looking at any other block or a mob: a small paper label, by default at the top middle, with its icon and name.
 //   Blocks add what they store (energy, fluids, experience) and, on a chiseled bookshelf, the looked-at book's name
 //   and enchantments; mobs their effects and how long until they grow up or can breed again.
@@ -126,8 +131,9 @@ public final class ReadingHud
         Player player = minecraft.player;
         Level level = minecraft.level;
         // The book on the paper (looked at, or else held) and the label (any other block or a mob) are separate:
-        // both can show at once
+        // both can show at once. A Bookcase looked at between its books puts its list on the paper instead.
         ItemStack book = ItemStack.EMPTY;
+        List<Component> shelfLines = null;
         boolean newLabel = false;
         BlockPos newPos = null;
         int newSlot = -1;
@@ -164,6 +170,18 @@ public final class ReadingHud
                     // The placed book as an item with its contents, so its tooltip is the one it has in an inventory
                     if (ClientConfig.BOOK_ENABLED.get()) book = placed.toItem();
                 }
+                else if (blockEntity instanceof BookcaseBlockEntity shelf && state.getBlock() instanceof BookcaseBlock bookcase)
+                {
+                    // A Bookcase: the book in the space looked at, or else the list of its books
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get())
+                    {
+                        int slot = bookcase.slotAt(state, hit);
+                        ItemStack shelved = slot >= 0 ? shelf.getBook(slot) : ItemStack.EMPTY;
+                        if (!shelved.isEmpty()) book = shelved.copy();
+                        else shelfLines = readShelf(state, shelf);
+                    }
+                }
                 else if (!state.isAir() && ClientConfig.LABEL_ENABLED.get())
                 {
                     newLabel = true;
@@ -184,7 +202,11 @@ public final class ReadingHud
 
         PagedContents newPages = null;
         List<FormattedCharSequence> newBook = List.of();
-        if (!book.isEmpty() && level != null)
+        if (shelfLines != null)
+        {
+            newBook = wrap(minecraft.font, shelfLines, ClientConfig.BOOK_MAX_WIDTH.get());
+        }
+        else if (!book.isEmpty() && level != null)
         {
             // Storage books: their pages (the item holds them as MowLib's PagedContents)
             if (book.getItem() instanceof IPagedStorageItem paged) newPages = paged.contents(book);
@@ -197,6 +219,35 @@ public final class ReadingHud
         labelPos = newPos;
         labelSlot = newSlot;
         labelEntity = newEntity;
+    }
+
+    // ---- Bookcases ----
+
+    // "Bookcase", "Space used: 40%", then each book: "1. Wool Book (35%)" (the % for books that store things)
+    private static List<Component> readShelf(BlockState state, BookcaseBlockEntity shelf)
+    {
+        List<Component> lines = new ArrayList<>();
+        lines.add(state.getBlock().getName());
+        float used = shelf.fullness();
+        if (used >= 0) lines.add(hud("shelf_used", Math.round(used * 100)));
+        boolean any = false;
+        for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
+        {
+            ItemStack shelved = shelf.getBook(slot);
+            if (shelved.isEmpty()) continue;
+            any = true;
+            float fullness = shelved.getItem() instanceof ShelvedBook book ? book.shelfFullness(shelved) : -1f;
+            lines.add(fullness >= 0
+                    ? hud("shelf_book_full", slot + 1, shelved.getHoverName(), Math.round(fullness * 100))
+                    : hud("shelf_book", slot + 1, shelved.getHoverName()));
+        }
+        if (!any) lines.add(hud("shelf_empty"));
+        return lines;
+    }
+
+    private static MutableComponent hud(String key, Object... args)
+    {
+        return Component.translatable("hud." + BibliomaniaReferences.MODID + "." + key, args);
     }
 
     // ---- Held books ----

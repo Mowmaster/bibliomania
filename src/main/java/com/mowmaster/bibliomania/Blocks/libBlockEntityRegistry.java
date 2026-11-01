@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookBlockEntity;
@@ -57,6 +58,10 @@ public class libBlockEntityRegistry
     // The Book of Essence
     public static final Supplier<BlockEntityType<EssenceBookBlockEntity>> ESSENCE_BOOK = CBBLOCKENTITIES.register("essence_book",
             () -> new BlockEntityType<>(EssenceBookBlockEntity::new, BlockRegistry.ESSENCE_BOOK.get()));
+
+    // Both Bookcases (full and half)
+    public static final Supplier<BlockEntityType<BookcaseBlockEntity>> BOOKCASE = CBBLOCKENTITIES.register("bookcase",
+            () -> new BlockEntityType<>(BookcaseBlockEntity::new, BlockRegistry.BOOKCASE.get(), BlockRegistry.HALF_BOOKCASE.get()));
 
     public static void register(IEventBus eventBus)
     {

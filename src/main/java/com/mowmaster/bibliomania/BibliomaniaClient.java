@@ -5,6 +5,7 @@ import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
 import com.mowmaster.bibliomania.ClientSide.ClientMobBookTooltip;
 import com.mowmaster.bibliomania.ClientSide.CropBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.BarterBookRenderer;
+import com.mowmaster.bibliomania.ClientSide.BookcaseRenderer;
 import com.mowmaster.bibliomania.ClientSide.MobBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.VillagerBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.StorageBookRenderer;
@@ -63,6 +64,8 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.VILLAGER_BOOK.get(), VillagerBookRenderer::new);
         // The Book of Barter's piglin
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BARTER_BOOK.get(), BarterBookRenderer::new);
+        // The books standing on a Bookcase's shelves
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOKCASE.get(), BookcaseRenderer::new);
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it
