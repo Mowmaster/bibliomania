@@ -10,6 +10,8 @@ import com.mowmaster.bibliomania.Blocks.CropBook.CropBookItem;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookBlock;
+import com.mowmaster.bibliomania.Blocks.BuilderBook.BuilderBookBlock;
+import com.mowmaster.bibliomania.Blocks.BuilderBook.BuilderBookItem;
 import com.mowmaster.bibliomania.Blocks.BreakfastBook.BreakfastBookItem;
 import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookBlock;
 import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookItem;
@@ -83,8 +85,12 @@ public class BlockRegistry
     public static final DeferredBlock<BreakfastBookBlock> BREAKFAST_BOOK = registerBreakfastBook("breakfast_book",
             properties -> new BreakfastBookBlock(bookProperties(properties, SoundType.WOOD)));
 
+    // The Builder's Book: blocks only, and places them from the hand (BuilderBookItem)
+    public static final DeferredBlock<BuilderBookBlock> BUILDER_BOOK = registerBuilderBook("builder_book",
+            properties -> new BuilderBookBlock(bookProperties(properties, SoundType.WOOD)));
+
     // Every item book, for the creative tab and the block entity type
-    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK, BREAKFAST_BOOK);
+    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK, BREAKFAST_BOOK, BUILDER_BOOK);
 
     // Books can't be mined (strength -1, like bedrock; left-click takes items out instead) or blown up,
     // aren't pushed by pistons, and don't hide the faces of blocks next to them (noOcclusion)
@@ -122,6 +128,13 @@ public class BlockRegistry
         ItemRegistry.CBITEMS.registerItem(name, properties -> new BreakfastBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)
                 .component(DataComponents.LORE, new ItemLore(List.of(
                         Component.translatable("item." + BibliomaniaReferences.MODID + "." + name + ".lore"))))));
+        return toReturn;
+    }
+
+    private static <T extends Block> DeferredBlock<T> registerBuilderBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new BuilderBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
         return toReturn;
     }
 

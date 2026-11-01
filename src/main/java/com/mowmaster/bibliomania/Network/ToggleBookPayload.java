@@ -1,7 +1,7 @@
 package com.mowmaster.bibliomania.Network;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
+import com.mowmaster.bibliomania.Items.ActivatableBook;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -36,7 +36,7 @@ public record ToggleBookPayload(int slot) implements CustomPacketPayload
     }
 
     // Runs on the server's main thread. The client can send anything, so the slot is checked first;
-    // StorageBookItem.toggle ignores anything that isn't a book with activation.
+    // ActivatableBook.toggle ignores anything that isn't a book with activation.
     public static void handle(ToggleBookPayload payload, IPayloadContext context)
     {
         Player player = context.player();
@@ -49,6 +49,6 @@ public record ToggleBookPayload(int slot) implements CustomPacketPayload
             if (payload.slot() < 0 || payload.slot() >= menu.slots.size()) return;
             stack = menu.slots.get(payload.slot()).getItem();
         }
-        if (stack.getCount() == 1) StorageBookItem.toggle(stack, player);
+        ActivatableBook.toggle(stack, player);
     }
 }

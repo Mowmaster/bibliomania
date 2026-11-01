@@ -30,6 +30,7 @@ public class CreativeTabRegistry
                 for (int pages : List.of(8, 12, 16, 24)) output.accept(book(BlockRegistry.LEATHER_BOOK.get(), pages));
                 output.accept(BlockRegistry.DEATH_BOOK.get());
                 output.accept(BlockRegistry.BREAKFAST_BOOK.get());
+                output.accept(BlockRegistry.BUILDER_BOOK.get());
                 output.accept(BlockRegistry.MOB_BOOK.get());
                 output.accept(BlockRegistry.ESSENCE_BOOK.get());
                 output.accept(BlockRegistry.VILLAGER_BOOK.get());

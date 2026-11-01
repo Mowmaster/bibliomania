@@ -1,11 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.Items.ActivatableBook;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -34,7 +32,7 @@ import java.util.function.Consumer;
 // item's hooks on. The contents are in "mowlib:transport_contents" (opened with BookStorage).
 // The durability-style bar under the item shows how full it is, in the type's colour.
 // Books with activation (fluids, experience) are placed like any book until activated (see "Activation" below).
-public class StorageBookItem extends BlockItem
+public class StorageBookItem extends BlockItem implements ActivatableBook
 {
     public StorageBookItem(Block block, Properties properties)
     {
@@ -62,13 +60,18 @@ public class StorageBookItem extends BlockItem
     // activated. Sneak + right-click (in the air or on a block) or the activation key (BibliomaniaKeys, also over the
     // book in an inventory) turns it on and off. Active books shimmer like enchanted items.
 
-    // The activation key's name (its KeyMapping is in the client-only ClientSide/BibliomaniaKeys; items load on servers
-    // too, so they only know the name). Component.keybind shows whatever key it's bound to.
-    public static final String TOGGLE_KEY = "key." + BibliomaniaReferences.MODID + ".toggle_book";
+    // The shared parts live in Items/ActivatableBook (the Builder's Book has the mode too); these forward to it
+    public static final String TOGGLE_KEY = ActivatableBook.TOGGLE_KEY;
+
+    @Override
+    public boolean usesActivation(ItemStack stack)
+    {
+        return behaviour().usesActivation();
+    }
 
     public static boolean isActive(ItemStack stack)
     {
-        return stack.getOrDefault(DataComponentRegistry.ACTIVATED.get(), false);
+        return ActivatableBook.isActive(stack);
     }
 
     // Whether the book's actions run now: always for books without activation, otherwise only while active
@@ -80,14 +83,7 @@ public class StorageBookItem extends BlockItem
     // Turns it on or off (server), with a sound and a message over the hotbar. false if this book has no activation.
     public static boolean toggle(ItemStack stack, Player player)
     {
-        if (!(stack.getItem() instanceof StorageBookItem item) || !item.behaviour().usesActivation()) return false;
-        boolean active = !isActive(stack);
-        stack.set(DataComponentRegistry.ACTIVATED.get(), active);
-        player.level().playSound(null, player.blockPosition(), active ? SoundEvents.BEACON_ACTIVATE : SoundEvents.BEACON_DEACTIVATE,
-                SoundSource.PLAYERS, 0.4f, 1.6f);
-        player.sendOverlayMessage(Component.translatable("message." + BibliomaniaReferences.MODID + ".storage_book." + (active ? "activated" : "deactivated"),
-                stack.getHoverName()));
-        return true;
+        return ActivatableBook.toggle(stack, player);
     }
 
     // The enchantment shimmer while active

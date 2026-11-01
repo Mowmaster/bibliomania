@@ -2,8 +2,14 @@ package com.mowmaster.bibliomania.ClientSide;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
+import com.mowmaster.bibliomania.Items.ActivatableBook;
+import com.mowmaster.bibliomania.Blocks.BuilderBook.BuilderBookItem;
+import com.mowmaster.bibliomania.Network.PlaceBookPayload;
 import com.mowmaster.bibliomania.Network.ToggleBookPayload;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -23,6 +29,8 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 // Bibliomania's keys (Options > Controls > Key Binds, under "Bibliomania"), and what they do. Client only.
 // - Toggle book activation (default V): over a storage book in an inventory, toggles that book; in the world,
 //   toggles the held one (main hand first). The server does the toggling (ToggleBookPayload).
+// - Place book (default G): places the held book (any Bibliomania book) where you're looking, for books whose
+//   right-click does something else (the Builder's Book places blocks, the Book of Fluids places fluids...)
 // Same pattern as MowLib's page keys (MowLibKeyMappings / PageInputHandler): since 1.21.9 a key's category is a
 // KeyMapping.Category (an id) that must be registered too; since 26.3 key codes are SDL scancodes, so always the
 // InputConstants.KEY_* constants.
@@ -34,7 +42,10 @@ public final class BibliomaniaKeys
     public static final KeyMapping.Category CATEGORY =
             new KeyMapping.Category(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "bibliomania"));
 
-    public static final KeyMapping TOGGLE_BOOK = new KeyMapping(StorageBookItem.TOGGLE_KEY, InputConstants.KEY_V, CATEGORY);
+    public static final KeyMapping TOGGLE_BOOK = new KeyMapping(ActivatableBook.TOGGLE_KEY, InputConstants.KEY_V, CATEGORY);
+
+    // Place the held book as a block where you're looking (default G), for books whose right-click does something else
+    public static final KeyMapping PLACE_BOOK = new KeyMapping(BuilderBookItem.PLACE_BOOK_KEY, InputConstants.KEY_G, CATEGORY);
 
     // A mod bus event: @EventBusSubscriber sends it there by its type
     @SubscribeEvent
@@ -42,6 +53,7 @@ public final class BibliomaniaKeys
     {
         event.registerCategory(CATEGORY);
         event.register(TOGGLE_BOOK);
+        event.register(PLACE_BOOK);
     }
 
     // ---- In inventories: the hovered book ----
@@ -65,6 +77,7 @@ public final class BibliomaniaKeys
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event)
     {
+        while (PLACE_BOOK.consumeClick()) placeHeldBook();
         while (TOGGLE_BOOK.consumeClick())
         {
             Player player = Minecraft.getInstance().player;
@@ -80,9 +93,26 @@ public final class BibliomaniaKeys
         }
     }
 
+    // The "place book" key: if the crosshair is on a block and a hand holds a book, the server is asked to place it
+    // there (the main hand first)
+    private static void placeHeldBook()
+    {
+        Minecraft minecraft = Minecraft.getInstance();
+        Player player = minecraft.player;
+        if (player == null || !(minecraft.hitResult instanceof BlockHitResult hit) || hit.getType() != HitResult.Type.BLOCK) return;
+        boolean offhand;
+        if (PlaceBookPayload.isBook(player.getItemInHand(InteractionHand.MAIN_HAND))) offhand = false;
+        else if (PlaceBookPayload.isBook(player.getItemInHand(InteractionHand.OFF_HAND))) offhand = true;
+        else return;
+        BlockPos pos = hit.getBlockPos();
+        Vec3 at = hit.getLocation();
+        ClientPacketDistributor.sendToServer(new PlaceBookPayload(offhand, pos, hit.getDirection(),
+                (float) (at.x - pos.getX()), (float) (at.y - pos.getY()), (float) (at.z - pos.getZ())));
+    }
+
     // A storage book with an activation mode (Book of Fluids, Book of Experience)
     private static boolean isToggleable(ItemStack stack)
     {
-        return stack.getCount() == 1 && stack.getItem() instanceof StorageBookItem item && item.book().behaviour().usesActivation();
+        return ActivatableBook.canToggle(stack);
     }
 }
