@@ -38,6 +38,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   Requestor (9-item pattern, on a redstone pulse into the container in front) and the Storage Dispenser (one item,
   used like a Dispenser) take things out. `LibraryDeposit` has the shared in/out code. The Bookbinder's Bone Folder
   turns Bibliomania blocks to face the side clicked.
+  Fill order: `LibraryPriority` (Priority Scroll; Bookcases 0-1000, Chiseled Bookshelves default 100 in their block
+  entity's persistent data, storage books 0-100 within their Bookcase, kept on the item as `bibliomania:priority`).
 
 ## Known issues / to do
 - Crafting a book that holds items into a death book deletes those items (same as 1.20).

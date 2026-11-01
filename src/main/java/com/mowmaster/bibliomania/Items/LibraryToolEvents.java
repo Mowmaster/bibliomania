@@ -19,6 +19,6 @@ public final class LibraryToolEvents
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event)
     {
         Item held = event.getItemStack().getItem();
-        if (held instanceof LibraryQuillItem || held instanceof LibrarySealItem || held instanceof BoneFolderItem) event.setUseBlock(TriState.FALSE);
+        if (held instanceof LibraryQuillItem || held instanceof LibrarySealItem || held instanceof BoneFolderItem || held instanceof PriorityScrollItem) event.setUseBlock(TriState.FALSE);
     }
 }

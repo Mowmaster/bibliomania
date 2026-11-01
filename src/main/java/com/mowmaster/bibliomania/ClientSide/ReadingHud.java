@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
@@ -278,6 +279,7 @@ public final class ReadingHud
         lines.add(state.getBlock().getName());
         float used = shelf.fullness();
         if (used >= 0) lines.add(hud("shelf_used", Math.round(used * 100)));
+        if (shelf.getPriority() > 0) lines.add(hud("priority", shelf.getPriority()));
         boolean any = false;
         for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
         {
@@ -509,6 +511,8 @@ public final class ReadingHud
         List<Component> lines = new ArrayList<>();
         lines.add(book.getHoverName());
         lines.add(hud("book_filter", BookFilter.get(book).getHoverName()));
+        int priority = LibraryPriority.ofBook(book);
+        if (priority > 0) lines.add(hud("priority", priority));
         for (ResourceStack<ItemResource> stack : summary)
         {
             lines.add(hud("page_item", stack.amount(), stack.resource().toStack(1).getHoverName()));

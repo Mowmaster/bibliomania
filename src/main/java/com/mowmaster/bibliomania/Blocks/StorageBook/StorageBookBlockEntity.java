@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -34,11 +36,14 @@ import org.jetbrains.annotations.Nullable;
 // capacity). This block entity is its TransportStorageHost. The storage is also offered to pipes and cables as the
 // type's capability (StorageBookEvents).
 // Clients get the contents (for the sphere) and when something last flowed in or out (for the flow animation).
-public class StorageBookBlockEntity extends BlockEntity implements TransportStorageHost, PickupableBook
+public class StorageBookBlockEntity extends BlockEntity implements TransportStorageHost, PickupableBook, LibraryPriority.Holder
 {
     private static final String TAG_STORAGE = "storage";
     private static final String TAG_FLOW_TICK = "flow_tick";
     private static final String TAG_FLOW_IN = "flow_in";
+    private static final String TAG_PRIORITY = "priority";
+    // Where it comes among the books on its Bookcase (LibraryPriority); set while placed, kept on the item
+    private int priority;
 
     private final TransportStorage<?> storage;
     // The game tick something last went in or out, and which way (synced, for the flow animation)
@@ -182,6 +187,30 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
         pickedUp = true;
     }
 
+    // ---- Library priority (LibraryPriority) ----
+
+    @Override
+    public int getPriority()
+    {
+        return priority;
+    }
+
+    @Override
+    public void setPriority(int newPriority)
+    {
+        if (newPriority == priority) return;
+        priority = newPriority;
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    @Override
+    public int maxPriority()
+    {
+        return LibraryPriority.MAX_BOOK;
+    }
+
+
     @Override
     protected void applyImplicitComponents(DataComponentGetter components)
     {
@@ -189,6 +218,8 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
         TransportContents<?> saved = components.get(MowLibDataComponents.TRANSPORT_CONTENTS.get());
         if (saved != null && saved.type() == type()) BookStorage.fill(saved, storage);
         lastAmount = amount();
+        Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
+        priority = itemPriority == null ? 0 : itemPriority;
     }
 
     @Override
@@ -196,6 +227,7 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
     {
         super.collectImplicitComponents(components);
         if (!storage.isEmpty()) components.set(MowLibDataComponents.TRANSPORT_CONTENTS.get(), BookStorage.snapshot(type(), storage));
+        if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
     }
 
     // Removed by anything other than a pickup (explosion, /setblock...): drop the book with its contents
@@ -216,6 +248,7 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
         output.putChild(TAG_STORAGE, storage);
         output.putLong(TAG_FLOW_TICK, flowTick);
         output.putBoolean(TAG_FLOW_IN, flowIn);
+        output.putInt(TAG_PRIORITY, priority);
     }
 
     @Override
@@ -228,6 +261,7 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
         storage.deserialize(input.childOrEmpty(TAG_STORAGE));
         flowTick = input.getLongOr(TAG_FLOW_TICK, 0L);
         flowIn = input.getBooleanOr(TAG_FLOW_IN, true);
+        priority = input.getIntOr(TAG_PRIORITY, 0);
         lastAmount = amount();
     }
 

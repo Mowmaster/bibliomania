@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import java.util.Comparator;
 import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
@@ -105,7 +106,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         return members;
     }
 
-    // The library's Bookcases, in walk order (those loaded)
+    // The library's Bookcases (those loaded)
+    // Highest priority first (LibraryPriority); equal ones in walk order (List#sort is stable)
     public List<BookcaseBlockEntity> bookcases()
     {
         List<BookcaseBlockEntity> found = new ArrayList<>();
@@ -114,6 +116,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         {
             if (level.isLoaded(pos) && level.getBlockEntity(pos) instanceof BookcaseBlockEntity shelf) found.add(shelf);
         }
+        found.sort(Comparator.comparingInt((BookcaseBlockEntity shelf) -> -shelf.getPriority()));
         return found;
     }
 
@@ -260,43 +263,85 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         return parts.isEmpty() ? null : new CombinedResourceHandler<>(parts);
     }
 
-    // Each Bookcase's item books (in walk order), then (withChiseled) each Chiseled Bookshelf's six slots.
-    // VanillaContainerWrapper (NeoForge): a vanilla Container (the chiseled shelf's block entity) as a ResourceHandler,
-    // one index per slot; it only accepts what the container does (books: #minecraft:bookshelf_books), one per slot.
+    // ---- Priority (LibraryPriority): which shelves are filled first ----
+
+    // One shelf's storage of a type, with its priority. chiseled: a Chiseled Bookshelf (only some books go onto those).
+    private record Store<R extends Resource>(int priority, ResourceHandler<R> handler, boolean chiseled) {}
+
+    // Every shelf's item storage (with withChiseled, the Chiseled Bookshelves' six slots too), highest priority first,
+    // equal ones in walk order. VanillaContainerWrapper (NeoForge): a vanilla Container (the chiseled shelf's block
+    // entity) as a ResourceHandler, one index per slot; it only accepts what the container does (books, one a slot).
+    private List<Store<ItemResource>> itemStores(boolean withChiseled)
+    {
+        List<Store<ItemResource>> stores = new ArrayList<>();
+        if (level == null) return stores;
+        for (BlockPos pos : members)
+        {
+            if (!level.isLoaded(pos)) continue;
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof BookcaseBlockEntity shelf)
+            {
+                ResourceHandler<ItemResource> part = shelf.handler(TransportTypes.ITEMS.get());
+                if (part != null) stores.add(new Store<>(shelf.getPriority(), part, false));
+            }
+            else if (withChiseled && blockEntity instanceof ChiseledBookShelfBlockEntity shelf)
+            {
+                stores.add(new Store<>(LibraryPriority.of(shelf), VanillaContainerWrapper.of(shelf), true));
+            }
+        }
+        // List#sort is stable: equal priorities keep the walk order
+        stores.sort(Comparator.comparingInt((Store<ItemResource> store) -> -store.priority()));
+        return stores;
+    }
+
     private List<ResourceHandler<ItemResource>> itemHandlers(boolean withChiseled)
     {
         List<ResourceHandler<ItemResource>> handlers = new ArrayList<>();
-        for (BookcaseBlockEntity shelf : bookcases())
-        {
-            ResourceHandler<ItemResource> part = shelf.handler(TransportTypes.ITEMS.get());
-            if (part != null) handlers.add(part);
-        }
-        if (withChiseled) for (ChiseledBookShelfBlockEntity shelf : chiseledShelves()) handlers.add(VanillaContainerWrapper.of(shelf));
+        for (Store<ItemResource> store : itemStores(withChiseled)) handlers.add(store.handler());
         return handlers;
     }
 
-    // Puts up to `amount` of `resource` into the library, within `transaction`: enchanted and written books
-    // (#bibliomania:library_shelf_books) onto the Chiseled Bookshelves first; the rest (and those books once the shelves
-    // are full) into the item books, onto pages already holding it first. Never onto a chiseled shelf otherwise (a
-    // plain book goes to the item books like any stackable item). Returns how many went in.
+    // Puts up to `amount` into stores already in priority order: each priority in turn (all shelves of the same
+    // priority together, onto what they already hold first: insertStacking), until it's all in. Returns how many.
+    private static <R extends Resource> int insertByPriority(List<Store<R>> stores, R resource, int amount, TransactionContext transaction)
+    {
+        int inserted = 0;
+        int index = 0;
+        while (index < stores.size() && inserted < amount)
+        {
+            int priority = stores.get(index).priority();
+            List<ResourceHandler<R>> band = new ArrayList<>();
+            while (index < stores.size() && stores.get(index).priority() == priority) band.add(stores.get(index++).handler());
+            inserted += ResourceHandlerUtil.insertStacking(new CombinedResourceHandler<>(band), resource, amount - inserted, transaction);
+        }
+        return inserted;
+    }
+
+    // Puts up to `amount` of `resource` into the library, within `transaction`: highest priority shelves first.
+    // Enchanted and written books (#bibliomania:library_shelf_books) may go onto Chiseled Bookshelves (priority 100
+    // unless changed, so before Bookcases left at 0); nothing else ever does (a plain book goes to the item books like
+    // any stackable item). Returns how many went in.
     public int insertItems(ItemResource resource, int amount, TransactionContext transaction)
     {
         if (resource.isEmpty() || amount <= 0) return 0;
-        int inserted = 0;
-        if (resource.toStack(1).is(BibliomaniaTags.LIBRARY_SHELF_BOOKS))
+        boolean shelfBook = resource.toStack(1).is(BibliomaniaTags.LIBRARY_SHELF_BOOKS);
+        return insertByPriority(itemStores(shelfBook), resource, amount, transaction);
+    }
+
+    // Any type into the library, highest priority Bookcases first (items: insertItems). The casts are safe: R is
+    // ItemResource when the type is ITEMS.
+    @SuppressWarnings("unchecked")
+    public <R extends Resource> int insert(TransportType<R> type, R resource, int amount, TransactionContext transaction)
+    {
+        if (type == TransportTypes.ITEMS.get()) return insertItems((ItemResource) resource, amount, transaction);
+        if (resource.isEmpty() || amount <= 0) return 0;
+        List<Store<R>> stores = new ArrayList<>();
+        for (BookcaseBlockEntity shelf : bookcases())
         {
-            for (ChiseledBookShelfBlockEntity shelf : chiseledShelves())
-            {
-                if (inserted >= amount) break;
-                inserted += VanillaContainerWrapper.of(shelf).insert(resource, amount - inserted, transaction);
-            }
+            ResourceHandler<R> part = shelf.handler(type);
+            if (part != null) stores.add(new Store<>(shelf.getPriority(), part, false));
         }
-        if (inserted < amount)
-        {
-            List<ResourceHandler<ItemResource>> books = itemHandlers(false);
-            if (!books.isEmpty()) inserted += ResourceHandlerUtil.insertStacking(new CombinedResourceHandler<>(books), resource, amount - inserted, transaction);
-        }
-        return inserted;
+        return insertByPriority(stores, resource, amount, transaction);
     }
 
     // How much of `type` the library holds and has room for: {amount, capacity}. With a filter (a fluid), only that

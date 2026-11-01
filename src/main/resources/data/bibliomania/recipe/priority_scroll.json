@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:paper",
+    "minecraft:paper",
+    "minecraft:red_dye",
+    "minecraft:string"
+  ],
+  "result": {
+    "id": "bibliomania:priority_scroll",
+    "count": 1
+  }
+}

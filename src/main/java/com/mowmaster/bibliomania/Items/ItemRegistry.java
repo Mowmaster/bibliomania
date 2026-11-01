@@ -57,6 +57,10 @@ public class ItemRegistry {
     public static final DeferredItem<BoneFolderItem> BONE_FOLDER = CBITEMS.registerItem("bone_folder",
             properties -> new BoneFolderItem(properties.stacksTo(1)));
 
+    // The Priority Scroll sets which shelves and books a library fills first (PriorityScrollItem)
+    public static final DeferredItem<PriorityScrollItem> PRIORITY_SCROLL = CBITEMS.registerItem("priority_scroll",
+            properties -> new PriorityScrollItem(properties.stacksTo(1)));
+
     // The Card Catalog's icon for an energy drawer (a red lightning bolt): only ever drawn, so not in the creative tab
     public static final DeferredItem<Item> ENERGY_ICON = CBITEMS.registerSimpleItem("energy_icon");
 
@@ -65,7 +69,7 @@ public class ItemRegistry {
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,
             FIBERS_GRASS, THREAD_TWISTED_GRASS, WEAVE_GRASS,
             FIBERS_WOOL, THREAD_TWISTED_WOOL, WEAVE_WOOL,
-            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL, BONE_FOLDER);
+            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL, BONE_FOLDER, PRIORITY_SCROLL);
 
     public static void register(IEventBus eventBus)
     {

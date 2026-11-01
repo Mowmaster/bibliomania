@@ -55,6 +55,11 @@ public class DataComponentRegistry
     public static final Supplier<DataComponentType<ItemStack>> BOOK_FILTER = COMPONENTS.registerComponentType(
             "book_filter", builder -> builder.persistent(ItemStack.CODEC).networkSynchronized(ItemStack.STREAM_CODEC));
 
+    // A storage book's library priority (LibraryPriority): set on the placed book with the Priority Scroll, kept on the
+    // item. Codec.INT saves a number; VAR_INT sends it in as few bytes as it needs.
+    public static final Supplier<DataComponentType<Integer>> PRIORITY = COMPONENTS.registerComponentType(
+            "priority", builder -> builder.persistent(Codec.INT).networkSynchronized(ByteBufCodecs.VAR_INT));
+
     // What a Farmer's Almanac holds (CropContents)
     public static final Supplier<DataComponentType<CropContents>> CROP_CONTENTS = COMPONENTS.registerComponentType(
             "crop_contents", builder -> builder.persistent(CropContents.CODEC).networkSynchronized(CropContents.STREAM_CODEC));

@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import java.util.stream.IntStream;
+import java.util.Comparator;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
@@ -47,7 +50,7 @@ import java.util.List;
 //   the slot inside the transaction, so a hopper's simulated insert changes nothing.
 // - Ticking: each book's ShelvedBook#shelfTick; what they make goes into the item books (store), or out of the front.
 // - Clients get the books (to draw them, and for the Reading Goggles) at most every 4 ticks.
-public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, LibraryMember
+public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, LibraryMember, LibraryPriority.Holder
 {
     public static final int SLOTS = 6;
     private static final String TAG_BOOKS = "books";
@@ -59,6 +62,9 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
     private final long[] pausedUntil = new long[SLOTS];
     private static final int PAUSE_TICKS = 20;
     private final LibraryLink libraryLink = new LibraryLink(this::libraryChanged);
+    // Which Bookcases its library fills first (LibraryPriority)
+    private int priority;
+    private static final String TAG_PRIORITY = "priority";
 
     public BookcaseBlockEntity(BlockPos pos, BlockState state)
     {
@@ -147,11 +153,12 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
 
     // ---- Storage ----
 
-    // The books' handlers for `type`, joined in slot order, or null if no book holds that type
+    // The books' handlers for `type`, joined highest book priority first (equal ones in slot order), or null if no
+    // book holds that type
     public <R extends Resource> @Nullable ResourceHandler<R> handler(TransportType<R> type)
     {
         List<ResourceHandler<R>> parts = new ArrayList<>();
-        for (int slot = 0; slot < SLOTS; slot++)
+        for (int slot : slotsByPriority())
         {
             ItemStack book = books.get(slot);
             if (book.isEmpty() || !(book.getItem() instanceof ShelvedBook shelved)) continue;
@@ -234,6 +241,37 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
     }
 
 
+
+    // ---- Library priority (LibraryPriority) ----
+
+    @Override
+    public int getPriority()
+    {
+        return priority;
+    }
+
+    @Override
+    public void setPriority(int newPriority)
+    {
+        if (newPriority == priority) return;
+        priority = newPriority;
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    @Override
+    public int maxPriority()
+    {
+        return LibraryPriority.MAX_CASE;
+    }
+
+    // The slots, highest book priority first. A stream: 0-5 boxed to Integers, sorted (a stable sort keeps equal
+    // ones in slot order) by the book's priority, highest first (hence the minus)
+    private List<Integer> slotsByPriority()
+    {
+        return IntStream.range(0, SLOTS).boxed().sorted(Comparator.comparingInt((Integer slot) -> -LibraryPriority.ofBook(books.get(slot)))).toList();
+    }
+
     // ---- Library (LibraryMember: which library it's in, and the Librarian's Seal lock) ----
 
     @Override public @Nullable BlockPos getLibrary() { return libraryLink.library(); }
@@ -292,6 +330,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         output.putChild(TAG_BOOKS, books);
         tints.save(output);
         libraryLink.save(output);
+        output.putInt(TAG_PRIORITY, priority);
     }
 
     @Override
@@ -300,6 +339,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         super.loadAdditional(input);
         books.deserialize(input.childOrEmpty(TAG_BOOKS));
         libraryLink.load(input);
+        priority = input.getIntOr(TAG_PRIORITY, 0);
         // CBTintData#load re-meshes the chunk on clients: only when the colour actually changed (book updates come
         // often while hoppers run)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))

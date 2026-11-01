@@ -113,13 +113,10 @@ public final class LibraryDeposit
         return moved;
     }
 
-    // Into the library: items its own way (insertItems), other types into their books (the cast is safe: R is
-    // ItemResource when the type is ITEMS)
+    // Into the library, highest priority shelves first (LibraryControllerBlockEntity#insert)
     private static <R extends Resource> int insertInto(LibraryControllerBlockEntity library, TransportType<R> type, R resource, int amount, TransactionContext transaction)
     {
-        if (type == TransportTypes.ITEMS.get()) return library.insertItems((ItemResource) resource, amount, transaction);
-        ResourceHandler<R> to = library.typeHandler(type);
-        return to == null ? 0 : ResourceHandlerUtil.insertStacking(to, resource, amount, transaction);
+        return library.insert(type, resource, amount, transaction);
     }
 
     // A bucket of fluid (water, lava, a modded fluid's bucket); not a bucket of fish or axolotl (MobBucketItem extends
@@ -147,7 +144,7 @@ public final class LibraryDeposit
                 FluidResource fluid = container.getResource(index);
                 int amount = container.getAmountAsInt(index);
                 if (fluid.isEmpty() || amount <= 0) continue;
-                if (ResourceHandlerUtil.insertStacking(fluids, fluid, amount, inner) < amount) return false;
+                if (library.insert(TransportTypes.FLUIDS.get(), fluid, amount, inner) < amount) return false;
                 if (container.extract(index, fluid, amount, inner) < amount) return false;
                 emptied = true;
             }
@@ -294,18 +291,12 @@ public final class LibraryDeposit
             return handler().insert(index, resource, amount, transaction);
         }
 
-        // Without an index: onto what's already there first
+        // Without an index: the library's own way in (highest priority shelves first)
         @Override
         public int insert(R resource, int amount, TransactionContext transaction)
         {
-            // Items: the library's own way in (the cast is safe: R is ItemResource when the type is ITEMS)
-            if (type == TransportTypes.ITEMS.get())
-            {
-                LibraryControllerBlockEntity found = library.get();
-                return found == null ? 0 : found.insertItems((ItemResource) resource, amount, transaction);
-            }
-            ResourceHandler<R> handler = target.get();
-            return handler == null ? 0 : ResourceHandlerUtil.insertStacking(handler, resource, amount, transaction);
+            LibraryControllerBlockEntity found = library.get();
+            return found == null ? 0 : found.insert(type, resource, amount, transaction);
         }
 
         @Override

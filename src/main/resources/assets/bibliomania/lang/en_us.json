@@ -177,5 +177,10 @@
   "message.bibliomania.requestor.match_fuzzy": "Matching: fuzzy (any damage)",
   "hud.bibliomania.pattern_match_exact": "Match: Exact",
   "hud.bibliomania.pattern_match_fuzzy": "Match: Fuzzy (any damage)",
-  "hud.bibliomania.book_filter": "Filter: %s"
+  "hud.bibliomania.book_filter": "Filter: %s",
+  "item.bibliomania.priority_scroll": "Priority Scroll",
+  "tooltip.bibliomania.priority_scroll.tooltip": "Right-click a Bookcase, Chiseled Bookshelf or placed storage book to raise its library priority, left-click to lower it (sneak: by 10; the page keys work too). Higher is filled first",
+  "tooltip.bibliomania.priority": "Library priority: %s",
+  "message.bibliomania.priority": "Priority: %1$s / %2$s",
+  "hud.bibliomania.priority": "Priority: %s"
 }

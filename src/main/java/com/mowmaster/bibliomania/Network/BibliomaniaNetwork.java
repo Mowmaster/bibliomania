@@ -13,7 +13,7 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "5"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info
+    private static final String VERSION = "6"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)
@@ -23,6 +23,8 @@ public final class BibliomaniaNetwork
         registrar.playToServer(ToggleBookPayload.TYPE, ToggleBookPayload.STREAM_CODEC, ToggleBookPayload::handle);
         // Client -> server: the "place book" key
         registrar.playToServer(PlaceBookPayload.TYPE, PlaceBookPayload.STREAM_CODEC, PlaceBookPayload::handle);
+        // Client -> server: the page keys while holding a Priority Scroll
+        registrar.playToServer(AdjustPriorityPayload.TYPE, AdjustPriorityPayload.STREAM_CODEC, AdjustPriorityPayload::handle);
         // Client -> server: the "pick up book" key
         registrar.playToServer(PickupBookPayload.TYPE, PickupBookPayload.STREAM_CODEC, PickupBookPayload::handle);
         // Reading Goggles' block label: client asks what a block holds, the server answers
