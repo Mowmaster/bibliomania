@@ -185,7 +185,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
         if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
         // A whole book open: an empty hand on it (a Book of Experience gives its levels...)
-        if (!player.isShiftKeyDown() && lectern.getShownBookPage() < 0 && !lectern.getShownBook().isEmpty())
+        if (!player.isShiftKeyDown() && lectern.showsWholeBook() && !lectern.getShownBook().isEmpty())
         {
             if (level instanceof ServerLevel serverLevel) LecternActions.use(serverLevel, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY, lectern);
             return InteractionResult.SUCCESS;

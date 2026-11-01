@@ -1,0 +1,20 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "bibliomania:block/card_catalog/size_2/closed",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": -3301026
+      },
+      {
+        "type": "minecraft:constant",
+        "value": -4088737
+      },
+      {
+        "type": "minecraft:constant",
+        "value": -4088737
+      }
+    ]
+  }
+}

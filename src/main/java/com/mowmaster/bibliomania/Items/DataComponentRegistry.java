@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Items;
 
+import java.util.UUID;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.BlockPos;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropContents;
@@ -58,6 +60,11 @@ public class DataComponentRegistry
     // The Library Controller a Librarian's Quill is working on (BlockPos.CODEC saves [x, y, z]; STREAM_CODEC sends it)
     public static final Supplier<DataComponentType<BlockPos>> LIBRARY_LINK = COMPONENTS.registerComponentType(
             "library_link", builder -> builder.persistent(BlockPos.CODEC).networkSynchronized(BlockPos.STREAM_CODEC));
+
+    // A book's id, given when a Card Catalog drawer is set to it (so the drawer finds that one book on the shelves).
+    // UUIDUtil: vanilla's codecs for UUIDs.
+    public static final Supplier<DataComponentType<UUID>> BOOK_ID = COMPONENTS.registerComponentType(
+            "book_id", builder -> builder.persistent(UUIDUtil.CODEC).networkSynchronized(UUIDUtil.STREAM_CODEC));
 
     // What a Book of Barter holds (BarterContents)
     public static final Supplier<DataComponentType<BarterContents>> BARTER_CONTENTS = COMPONENTS.registerComponentType(

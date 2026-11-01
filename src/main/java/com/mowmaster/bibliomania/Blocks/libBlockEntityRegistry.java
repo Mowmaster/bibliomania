@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
@@ -72,6 +73,10 @@ public class libBlockEntityRegistry
     // The Library Controller
     public static final Supplier<BlockEntityType<LibraryControllerBlockEntity>> LIBRARY_CONTROLLER = CBBLOCKENTITIES.register("library_controller",
             () -> new BlockEntityType<>(LibraryControllerBlockEntity::new, BlockRegistry.LIBRARY_CONTROLLER.get()));
+
+    // Every Card Catalog size
+    public static final Supplier<BlockEntityType<CardCatalogBlockEntity>> CARD_CATALOG = CBBLOCKENTITIES.register("card_catalog",
+            () -> new BlockEntityType<>(CardCatalogBlockEntity::new, BlockRegistry.CARD_CATALOGS.stream().map(block -> (Block) block.get()).toArray(Block[]::new)));
 
     public static void register(IEventBus eventBus)
     {

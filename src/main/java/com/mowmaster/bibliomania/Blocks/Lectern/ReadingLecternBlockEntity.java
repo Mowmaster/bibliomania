@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import net.minecraft.core.component.DataComponents;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
@@ -202,9 +203,58 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         return resolve(page);
     }
 
+    // ---- Card catalogs (server): what an open drawer asks for ----
+
+    // shownBookPage when it shows a card catalog item from the whole library (-1 is a whole book, 0+ a book's page)
+    public static final int WHOLE_LIBRARY = -2;
+
+    // The item an open card catalog drawer picked, or null (then the lectern shows its page)
+    private @Nullable ItemStack selectedItem;
+
+    public void selectItem(ServerLevel level, ItemStack item)
+    {
+        selectedItem = item.copyWithCount(1);
+        refresh(level, true);
+    }
+
+    // Turns to a book (and leaves any card catalog item)
+    public void showBook(ServerLevel level, BookcaseBlockEntity shelf, int slot)
+    {
+        selectedItem = null;
+        int index = 0;
+        for (BookcaseBlockEntity each : cases())
+        {
+            for (int s = 0; s < BookcaseBlockEntity.SLOTS; s++)
+            {
+                if (each == shelf && s == slot)
+                {
+                    page = index;
+                    refresh(level, true);
+                    return;
+                }
+                index += pagesOf(each.getBook(s));
+            }
+        }
+        refresh(level, true);
+    }
+
+    public void clearSelection(ServerLevel level)
+    {
+        if (selectedItem == null) return;
+        selectedItem = null;
+        refresh(level, true);
+    }
+
+    // Whether the open page is a whole book (clients: from what was synced)
+    public boolean showsWholeBook()
+    {
+        return shownBookPage == -1;
+    }
+
     // Server: whether the open page is a whole book (the lectern then acts as that book)
     public boolean isBookOpen(ServerLevel level)
     {
+        if (selectedItem != null) return false;
         Page current = currentPage();
         return current != null && current.bookPage() < 0;
     }
@@ -251,6 +301,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     @Override
     public void setPage(int newPage)
     {
+        // Turning a page leaves a card catalog item behind: back to the pages
+        selectedItem = null;
         page = pageCount <= 0 ? 0 : Math.floorMod(newPage, pageCount);
         setChanged();
         if (level instanceof ServerLevel serverLevel) refresh(serverLevel, true);
@@ -342,6 +394,29 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     public void refresh(ServerLevel level, boolean force)
     {
         int count = countPages();
+        // A card catalog item: that item from the whole library, shown with a glint
+        LibraryControllerBlockEntity library = library(level, worldPosition);
+        if (selectedItem != null && library == null) selectedItem = null;
+        if (selectedItem != null)
+        {
+            ItemStack glinting = selectedItem.copyWithCount(1);
+            // ENCHANTMENT_GLINT_OVERRIDE: true always shimmers like an enchanted item
+            glinting.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+            int total = (int) Math.min(Integer.MAX_VALUE, library.countItem(selectedItem));
+            boolean changed = force || count != pageCount || total != shownAmount || shownBookPage != WHOLE_LIBRARY
+                    || !ItemStack.matches(glinting, shown);
+            pageCount = count;
+            shown = glinting;
+            shownAmount = total;
+            shownBook = ItemStack.EMPTY;
+            shownBookPage = WHOLE_LIBRARY;
+            if (changed)
+            {
+                setChanged();
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+            }
+            return;
+        }
         int open = count <= 0 ? 0 : Math.min(page, count - 1);
         Page current = resolve(open);
         ItemStack newShown = ItemStack.EMPTY;
@@ -408,6 +483,14 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     // Takes up to `amount` (no more than a stack) from the open page, if it's a page of items
     public ItemStack take(int amount)
     {
+        // A card catalog item: from anywhere in the library
+        LibraryControllerBlockEntity library = level instanceof ServerLevel ? library(level, worldPosition) : null;
+        if (selectedItem != null && library != null)
+        {
+            int taken = library.extractItem(selectedItem, Math.min(amount, selectedItem.getMaxStackSize()));
+            if (level instanceof ServerLevel serverLevel) refresh(serverLevel, false);
+            return taken > 0 ? selectedItem.copyWithCount(taken) : ItemStack.EMPTY;
+        }
         Page current = currentPage();
         if (current == null || current.bookPage() < 0) return ItemStack.EMPTY;
         ResourceHandler<ItemResource> items = current.shelf().bookHandler(current.slot(), TransportTypes.ITEMS.get());

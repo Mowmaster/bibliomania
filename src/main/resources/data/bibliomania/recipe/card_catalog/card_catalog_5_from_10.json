@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": "bibliomania:card_catalog_10",
+  "result": {
+    "id": "bibliomania:card_catalog_5",
+    "count": 1
+  }
+}

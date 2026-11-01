@@ -1,0 +1,259 @@
+{
+  "variants": {
+    "facing=north,open=0": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=1": {
+      "model": "bibliomania:block/card_catalog/size_5/open_1"
+    },
+    "facing=north,open=2": {
+      "model": "bibliomania:block/card_catalog/size_5/open_2"
+    },
+    "facing=north,open=3": {
+      "model": "bibliomania:block/card_catalog/size_5/open_3"
+    },
+    "facing=north,open=4": {
+      "model": "bibliomania:block/card_catalog/size_5/open_4"
+    },
+    "facing=north,open=5": {
+      "model": "bibliomania:block/card_catalog/size_5/open_5"
+    },
+    "facing=north,open=6": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=7": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=8": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=9": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=10": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=11": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=12": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=13": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=14": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=15": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=north,open=16": {
+      "model": "bibliomania:block/card_catalog/size_5/closed"
+    },
+    "facing=east,open=0": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=1": {
+      "model": "bibliomania:block/card_catalog/size_5/open_1",
+      "y": 90
+    },
+    "facing=east,open=2": {
+      "model": "bibliomania:block/card_catalog/size_5/open_2",
+      "y": 90
+    },
+    "facing=east,open=3": {
+      "model": "bibliomania:block/card_catalog/size_5/open_3",
+      "y": 90
+    },
+    "facing=east,open=4": {
+      "model": "bibliomania:block/card_catalog/size_5/open_4",
+      "y": 90
+    },
+    "facing=east,open=5": {
+      "model": "bibliomania:block/card_catalog/size_5/open_5",
+      "y": 90
+    },
+    "facing=east,open=6": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=7": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=8": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=9": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=10": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=11": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=12": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=13": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=14": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=15": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=east,open=16": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 90
+    },
+    "facing=south,open=0": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=1": {
+      "model": "bibliomania:block/card_catalog/size_5/open_1",
+      "y": 180
+    },
+    "facing=south,open=2": {
+      "model": "bibliomania:block/card_catalog/size_5/open_2",
+      "y": 180
+    },
+    "facing=south,open=3": {
+      "model": "bibliomania:block/card_catalog/size_5/open_3",
+      "y": 180
+    },
+    "facing=south,open=4": {
+      "model": "bibliomania:block/card_catalog/size_5/open_4",
+      "y": 180
+    },
+    "facing=south,open=5": {
+      "model": "bibliomania:block/card_catalog/size_5/open_5",
+      "y": 180
+    },
+    "facing=south,open=6": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=7": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=8": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=9": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=10": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=11": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=12": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=13": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=14": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=15": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=south,open=16": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 180
+    },
+    "facing=west,open=0": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=1": {
+      "model": "bibliomania:block/card_catalog/size_5/open_1",
+      "y": 270
+    },
+    "facing=west,open=2": {
+      "model": "bibliomania:block/card_catalog/size_5/open_2",
+      "y": 270
+    },
+    "facing=west,open=3": {
+      "model": "bibliomania:block/card_catalog/size_5/open_3",
+      "y": 270
+    },
+    "facing=west,open=4": {
+      "model": "bibliomania:block/card_catalog/size_5/open_4",
+      "y": 270
+    },
+    "facing=west,open=5": {
+      "model": "bibliomania:block/card_catalog/size_5/open_5",
+      "y": 270
+    },
+    "facing=west,open=6": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=7": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=8": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=9": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=10": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=11": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=12": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=13": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=14": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=15": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    },
+    "facing=west,open=16": {
+      "model": "bibliomania:block/card_catalog/size_5/closed",
+      "y": 270
+    }
+  }
+}

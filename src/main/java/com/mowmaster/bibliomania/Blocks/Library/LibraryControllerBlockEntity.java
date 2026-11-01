@@ -1,5 +1,19 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import java.util.UUID;
+import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import com.mowmaster.mowlib.transport.TransportTypes;
+import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -97,6 +111,122 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
             if (level.isLoaded(pos) && level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern) found.add(lectern);
         }
         return found;
+    }
+
+    public List<CardCatalogBlockEntity> catalogs()
+    {
+        List<CardCatalogBlockEntity> found = new ArrayList<>();
+        if (level == null) return found;
+        for (BlockPos pos : members)
+        {
+            if (level.isLoaded(pos) && level.getBlockEntity(pos) instanceof CardCatalogBlockEntity catalog) found.add(catalog);
+        }
+        return found;
+    }
+
+    // ---- The whole library's items and books (server; used by Card Catalogs and Reading Lecterns) ----
+
+    // How many of `item` (exactly: same components) the library's item books hold together
+    public long countItem(ItemStack item)
+    {
+        ItemResource wanted = ItemResource.of(item);
+        long total = 0;
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            ResourceHandler<ItemResource> items = shelf.handler(TransportTypes.ITEMS.get());
+            if (items == null) continue;
+            for (int index = 0; index < items.size(); index++)
+            {
+                if (items.getResource(index).equals(wanted)) total += items.getAmountAsLong(index);
+            }
+        }
+        return total;
+    }
+
+    // Takes up to `amount` of `item` from the whole library (bookcase by bookcase, first book first)
+    public int extractItem(ItemStack item, int amount)
+    {
+        ItemResource wanted = ItemResource.of(item);
+        int taken = 0;
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            if (taken >= amount) break;
+            ResourceHandler<ItemResource> items = shelf.handler(TransportTypes.ITEMS.get());
+            if (items == null) continue;
+            try (Transaction transaction = Transaction.openRoot())
+            {
+                taken += items.extract(wanted, amount - taken, transaction);
+                transaction.commit();
+            }
+        }
+        return taken;
+    }
+
+    // Where the book with this bibliomania:book_id is on the library's shelves
+    public record BookPlace(BookcaseBlockEntity shelf, int slot) {}
+
+    public @Nullable BookPlace findBook(UUID id)
+    {
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
+            {
+                if (id.equals(shelf.getBook(slot).get(DataComponentRegistry.BOOK_ID.get()))) return new BookPlace(shelf, slot);
+            }
+        }
+        return null;
+    }
+
+    // Whether a card catalog drawer's item or book is in the library
+    public boolean has(DrawerEntry entry)
+    {
+        return switch (entry.kind())
+        {
+            case ITEM -> countItem(entry.icon()) > 0;
+            case BOOK, TRADE -> entry.book().map(this::findBook).isPresent();
+        };
+    }
+
+    // ---- Card catalog drawers and lecterns ----
+
+    // Closes every open drawer in the library except the catalog at `keep` (each with the barrel sound)
+    public void closeDrawers(ServerLevel level, BlockPos keep)
+    {
+        for (CardCatalogBlockEntity catalog : catalogs())
+        {
+            BlockPos pos = catalog.getBlockPos();
+            BlockState state = catalog.getBlockState();
+            if (pos.equals(keep) || state.getValue(CardCatalogBlock.OPEN) == 0) continue;
+            level.setBlock(pos, state.setValue(CardCatalogBlock.OPEN, 0), Block.UPDATE_ALL);
+            level.playSound(null, pos, SoundEvents.BARREL_CLOSE, SoundSource.BLOCKS, 0.8f, 1f);
+        }
+    }
+
+    // A drawer was opened: every lectern of the library shows its item (from the whole library) or turns to its book
+    public void select(ServerLevel level, DrawerEntry entry)
+    {
+        BookPlace place = entry.book().map(this::findBook).orElse(null);
+        // A trade: the Ledger's own page set to that trade first
+        if (entry.kind() == DrawerEntry.Kind.TRADE && place != null)
+        {
+            ItemStack ledger = place.shelf().getBook(place.slot());
+            if (ledger.getItem() instanceof VillagerBookItem item)
+            {
+                item.setPage(ledger, entry.trade());
+                place.shelf().bookUpdated(place.slot());
+            }
+        }
+        for (ReadingLecternBlockEntity lectern : lecterns())
+        {
+            if (entry.kind() == DrawerEntry.Kind.ITEM) lectern.selectItem(level, entry.icon());
+            else if (place != null) lectern.showBook(level, place.shelf(), place.slot());
+        }
+    }
+
+    // A drawer was closed: the lecterns go back to their pages
+    public void clearSelection(ServerLevel level)
+    {
+        for (ReadingLecternBlockEntity lectern : lecterns()) lectern.clearSelection(level);
     }
 
     public int getBookcaseCount()

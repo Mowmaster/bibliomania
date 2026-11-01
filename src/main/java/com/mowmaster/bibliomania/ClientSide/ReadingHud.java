@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
@@ -165,7 +168,15 @@ public final class ReadingHud
                 BlockPos pos = hit.getBlockPos();
                 BlockState state = level.getBlockState(pos);
                 BlockEntity blockEntity = level.getBlockEntity(pos);
-                if (blockEntity instanceof PickupableBook placed)
+                // A Card Catalog drawer that's set: its item (or book, or trade) on the paper
+                DrawerEntry drawerEntry = blockEntity instanceof CardCatalogBlockEntity catalog && state.getBlock() instanceof CardCatalogBlock catalogBlock
+                        ? catalog.drawer(catalogBlock.drawerAt(state, hit)) : null;
+                if (drawerEntry != null)
+                {
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get()) shelfLines = readDrawer(drawerEntry, level, player);
+                }
+                else if (blockEntity instanceof PickupableBook placed)
                 {
                     lookingAtBook = true;
                     // The placed book as an item with its contents, so its tooltip is the one it has in an inventory
@@ -252,6 +263,17 @@ public final class ReadingHud
         return lines;
     }
 
+    // ---- Card Catalogs ----
+
+    // The drawer's item (name, enchantments, potion effects...), and for a trade drawer what it's for
+    private static List<Component> readDrawer(DrawerEntry entry, Level level, Player player)
+    {
+        List<Component> lines = new ArrayList<>(tooltip(entry.icon(), level, player));
+        if (entry.kind() == DrawerEntry.Kind.TRADE) lines.add(hud("drawer_trade"));
+        if (entry.kind() == DrawerEntry.Kind.BOOK) lines.add(hud("drawer_book"));
+        return lines;
+    }
+
     // ---- Reading Lecterns ----
 
     // "Reading Lectern (Page 12/340)", then the open page: "24 Cobblestone" (and its tooltip if it's enchanted or a
@@ -275,7 +297,20 @@ public final class ReadingHud
         }
         lines.add(Component.translatable("hud." + BibliomaniaReferences.MODID + ".page", name, lectern.getPage() + 1, lectern.getPageCount()));
         ItemStack book = lectern.getShownBook();
-        if (lectern.getShownBookPage() < 0)
+        // A card catalog item: "128 Iron Ingot", from the whole library
+        if (lectern.getShownBookPage() == ReadingLecternBlockEntity.WHOLE_LIBRARY)
+        {
+            ItemStack item = lectern.getShown();
+            lines.add(hud("page_item", lectern.getShownAmount(), item.getHoverName()));
+            if (worthReading(item))
+            {
+                lines.add(Component.empty());
+                lines.addAll(tooltip(item, level, player));
+            }
+            lines.add(hud("lectern_whole_library"));
+            return lines;
+        }
+        if (lectern.showsWholeBook())
         {
             // A whole book: the lectern stands in for it
             lines.addAll(tooltip(book, level, player));

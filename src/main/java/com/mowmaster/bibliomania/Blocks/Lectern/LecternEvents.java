@@ -45,7 +45,7 @@ public final class LecternEvents
         // The client knows whether the open page shows something (it's synced); nothing shown: mine it as normal
         if (lectern.getShown().isEmpty()) return;
         Player player = event.getEntity();
-        boolean book = lectern.getShownBookPage() < 0;
+        boolean book = lectern.showsWholeBook();
         // Sneaking with an axe always mines it; an axe alone mines it unless a whole book is open (the book gets the
         // click: an Almanac's tree is cut with it)
         if (player.getMainHandItem().is(ItemTags.AXES) && (player.isShiftKeyDown() || !book)) return;

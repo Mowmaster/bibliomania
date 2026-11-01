@@ -43,6 +43,7 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.HALF_BOOKCASE.get());
                 output.accept(BlockRegistry.READING_LECTERN.get());
                 output.accept(BlockRegistry.LIBRARY_CONTROLLER.get());
+                for (var catalog : BlockRegistry.CARD_CATALOGS) output.accept(catalog.get());
                 // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
                 for (var item : ItemRegistry.MATERIALS) output.accept(item.get());
             }).build());

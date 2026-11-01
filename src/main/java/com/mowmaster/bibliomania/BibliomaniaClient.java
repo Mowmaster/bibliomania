@@ -7,6 +7,7 @@ import com.mowmaster.bibliomania.ClientSide.CropBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.BarterBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.BookcaseRenderer;
 import com.mowmaster.bibliomania.ClientSide.ReadingLecternRenderer;
+import com.mowmaster.bibliomania.ClientSide.CardCatalogRenderer;
 import com.mowmaster.bibliomania.ClientSide.MobBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.VillagerBookRenderer;
 import com.mowmaster.bibliomania.ClientSide.StorageBookRenderer;
@@ -69,6 +70,8 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOKCASE.get(), BookcaseRenderer::new);
         // The Reading Lectern's open page above it: the item spinning, or the book as it looks placed
         event.registerBlockEntityRenderer(libBlockEntityRegistry.READING_LECTERN.get(), ReadingLecternRenderer::new);
+        // Card Catalog drawer icons and faces
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.CARD_CATALOG.get(), CardCatalogRenderer::new);
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it

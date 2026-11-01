@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlock;
 import com.mowmaster.bibliomania.Blocks.Bookcase.HalfBookcaseBlock;
@@ -102,6 +103,22 @@ public class BlockRegistry
     // The Library Controller: the core of a library (see LibraryControllerBlock)
     public static final DeferredBlock<LibraryControllerBlock> LIBRARY_CONTROLLER = registerBlock("library_controller",
             properties -> new LibraryControllerBlock(properties.strength(2.5f).sound(SoundType.CHISELED_BOOKSHELF)));
+
+    // Card Catalogs: 1 to 16 drawers (card_catalog_1 to _16; only 1 is crafted, the stonecutter turns any into any)
+    public static final List<DeferredBlock<CardCatalogBlock>> CARD_CATALOGS = registerCardCatalogs();
+
+    private static List<DeferredBlock<CardCatalogBlock>> registerCardCatalogs()
+    {
+        List<DeferredBlock<CardCatalogBlock>> catalogs = new java.util.ArrayList<>();
+        for (int drawers = 1; drawers <= 16; drawers++)
+        {
+            // A lambda can only use variables that never change after they're set ("effectively final"): a copy
+            int size = drawers;
+            catalogs.add(registerBlock("card_catalog_" + size,
+                    properties -> new CardCatalogBlock(properties.strength(2.5f).sound(SoundType.CHISELED_BOOKSHELF).noOcclusion().ignitedByLava(), size)));
+        }
+        return List.copyOf(catalogs);
+    }
 
     // The Reading Lectern: the way into the Bookcases a work card points at (see ReadingLecternBlock)
     public static final DeferredBlock<ReadingLecternBlock> READING_LECTERN = registerBlock("reading_lectern",

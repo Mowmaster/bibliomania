@@ -1,5 +1,24 @@
 {
   "values": [
-    "bibliomania:library_controller"
+    "bibliomania:bookcase",
+    "bibliomania:half_bookcase",
+    "bibliomania:reading_lectern",
+    "bibliomania:library_controller",
+    "bibliomania:card_catalog_1",
+    "bibliomania:card_catalog_2",
+    "bibliomania:card_catalog_3",
+    "bibliomania:card_catalog_4",
+    "bibliomania:card_catalog_5",
+    "bibliomania:card_catalog_6",
+    "bibliomania:card_catalog_7",
+    "bibliomania:card_catalog_8",
+    "bibliomania:card_catalog_9",
+    "bibliomania:card_catalog_10",
+    "bibliomania:card_catalog_11",
+    "bibliomania:card_catalog_12",
+    "bibliomania:card_catalog_13",
+    "bibliomania:card_catalog_14",
+    "bibliomania:card_catalog_15",
+    "bibliomania:card_catalog_16"
   ]
 }
