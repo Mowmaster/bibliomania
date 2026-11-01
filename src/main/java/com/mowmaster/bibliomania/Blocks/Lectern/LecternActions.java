@@ -1,6 +1,5 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
-import net.neoforged.neoforge.transfer.ResourceHandler;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBehaviours;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBehaviour;
@@ -104,21 +103,30 @@ public final class LecternActions
     }
 
     // ---- A library-wide type drawer (Fluids, Experience, Energy) ----
-    // The storage books' own placed actions, on every book of the type in the library at once (the lectern's library's
-    // typeHandler): buckets, bottles, tanks and batteries; an empty hand stores your experience, left-click takes it.
+    // The click goes to the library's books of the type one by one, each through its own placed-book action on a copy
+    // (placed, as for a single open book), best first (books holding the drawer's fluid, then empty ones): the first
+    // book it changes ends it. An empty hand (storing experience) goes on to every book, each taking what it can.
 
     public static boolean useType(ServerLevel level, Player player, InteractionHand hand, ItemStack held, ReadingLecternBlockEntity lectern)
     {
         DrawerEntry entry = lectern.typeSelection();
         LibraryControllerBlockEntity library = lectern.library(level, lectern.getBlockPos());
         TransportType<?> type = entry == null ? null : entry.transportType();
-        ResourceHandler<?> storage = type == null || library == null ? null : library.typeHandler(type);
-        if (storage == null) return false;
+        if (type == null || library == null) return false;
         StorageBookBehaviour behaviour = StorageBookBehaviours.get(type);
         BlockPos pos = lectern.getBlockPos();
-        boolean used = held.isEmpty()
-                ? behaviour.useWithoutItemOnStorage(type, storage, level, pos, player) != InteractionResult.PASS
-                : behaviour.useItemOnStorage(type, storage, held, level, pos, player, hand).consumesAction();
+        boolean used = false;
+        for (LibraryControllerBlockEntity.BookPlace place : library.typeBooks(type, entry.filter()))
+        {
+            ItemStack book = place.shelf().getBook(place.slot());
+            boolean changed = held.isEmpty()
+                    ? placed(level, book, pos, copy -> behaviour.useWithoutItemPlaced(copy, level, pos, player) != InteractionResult.PASS)
+                    : placed(level, book, pos, copy -> behaviour.useItemOnPlaced(held, copy, level, pos, player, hand).consumesAction());
+            if (!changed) continue;
+            place.shelf().bookUpdated(place.slot());
+            used = true;
+            if (!held.isEmpty()) break;
+        }
         lectern.refresh(level, true);
         return used;
     }
@@ -128,9 +136,18 @@ public final class LecternActions
         DrawerEntry entry = lectern.typeSelection();
         LibraryControllerBlockEntity library = lectern.library(level, lectern.getBlockPos());
         TransportType<?> type = entry == null ? null : entry.transportType();
-        ResourceHandler<?> storage = type == null || library == null ? null : library.typeHandler(type);
-        if (storage == null) return false;
-        boolean used = StorageBookBehaviours.get(type).leftClickStorage(type, storage, level, lectern.getBlockPos(), player);
+        if (type == null || library == null) return false;
+        StorageBookBehaviour behaviour = StorageBookBehaviours.get(type);
+        BlockPos pos = lectern.getBlockPos();
+        boolean used = false;
+        for (LibraryControllerBlockEntity.BookPlace place : library.typeBooks(type, entry.filter()))
+        {
+            ItemStack book = place.shelf().getBook(place.slot());
+            if (!placed(level, book, pos, copy -> behaviour.leftClickPlaced(copy, level, pos, player))) continue;
+            place.shelf().bookUpdated(place.slot());
+            used = true;
+            break;
+        }
         lectern.refresh(level, true);
         return used;
     }
@@ -155,6 +172,7 @@ public final class LecternActions
 
     // ---- Storage books: their placed actions on a copy ----
 
+    // Returns true if the book's contents changed.
     // A storage book's placed actions need its block entity: a copy is made from the book (at the lectern's position,
     // never added to the level), the action runs on it, and its contents (mowlib:transport_contents) are copied back
     // onto the shelved book. (BookBlock#updateThickness won't touch the lectern's block.)
@@ -169,10 +187,12 @@ public final class LecternActions
         copy.setLevel(level);
         copy.applyComponentsFromItemStack(book);
         if (!action.apply(copy)) return false;
+        @Nullable TransportContents<?> before = book.get(MowLibDataComponents.TRANSPORT_CONTENTS.get());
         @Nullable TransportContents<?> contents = copy.toItem().get(MowLibDataComponents.TRANSPORT_CONTENTS.get());
         if (contents == null) book.remove(MowLibDataComponents.TRANSPORT_CONTENTS.get());
         else book.set(MowLibDataComponents.TRANSPORT_CONTENTS.get(), contents);
-        return true;
+        // Only counts if the book's contents really changed (a full book clicked with a full bucket did nothing)
+        return !java.util.Objects.equals(before, contents);
     }
 
     // ---- Farmer's Almanac ----

@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
+import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import net.neoforged.neoforge.transfer.CombinedResourceHandler;
 import net.neoforged.neoforge.transfer.resource.Resource;
 import com.mowmaster.mowlib.transport.TransportType;
@@ -217,6 +219,64 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     private static <R extends Resource> long capacityOf(ResourceHandler<R> handler, int index, Resource resource)
     {
         return handler.getCapacityAsLong(index, (R) resource);
+    }
+
+    // The library's storage books of `type`, best first for `filter` (a fluid): books holding it, then empty ones,
+    // then the rest
+    public List<BookPlace> typeBooks(TransportType<?> type, @Nullable Resource filter)
+    {
+        List<BookPlace> holding = new ArrayList<>(), empty = new ArrayList<>(), others = new ArrayList<>();
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
+            {
+                ItemStack book = shelf.getBook(slot);
+                if (!(book.getItem() instanceof StorageBookItem item) || item.book().type() != type) continue;
+                BookStorage storage = BookStorage.open(book);
+                Resource resource = storage == null ? null : storage.storage().getResource(0);
+                BookPlace place = new BookPlace(shelf, slot);
+                if (resource == null || resource.isEmpty()) empty.add(place);
+                else if (filter == null || resource.equals(filter)) holding.add(place);
+                else others.add(place);
+            }
+        }
+        holding.addAll(empty);
+        holding.addAll(others);
+        return holding;
+    }
+
+    // A storage book of `type`, filled to show the library's fullness of it (amount / room, as a share of one book):
+    // what a Reading Lectern with a type drawer open draws. EMPTY if the library has no book of the type.
+    public ItemStack typeDisplayBook(TransportType<?> type, @Nullable Resource filter, long[] totals)
+    {
+        List<BookPlace> books = typeBooks(type, filter);
+        if (books.isEmpty()) return ItemStack.EMPTY;
+        ItemStack display = new ItemStack(books.getFirst().shelf().getBook(books.getFirst().slot()).getItem());
+        BookStorage storage = BookStorage.open(display);
+        ResourceHandler<?> handler = typeHandler(type);
+        if (storage == null || handler == null || totals[1] <= 0 || totals[0] <= 0) return display;
+        Resource resource = null;
+        for (int index = 0; index < handler.size() && resource == null; index++)
+        {
+            Resource each = handler.getResource(index);
+            if (!each.isEmpty() && (filter == null || each.equals(filter))) resource = each;
+        }
+        if (resource == null) return display;
+        int amount = (int) Math.max(1, Math.round((double) totals[0] / totals[1] * storage.capacity()));
+        fill(storage, type, resource, amount);
+        return display;
+    }
+
+    // Puts `amount` of `resource` into a book's storage (which writes it onto the book). The cast is safe: the
+    // resource came from a handler of this type.
+    @SuppressWarnings("unchecked")
+    private static <R extends Resource> void fill(BookStorage storage, TransportType<R> type, Resource resource, int amount)
+    {
+        try (Transaction transaction = Transaction.openRoot())
+        {
+            storage.handler(type).insert((R) resource, amount, transaction);
+            transaction.commit();
+        }
     }
 
     // Whether a card catalog drawer's item or book is in the library

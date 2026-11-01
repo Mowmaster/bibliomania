@@ -118,8 +118,7 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
     {
         poseStack.pushPose();
         poseStack.translate(x * PX, y * PX, z * PX);
-        // A FIXED item faces south as built; half a turn makes it face out of the drawer, a flat squash keeps it on
-        poseStack.rotate(Axis.YP.rotationDegrees(180));
+        // A FIXED item already faces out of the drawer here; a flat squash keeps it on the face
         poseStack.scale(size * PX, size * PX, 0.05f * PX * 16);
         icon.submit(poseStack, collector, light, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();

@@ -393,7 +393,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     // The open whole book as a placed block entity, or null (no book open, or a page of items)
     public @Nullable BlockEntity getDisplayBook()
     {
-        if (level == null || shownBookPage >= 0 || shownBook.isEmpty()) return null;
+        // A whole book (-1) or a type drawer's library book (WHOLE_LIBRARY, see refresh) is drawn as a placed book
+        if (level == null || (shownBookPage != -1 && !showsType()) || shownBook.isEmpty()) return null;
         if (displayBook != null && ItemStack.matches(displayBookStack, shownBook)) return displayBook;
         displayBookStack = shownBook.copy();
         displayBook = null;
@@ -445,13 +446,15 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
             glinting.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
             long[] totals = library.typeTotals(selectedType.transportType(), selectedType.filter());
             int total = (int) Math.min(Integer.MAX_VALUE, totals[0]);
+            // Drawn as one of the type's books, as full as the library is (see getDisplayBook)
+            ItemStack book = library.typeDisplayBook(selectedType.transportType(), selectedType.filter(), totals);
             boolean changed = force || count != pageCount || total != shownAmount || totals[1] != shownCapacity
-                    || shownBookPage != WHOLE_LIBRARY || !ItemStack.matches(glinting, shown);
+                    || shownBookPage != WHOLE_LIBRARY || !ItemStack.matches(glinting, shown) || !ItemStack.matches(book, shownBook);
             pageCount = count;
             shown = glinting;
             shownAmount = total;
             shownCapacity = totals[1];
-            shownBook = ItemStack.EMPTY;
+            shownBook = book;
             shownBookPage = WHOLE_LIBRARY;
             if (changed)
             {
