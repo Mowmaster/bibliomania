@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import net.minecraft.util.TriState;
+import net.minecraft.world.level.block.state.BlockState;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.tags.ItemTags;
@@ -21,6 +23,18 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 public final class LecternEvents
 {
     private LecternEvents() {}
+
+    // Sneaking with something in either hand makes vanilla skip the block's own right-click (it goes to the item
+    // instead). On the lectern's arrows, sneak + right-click must reach the block: it turns the open book's pages
+    // (a Ledger's trades). TriState.TRUE: use the block whatever vanilla would do.
+    @SubscribeEvent
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event)
+    {
+        if (!event.getEntity().isShiftKeyDown()) return;
+        BlockState state = event.getLevel().getBlockState(event.getPos());
+        if (!(state.getBlock() instanceof ReadingLecternBlock)) return;
+        if (ReadingLecternBlock.arrowAt(state, event.getHitVec()) != 0) event.setUseBlock(TriState.TRUE);
+    }
 
     @SubscribeEvent
     public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event)

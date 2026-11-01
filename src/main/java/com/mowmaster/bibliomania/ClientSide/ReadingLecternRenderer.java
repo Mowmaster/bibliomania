@@ -37,6 +37,9 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
     private static final float TOP = 15f / 16f;
     private static final float ITEM_SCALE = 0.75f;
     private static final float BOOK_SCALE = 0.6f;
+    // The model's top is tipped 22.5 degrees
+    private static final float TILT = 22.5f;
+    private static final float ITEM_FORWARD = 0.3f * (0.5f - 1f / 16f);
     // Degrees a tick
     private static final float SPIN_SPEED = 2f;
 
@@ -86,6 +89,13 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
             // Centred on the top, turned like the lectern (the book's own model and renderer already face its FACING,
             // which is the lectern's), shrunk round the middle of its block space
             poseStack.translate(0.5, TOP, 0.5);
+            // Tilted to lie on the slanted top, like a vanilla lectern's book: turned into the lectern's own frame
+            // (facing north: the reader at the north, the top rising to the south), tipped so the far side rises,
+            // then turned back (the book's model and renderer turn themselves by their FACING, the lectern's)
+            float facingTurn = modelRotation(state.facing);
+            poseStack.rotate(Axis.YP.rotationDegrees(-facingTurn));
+            poseStack.rotate(Axis.XP.rotationDegrees(-TILT));
+            poseStack.rotate(Axis.YP.rotationDegrees(facingTurn));
             // Half a turn: a placed book faces the way its placer looked, so as is it would face away from the reader
             poseStack.rotate(Axis.YP.rotationDegrees(180));
             poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE);
@@ -98,11 +108,25 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
         if (state.item.isEmpty()) return;
         poseStack.pushPose();
         // A little below the top: a ground item's model already sits up off its origin
-        poseStack.translate(0.5, TOP - 0.15, 0.5);
+        // Moved towards the reader: 30% of the way from the middle to the model's front edge (1 px in from the
+        // block's edge), along the way it faces
+        poseStack.translate(0.5 + state.facing.getStepX() * ITEM_FORWARD, TOP - 0.15, 0.5 + state.facing.getStepZ() * ITEM_FORWARD);
         poseStack.rotate(Axis.YP.rotationDegrees(state.spin));
         poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
         state.item.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
+    }
+
+    // Blockstate y rotation for a facing (north as modelled, then clockwise)
+    private static float modelRotation(Direction facing)
+    {
+        return switch (facing)
+        {
+            case EAST -> 90f;
+            case SOUTH -> 180f;
+            case WEST -> 270f;
+            default -> 0f;
+        };
     }
 
     // Another renderer and its render state, kept together. The type parameter S ties them: the state is the one

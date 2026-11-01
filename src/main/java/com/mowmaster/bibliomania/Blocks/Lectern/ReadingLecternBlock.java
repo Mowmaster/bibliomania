@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import java.util.Map;
+import java.util.List;
+import java.util.EnumMap;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.paging.PageArrows;
 import com.mowmaster.mowlib.tint.IColorableBlock;
@@ -32,7 +35,6 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import org.jetbrains.annotations.NotNull;
@@ -53,17 +55,30 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty DYED = BooleanProperty.create("dyed");
 
-    // Base, post and top (the slanted top's box: the arrows are clicked on its upper face)
-    private static final VoxelShape SHAPE = Shapes.or(
-            Block.box(3, 0, 3, 13, 2, 13),
-            Block.box(5, 2, 5, 11, 11, 11),
-            Block.box(1, 9, 1, 15, 14, 15));
+    // Base, post, and the slanted top as three steps rising away from the reader (facing north: low at the north), so
+    // a click on the top lands about where the model's surface is. One shape for every facing: the steps are turned
+    // to match in SHAPES.
+    private static final List<CBPixelBox> BOXES = List.of(
+            new CBPixelBox(3, 0, 3, 13, 2, 13),
+            new CBPixelBox(5, 2, 5, 11, 11, 11),
+            new CBPixelBox(1, 9, 1, 15, 10.5, 5),
+            new CBPixelBox(1, 9, 5, 15, 12, 9),
+            new CBPixelBox(1, 9, 9, 15, 13.7, 13));
+    private static final Map<Direction, VoxelShape> SHAPES = new EnumMap<Direction, VoxelShape>(Direction.class);
+    static
+    {
+        for (Direction facing : Direction.Plane.HORIZONTAL)
+        {
+            int turns = CBPixelBox.quarterTurns(facing);
+            SHAPES.put(facing, CBPixelBox.union(BOXES.stream().map(box -> box.rotateY(turns)).toList()));
+        }
+    }
 
-    // The model's arrows sit near the high back corners of the slanted top (facing north): click boxes on the top
-    // face over them, a little bigger so they're easy to hit
+    // The model's arrows sit at the low (reader's) end of the slanted top, near its corners (facing north): click
+    // boxes over the lowest step's top, a little bigger so they're easy to hit
     private static final PageArrows ARROWS = new PageArrows(
-            new CBPixelBox(1.5, 0, 8, 5.5, 16, 14),
-            new CBPixelBox(10.5, 0, 8, 14.5, 16, 14),
+            new CBPixelBox(1.5, 0, 0.5, 5.5, 16, 5.5),
+            new CBPixelBox(10.5, 0, 0.5, 14.5, 16, 5.5),
             true);
 
     public ReadingLecternBlock(Properties properties)
@@ -101,7 +116,13 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context)
     {
-        return SHAPE;
+        return SHAPES.get(state.getValue(FACING));
+    }
+
+    // Which arrow a click is on: -1 back, +1 forward, 0 neither (LecternEvents asks, to let sneak-clicks through)
+    public static int arrowAt(BlockState state, BlockHitResult hit)
+    {
+        return ARROWS.arrowAt(state.getValue(FACING), hit);
     }
 
     // ---- Block entity ----
