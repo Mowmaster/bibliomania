@@ -98,5 +98,12 @@
   "bibliomania.configuration.x_offset": "Move right (pixels)",
   "bibliomania.configuration.y_offset": "Move down (pixels)",
   "bibliomania.configuration.max_width": "Widest text (pixels)",
-  "bibliomania.configuration.show_amounts": "Show stored energy and fluids"
+  "bibliomania.configuration.show_amounts": "Show stored energy and fluids",
+  "hud.bibliomania.grows_up": "Grows up in: %s",
+  "hud.bibliomania.breed_cooldown": "Can breed again in: %s",
+  "hud.bibliomania.in_love": "In love",
+  "hud.bibliomania.can_breed": "Ready to breed",
+  "hud.bibliomania.page": "%1$s (Page %2$s/%3$s)",
+  "hud.bibliomania.page_item": "%1$s %2$s",
+  "hud.bibliomania.empty_page": "Empty page"
 }

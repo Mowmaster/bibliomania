@@ -5,15 +5,20 @@ import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -29,6 +34,8 @@ import java.util.List;
 // - Answer (server -> client): one line per stored thing, e.g. "Energy: 4000 / 10000", "Water: 2000mB / 16000"
 // Every MowLib TransportType is asked for the block's handler (energy, fluids, experience, and any a mod adds), so
 // this works for any mod's blocks that offer those capabilities. Items are left out (a chest would list every slot).
+// Mobs work the same way (EntityRequest / EntityAnswer, by entity id): how long until a baby grows up, or until an
+// adult can breed again (the age counter is only kept on the server).
 public final class BlockInfoPayloads
 {
     private BlockInfoPayloads() {}
@@ -65,7 +72,72 @@ public final class BlockInfoPayloads
         }
     }
 
+    public record EntityRequest(int id) implements CustomPacketPayload
+    {
+        public static final Type<EntityRequest> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "entity_info_request"));
+        public static final StreamCodec<ByteBuf, EntityRequest> STREAM_CODEC = ByteBufCodecs.VAR_INT.map(EntityRequest::new, EntityRequest::id);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type()
+        {
+            return TYPE;
+        }
+    }
+
+    public record EntityAnswer(int id, List<Component> lines) implements CustomPacketPayload
+    {
+        public static final Type<EntityAnswer> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "entity_info"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, EntityAnswer> STREAM_CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_INT, EntityAnswer::id,
+                ComponentSerialization.STREAM_CODEC.apply(ByteBufCodecs.list(MAX_LINES)), EntityAnswer::lines,
+                EntityAnswer::new);
+
+        @Override
+        public Type<? extends CustomPacketPayload> type()
+        {
+            return TYPE;
+        }
+    }
+
     // ---- Server ----
+
+    public static void handleEntityRequest(EntityRequest request, IPayloadContext context)
+    {
+        Player player = context.player();
+        if (!(player.level() instanceof ServerLevel level) || !ReadingGlassesItem.canRead(player)) return;
+        Entity entity = level.getEntity(request.id());
+        if (entity == null || player.distanceToSqr(entity) > 64 * 64) return;
+        context.reply(new EntityAnswer(request.id(), describe(entity)));
+    }
+
+    // Babies: "Grows up in: 12:30". Adults that bred: "Can breed again in: 4:10"; otherwise "In love" or "Ready to
+    // breed" (animals only). Nothing for mobs that don't grow up.
+    public static List<Component> describe(Entity entity)
+    {
+        List<Component> lines = new ArrayList<>();
+        if (!(entity instanceof AgeableMob mob)) return lines;
+        // getAge: negative while a baby (ticks left to grow up), positive after breeding (ticks left to wait), 0 ready
+        int age = mob.getAge();
+        if (age < 0) lines.add(hud("grows_up", time(-age)).withStyle(ChatFormatting.DARK_GREEN));
+        else if (age > 0) lines.add(hud("breed_cooldown", time(age)).withStyle(ChatFormatting.GOLD));
+        else if (mob instanceof Animal animal)
+        {
+            lines.add(animal.isInLove() ? hud("in_love").withStyle(ChatFormatting.LIGHT_PURPLE) : hud("can_breed").withStyle(ChatFormatting.DARK_GREEN));
+        }
+        return lines;
+    }
+
+    // Ticks as minutes:seconds
+    private static String time(int ticks)
+    {
+        int seconds = (ticks + 19) / 20;
+        return String.format("%d:%02d", seconds / 60, seconds % 60);
+    }
+
+    private static MutableComponent hud(String key, Object... args)
+    {
+        return Component.translatable("hud." + BibliomaniaReferences.MODID + "." + key, args);
+    }
 
     // Only for players wearing Reading Goggles, about loaded blocks they could see (within 64 blocks)
     public static void handleRequest(Request request, IPayloadContext context)
@@ -119,5 +191,14 @@ public final class BlockInfoPayloads
     {
         answeredPos = answer.pos();
         answeredLines = answer.lines();
+    }
+
+    public static int answeredEntity = -1;
+    public static List<Component> answeredEntityLines = List.of();
+
+    public static void handleEntityAnswer(EntityAnswer answer, IPayloadContext context)
+    {
+        answeredEntity = answer.id();
+        answeredEntityLines = answer.lines();
     }
 }

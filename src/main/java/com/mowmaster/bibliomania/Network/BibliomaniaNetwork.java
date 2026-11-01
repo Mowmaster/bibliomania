@@ -13,7 +13,7 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "4"; // 2: added place_book; 3: added pickup_book; 4: block_info
+    private static final String VERSION = "5"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)
@@ -28,5 +28,8 @@ public final class BibliomaniaNetwork
         // Reading Goggles' block label: client asks what a block holds, the server answers
         registrar.playToServer(BlockInfoPayloads.Request.TYPE, BlockInfoPayloads.Request.STREAM_CODEC, BlockInfoPayloads::handleRequest);
         registrar.playToClient(BlockInfoPayloads.Answer.TYPE, BlockInfoPayloads.Answer.STREAM_CODEC, BlockInfoPayloads::handleAnswer);
+        // ... and the same for a looked-at mob
+        registrar.playToServer(BlockInfoPayloads.EntityRequest.TYPE, BlockInfoPayloads.EntityRequest.STREAM_CODEC, BlockInfoPayloads::handleEntityRequest);
+        registrar.playToClient(BlockInfoPayloads.EntityAnswer.TYPE, BlockInfoPayloads.EntityAnswer.STREAM_CODEC, BlockInfoPayloads::handleEntityAnswer);
     }
 }
