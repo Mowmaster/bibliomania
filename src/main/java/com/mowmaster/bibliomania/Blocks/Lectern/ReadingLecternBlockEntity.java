@@ -300,6 +300,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     @Override
     public void turnPage(int direction)
     {
+        // Sealed: it stays where it is
+        if (isLocked()) return;
         if (level instanceof ServerLevel serverLevel && sneakingReader(serverLevel) && LecternActions.turnBookPage(serverLevel, direction, this)) return;
         IPageHolder.super.turnPage(direction);
     }
@@ -575,7 +577,17 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     @Override public @Nullable BlockPos getLibrary() { return libraryLink.library(); }
     @Override public void setLibrary(@Nullable BlockPos controller) { libraryLink.setLibrary(controller); }
     @Override public boolean isLocked() { return libraryLink.locked(); }
-    @Override public void setLocked(boolean locked) { libraryLink.setLocked(locked); }
+    // Sealing also changes the block (ReadingLecternBlock.LOCKED: the model without arrows)
+    @Override
+    public void setLocked(boolean locked)
+    {
+        libraryLink.setLocked(locked);
+        if (level != null && !level.isClientSide() && getBlockState().hasProperty(ReadingLecternBlock.LOCKED)
+                && getBlockState().getValue(ReadingLecternBlock.LOCKED) != locked)
+        {
+            level.setBlock(worldPosition, getBlockState().setValue(ReadingLecternBlock.LOCKED, locked), Block.UPDATE_ALL);
+        }
+    }
 
     // Saved, and clients told (the Reading Goggles show it)
     private void libraryChanged()

@@ -261,6 +261,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         }
         for (ReadingLecternBlockEntity lectern : lecterns())
         {
+            // Sealed lecterns keep showing what they show
+            if (lectern.isLocked()) continue;
             if (entry.kind() == DrawerEntry.Kind.ITEM) lectern.selectItem(level, entry.icon());
             else if (entry.kind() == DrawerEntry.Kind.TYPE) lectern.selectType(level, entry);
             else if (place != null) lectern.showBook(level, place.shelf(), place.slot());
@@ -270,7 +272,10 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     // A drawer was closed: the lecterns go back to their pages
     public void clearSelection(ServerLevel level)
     {
-        for (ReadingLecternBlockEntity lectern : lecterns()) lectern.clearSelection(level);
+        for (ReadingLecternBlockEntity lectern : lecterns())
+        {
+            if (!lectern.isLocked()) lectern.clearSelection(level);
+        }
     }
 
     public int getBookcaseCount()

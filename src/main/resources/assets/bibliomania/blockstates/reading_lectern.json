@@ -1,33 +1,63 @@
 {
   "variants": {
-    "dyed=false,facing=north": {
+    "dyed=false,facing=north,locked=false": {
       "model": "bibliomania:block/lectern/lectern"
     },
-    "dyed=true,facing=north": {
+    "dyed=false,facing=north,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_locked"
+    },
+    "dyed=true,facing=north,locked=false": {
       "model": "bibliomania:block/lectern/lectern_dyed"
     },
-    "dyed=false,facing=east": {
+    "dyed=true,facing=north,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_dyed_locked"
+    },
+    "dyed=false,facing=east,locked=false": {
       "model": "bibliomania:block/lectern/lectern",
       "y": 90
     },
-    "dyed=true,facing=east": {
+    "dyed=false,facing=east,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_locked",
+      "y": 90
+    },
+    "dyed=true,facing=east,locked=false": {
       "model": "bibliomania:block/lectern/lectern_dyed",
       "y": 90
     },
-    "dyed=false,facing=south": {
+    "dyed=true,facing=east,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_dyed_locked",
+      "y": 90
+    },
+    "dyed=false,facing=south,locked=false": {
       "model": "bibliomania:block/lectern/lectern",
       "y": 180
     },
-    "dyed=true,facing=south": {
+    "dyed=false,facing=south,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_locked",
+      "y": 180
+    },
+    "dyed=true,facing=south,locked=false": {
       "model": "bibliomania:block/lectern/lectern_dyed",
       "y": 180
     },
-    "dyed=false,facing=west": {
+    "dyed=true,facing=south,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_dyed_locked",
+      "y": 180
+    },
+    "dyed=false,facing=west,locked=false": {
       "model": "bibliomania:block/lectern/lectern",
       "y": 270
     },
-    "dyed=true,facing=west": {
+    "dyed=false,facing=west,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_locked",
+      "y": 270
+    },
+    "dyed=true,facing=west,locked=false": {
       "model": "bibliomania:block/lectern/lectern_dyed",
+      "y": 270
+    },
+    "dyed=true,facing=west,locked=true": {
+      "model": "bibliomania:block/lectern/lectern_dyed_locked",
       "y": 270
     }
   }

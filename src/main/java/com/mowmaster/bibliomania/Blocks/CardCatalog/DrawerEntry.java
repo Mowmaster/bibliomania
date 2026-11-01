@@ -56,7 +56,8 @@ import java.util.UUID;
 // - icon:    the big icon. Almanac: its crop's item; Bestiary / Essence: the mob's head (or spawn egg); Barter: a piglin
 //            head; a trade: what it gives; Fluids: that fluid's bucket; Experience: a bottle o' enchanting; Energy: a
 //            red lightning bolt
-// - badge:   a small icon in the big one's bottom left corner (a trade's first price, the book behind a type), or EMPTY
+// - badge:   a small icon in the big one's bottom left corner: a trade's first price; the book itself for a type, an
+//            Almanac, a Bestiary or a Book of Essence; or EMPTY
 // - title / subject: the Reading Goggles' lines ("Grandad's Almanac (Farmer's Almanac)", "Wheat Seeds")
 // - tint:    a fixed drawer colour (Barter: gold block, trades: emerald block; can't be dyed), or -1
 public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<UUID> book, int trade,
@@ -174,7 +175,7 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
         boolean energy = type == TransportTypes.ENERGY.get();
         ItemStack icon = energy ? new ItemStack(ItemRegistry.ENERGY_ICON.get())
                 : type == TransportTypes.EXPERIENCE.get() ? new ItemStack(Items.EXPERIENCE_BOTTLE) : book;
-        return new DrawerEntry(Kind.TYPE, icon, energy ? ItemStack.EMPTY : book, Optional.empty(), 0,
+        return new DrawerEntry(Kind.TYPE, icon, book, Optional.empty(), 0,
                 Optional.of(type.getName()), Optional.empty(), -1, Optional.of(typeId), Optional.empty());
     }
 
@@ -183,6 +184,8 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
     {
         Item item = held.getItem();
         ItemStack icon = new ItemStack(item);
+        // The book itself as the badge when the icon shows what's in it (crop, mob)
+        ItemStack badge = ItemStack.EMPTY;
         Component subject = null;
         int tint = -1;
         if (item instanceof CropBookItem)
@@ -192,6 +195,7 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
             if (seed.isPresent())
             {
                 icon = new ItemStack(seed.get());
+                badge = new ItemStack(item);
                 subject = icon.getHoverName();
             }
         }
@@ -201,6 +205,7 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
             if (type.isPresent())
             {
                 icon = mobIcon(type.get());
+                badge = new ItemStack(item);
                 subject = type.get().getDescription();
             }
         }
@@ -209,7 +214,7 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
             icon = new ItemStack(Items.PIGLIN_HEAD);
             tint = GOLD_BLOCK;
         }
-        return new DrawerEntry(Kind.BOOK, icon, ItemStack.EMPTY, Optional.of(bookId(held)), 0,
+        return new DrawerEntry(Kind.BOOK, icon, badge, Optional.of(bookId(held)), 0,
                 Optional.of(title(held)), Optional.ofNullable(subject), tint, Optional.empty(), Optional.empty());
     }
 

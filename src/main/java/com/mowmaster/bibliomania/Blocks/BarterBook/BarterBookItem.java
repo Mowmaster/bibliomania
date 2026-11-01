@@ -44,15 +44,19 @@ import java.util.function.Consumer;
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
 public class BarterBookItem extends BlockItem implements ShelvedBook
 {
-    // On a Bookcase (ShelvedBook): bartering goes on as in an inventory, the goods into the bookcase's item books
-    // (what doesn't fit pops out of the front)
+    // On a Bookcase (ShelvedBook): bartering goes on as in an inventory, the goods into the library's (or bookcase's)
+    // item books. If they don't all fit, the barter doesn't happen (no gold used): the book waits and tries again.
     @Override
     public boolean shelfTick(ItemStack book, ServerLevel level, BookcaseBlockEntity shelf, int slot)
     {
         BarterActions.Result result = BarterActions.tick(level, contents(book), shelf.center());
         if (result.contents() == null) return false;
+        if (!shelf.storeAll(result.items()))
+        {
+            shelf.pause(slot);
+            return false;
+        }
         setContents(book, result.contents());
-        for (ItemStack item : result.items()) shelf.storeOrDrop(item);
         return true;
     }
 

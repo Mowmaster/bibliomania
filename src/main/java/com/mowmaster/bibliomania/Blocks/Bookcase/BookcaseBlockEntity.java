@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -54,6 +55,9 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
     private final CBTintData tints;
     private final BookSlots books = new BookSlots();
     private boolean needsSync;
+    // Per slot: the game tick before which that book doesn't tick (it's waiting for room for its items)
+    private final long[] pausedUntil = new long[SLOTS];
+    private static final int PAUSE_TICKS = 20;
     private final LibraryLink libraryLink = new LibraryLink(this::libraryChanged);
 
     public BookcaseBlockEntity(BlockPos pos, BlockState state)
@@ -171,12 +175,14 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         booksChanged(false);
     }
 
-    // Puts all of `items` into the item books, or none of them (a transaction that's only kept if everything fit).
-    // For books that should wait while the shelf is full (the Farmer's Almanac stays ripe).
+    // Puts all of `items` away, or none of them (a transaction that's only kept if everything fit). In a library: into
+    // the whole library's item books (bookcase by bookcase); otherwise this bookcase's. Shelved books that make items
+    // (harvests, eggs, barter goods) only go ahead when this works, so nothing is ever dropped on the ground.
     public boolean storeAll(List<ItemStack> items)
     {
         if (items.isEmpty()) return true;
-        ResourceHandler<ItemResource> handler = handler(TransportTypes.ITEMS.get());
+        LibraryControllerBlockEntity library = library(level, worldPosition);
+        ResourceHandler<ItemResource> handler = library != null ? library.typeHandler(TransportTypes.ITEMS.get()) : handler(TransportTypes.ITEMS.get());
         if (handler == null) return false;
         // try-with-resources: the transaction is closed at the end of the block; closing without commit() undoes it
         try (Transaction transaction = Transaction.openRoot())
@@ -191,24 +197,10 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         }
     }
 
-    // Puts what fits into the item books; the rest pops out of the front
-    public void storeOrDrop(ItemStack item)
+    // A book couldn't put its items away: it waits a second before trying again (and doesn't do what made them)
+    public void pause(int slot)
     {
-        if (item.isEmpty() || !(level instanceof ServerLevel)) return;
-        int stored = 0;
-        ResourceHandler<ItemResource> handler = handler(TransportTypes.ITEMS.get());
-        if (handler != null)
-        {
-            try (Transaction transaction = Transaction.openRoot())
-            {
-                stored = handler.insert(ItemResource.of(item), item.getCount(), transaction);
-                transaction.commit();
-            }
-        }
-        if (stored < item.getCount())
-        {
-            Block.popResourceFromFace(level, worldPosition, getBlockState().getValue(BookcaseBlock.FACING), item.copyWithCount(item.getCount() - stored));
-        }
+        if (level != null && slot >= 0 && slot < SLOTS) pausedUntil[slot] = level.getGameTime() + PAUSE_TICKS;
     }
 
     // The middle of the block (where shelved books' mobs "are", for their drops and experience)
@@ -224,6 +216,7 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         for (int slot = 0; slot < SLOTS; slot++)
         {
             ItemStack book = books.get(slot);
+            if (level.getGameTime() < pausedUntil[slot]) continue;
             if (!book.isEmpty() && book.getItem() instanceof ShelvedBook shelved && shelved.shelfTick(book, level, this, slot))
             {
                 setChanged();

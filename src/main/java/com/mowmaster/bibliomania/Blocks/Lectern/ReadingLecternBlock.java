@@ -54,6 +54,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
 {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final BooleanProperty DYED = BooleanProperty.create("dyed");
+    // Sealed (Librarian's Seal): it stays on its page, card catalogs don't move it, and the model has no arrows
+    public static final BooleanProperty LOCKED = BooleanProperty.create("locked");
 
     // Base, post, and the slanted top as three steps rising away from the reader (facing north: low at the north), so
     // a click on the top lands about where the model's surface is. One shape for every facing: the steps are turned
@@ -84,13 +86,13 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     public ReadingLecternBlock(Properties properties)
     {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(DYED, false));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(DYED, false).setValue(LOCKED, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder)
     {
-        builder.add(FACING, DYED);
+        builder.add(FACING, DYED, LOCKED);
     }
 
     // The low edge (the reader's side) towards the player
@@ -227,6 +229,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     // An arrow: the lectern's pages, or with sneak the open book's own (a Ledger's trades)
     private static boolean turnPage(BlockState state, Level level, BlockPos pos, Player player, ReadingLecternBlockEntity lectern, BlockHitResult hitResult)
     {
+        // Sealed: no arrows (and the pages don't turn)
+        if (state.getValue(LOCKED)) return false;
         int turn = ARROWS.arrowAt(state.getValue(FACING), hitResult);
         if (turn == 0) return false;
         if (level instanceof ServerLevel serverLevel)

@@ -55,9 +55,11 @@ public class CropBookItem extends BlockItem implements ShelvedBook
         CropContents grown = CropBookActions.tryGrow(contents, level.getRandom());
         CropContents next = (grown != null ? grown : contents).withNextTick(now + interval);
         // No tool and no harvester: like the inventory's harvest
-        if (next.grown() && shelf.storeAll(CropBookActions.harvest(level, next, shelf.getBlockPos(), ItemStack.EMPTY, null)))
+        if (next.grown())
         {
-            next = next.withStage(0);
+            // Into the library's (or bookcase's) item books; if it doesn't all fit it stays ripe and waits
+            if (shelf.storeAll(CropBookActions.harvest(level, next, shelf.getBlockPos(), ItemStack.EMPTY, null))) next = next.withStage(0);
+            else shelf.pause(slot);
         }
         setContents(book, next);
         return true;
