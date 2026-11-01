@@ -40,6 +40,7 @@
   "tooltip.bibliomania.crop_book.flower": "Doesn't grow: each bone meal gives one more",
   "tooltip.bibliomania.crop_book.water": "Watered (an empty bucket takes it out)",
   "tooltip.bibliomania.crop_book.needs_water": "Needs water: use a water bucket on the book",
+  "tooltip.bibliomania.crop_book.dead": "Dead without water: each bone meal gives one dead coral (add water for live coral)",
   "block.bibliomania.fluid_book": "Book of Fluids",
   "block.bibliomania.experience_book": "Book of Experience",
   "block.bibliomania.energy_book": "Book of Energy",

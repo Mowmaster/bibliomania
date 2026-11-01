@@ -136,7 +136,10 @@ public final class CropBookActions
     public static @Nullable BoneMeal boneMeal(CropContents contents, RandomSource random)
     {
         CropProfile profile = contents.profile();
-        if (!contents.planted() || profile == null || needsWater(contents)) return null;
+        if (!contents.planted() || profile == null) return null;
+        // Coral in a dry book: one of its dead form (the book stays as it is)
+        if (profile.dead() != null && !contents.water()) return new BoneMeal(contents, List.of(new ItemStack(profile.dead().getBlock())));
+        if (needsWater(contents)) return null;
         if (profile.flower()) return new BoneMeal(contents, List.of(new ItemStack(profile.seed())));
         if (contents.grown()) return null;
         if (profile.tree() != null && random.nextFloat() >= ServerConfig.treeBoneMealChance()) return new BoneMeal(contents, List.of());

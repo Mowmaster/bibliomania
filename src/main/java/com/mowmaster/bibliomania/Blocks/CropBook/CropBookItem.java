@@ -259,7 +259,11 @@ public class CropBookItem extends BlockItem
                 .withStyle(ChatFormatting.GREEN));
         // "Growth chance: 41%" (each random tick when placed, each timer in an inventory)
         tooltip.accept(line("chance", Math.round(CropBookActions.growChance(contents) * 100)).withStyle(ChatFormatting.DARK_GRAY));
-        if (CropBookActions.needsWater(contents))
+        if (profile.dead() != null && !contents.water())
+        {
+            tooltip.accept(line("dead").withStyle(ChatFormatting.GOLD));
+        }
+        else if (CropBookActions.needsWater(contents))
         {
             tooltip.accept(line("needs_water").withStyle(ChatFormatting.RED));
         }
