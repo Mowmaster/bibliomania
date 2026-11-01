@@ -133,14 +133,37 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
 
         public static @Nullable Tree of(Block sapling)
         {
-            if (!(sapling instanceof SaplingBlock)) return null;
+            // A SaplingBlock, or anything in the #minecraft:saplings tag (newer or modded saplings with their own class)
+            if (!(sapling instanceof SaplingBlock) && !sapling.defaultBlockState().is(BlockTags.SAPLINGS)) return null;
             Identifier id = BuiltInRegistries.BLOCK.getKey(sapling);
-            String wood = id.getPath().replace("_sapling", "").replace("_propagule", "");
-            Block log = block(id.getNamespace(), wood + "_log");
-            Block leaves = block(id.getNamespace(), wood + "_leaves");
-            Block stripped = block(id.getNamespace(), "stripped_" + wood + "_log");
-            if (log == null || leaves == null) return null;
+            String namespace = id.getNamespace();
+            String name = id.getPath().replace("_sapling", "").replace("_propagule", "");
+            // The wood: the name, or the name without its first words until there's a log of that wood
+            // ("yellow_poplar" -> "poplar" if there's no yellow_poplar_log)
+            String wood = name;
+            while (block(namespace, wood + "_log") == null && wood.contains("_")) wood = wood.substring(wood.indexOf('_') + 1);
+            Block log = block(namespace, wood + "_log");
+            if (log == null) return null;
+            Block leaves = leaves(namespace, name, wood);
+            if (leaves == null) return null;
+            Block stripped = block(namespace, "stripped_" + wood + "_log");
             return new Tree(log, leaves, stripped != null ? stripped : log);
+        }
+
+        // "<sapling name>_leaves", then "<wood>_leaves", then any "<colour>_<wood>_leaves" (poplars have no plain
+        // poplar_leaves, only yellow_, orange_ and red_: the first one registered is used)
+        private static @Nullable Block leaves(String namespace, String name, String wood)
+        {
+            Block leaves = block(namespace, name + "_leaves");
+            if (leaves == null) leaves = block(namespace, wood + "_leaves");
+            if (leaves != null) return leaves;
+            String suffix = "_" + wood + "_leaves";
+            for (Block block : BuiltInRegistries.BLOCK)
+            {
+                Identifier other = BuiltInRegistries.BLOCK.getKey(block);
+                if (other.getNamespace().equals(namespace) && other.getPath().endsWith(suffix)) return block;
+            }
+            return null;
         }
 
         private static @Nullable Block block(String namespace, String path)
@@ -149,6 +172,9 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             return BuiltInRegistries.BLOCK.getOptional(Identifier.fromNamespaceAndPath(namespace, path)).orElse(null);
         }
     }
+
+    // Per leaf rolled with shears: a mangrove propagule (oak leaves drop a sapling 1 time in 20)
+    private static final float PROPAGULE_CHANCE = 0.05f;
 
     // Tools that harvest a grown tree: an axe (logs) or shears (leaves). Other plants take anything (the hand too).
     public boolean canHarvestWith(ItemStack tool)
@@ -169,6 +195,12 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             {
                 // Rolled without the shears (with them, leaves drop themselves)
                 drops.addAll(Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY));
+                // Mangrove leaves never drop propagules (they grow on the leaves instead): give them the same chance
+                // other leaves have of dropping their sapling
+                if (plant == Blocks.MANGROVE_PROPAGULE && level.getRandom().nextFloat() < PROPAGULE_CHANCE)
+                {
+                    drops.add(new ItemStack(Blocks.MANGROVE_PROPAGULE));
+                }
             }
         }
         else
