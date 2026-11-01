@@ -36,7 +36,7 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
     private static final float PX = 1f / 16f;
     // Item size in pixels: the grid's cells, or the dispenser's one item
     private static final float CELL_ITEM = 2.6f;
-    private static final float SINGLE_ITEM = 6f;
+    private static final float SINGLE_ITEM = 7f;
     // Count text: this many pixels tall (the font's lines are 9 units)
     private static final float TEXT_HEIGHT = 1.6f;
     private static final int MAX_SLOTS = 9;
@@ -87,8 +87,8 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
             float x, z, size;
             if (state.slots == 1)
             {
-                x = 8f;
-                z = 8f;
+                x = RequestorGrid.SINGLE_X;
+                z = RequestorGrid.SINGLE_Z;
                 size = SINGLE_ITEM;
             }
             else

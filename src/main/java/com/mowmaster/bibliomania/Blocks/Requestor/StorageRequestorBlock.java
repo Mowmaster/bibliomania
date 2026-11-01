@@ -15,13 +15,10 @@ import static net.minecraft.world.level.levelgen.structure.Structure.simpleCodec
 // it or nothing (see StorageRequestorBlockEntity#request). Setting the pattern: PatternDispenserBlock.
 public class StorageRequestorBlock extends PatternDispenserBlock
 {
-    // Every block has a codec (used for data-driven block definitions); simpleCodec: one made from the constructor
-
     public StorageRequestorBlock(Properties properties)
     {
         super(properties);
     }
-
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state)

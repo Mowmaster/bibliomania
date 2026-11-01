@@ -171,5 +171,6 @@
   "message.bibliomania.deposit.full": "The library has no room for that",
   "hud.bibliomania.pattern_in_use": "In use: %s",
   "hud.bibliomania.pattern_durability": "Durability: %1$s / %2$s",
-  "hud.bibliomania.pattern_empty": "Nothing set: right-click its top with an item"
+  "hud.bibliomania.pattern_empty": "Nothing set: right-click its top with an item",
+  "hud.bibliomania.deposit_accepts": "Accepts: %s"
 }

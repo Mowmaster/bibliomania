@@ -6,6 +6,9 @@ import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.PatternDispenserBlock;
 import com.mowmaster.bibliomania.Blocks.Requestor.PatternHolder;
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageDepositBlockEntity;
+import com.mowmaster.mowlib.transport.TransportType;
+import com.mowmaster.mowlib.transport.TransportTypes;
 import com.mowmaster.bibliomania.Blocks.Requestor.RequestPattern;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
@@ -194,6 +197,12 @@ public final class ReadingHud
                         shelfLines = readPattern(state, holder, PatternDispenserBlock.cellAt(state, hit, holder), level, player);
                     }
                 }
+                else if (blockEntity instanceof StorageDepositBlockEntity)
+                {
+                    // A Storage Deposit: what it lets into the library
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get()) shelfLines = readDeposit(state);
+                }
                 else if (blockEntity instanceof ReadingLecternBlockEntity lectern)
                 {
                     // A Reading Lectern: its open page
@@ -309,6 +318,25 @@ public final class ReadingHud
                 lines.add(hud("drawer_type", typeName));
             }
         }
+        return lines;
+    }
+
+    // ---- Storage Deposits ----
+
+    // "Storage Deposit", "Accepts: Items, Fluids, Energy, Experience" (every transport type, by MowLib's names for them)
+    private static List<Component> readDeposit(BlockState state)
+    {
+        List<Component> lines = new ArrayList<>();
+        lines.add(state.getBlock().getName());
+        MutableComponent types = Component.empty();
+        boolean first = true;
+        for (TransportType<?> type : TransportTypes.REGISTRY)
+        {
+            if (!first) types.append(", ");
+            types.append(type.getName());
+            first = false;
+        }
+        lines.add(hud("deposit_accepts", types));
         return lines;
     }
 

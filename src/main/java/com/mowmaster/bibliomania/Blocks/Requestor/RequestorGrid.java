@@ -18,6 +18,9 @@ public final class RequestorGrid
 {
     public static final float[] CELL_X = {5f, 8f, 11f};
     public static final float[] CELL_Z = {4f, 7f, 10f};
+    // The Storage Dispenser's one cell (storage_requester_patterned_top_dispensor.png): its centre
+    public static final float SINGLE_X = 8f;
+    public static final float SINGLE_Z = 7f;
     // How far from a cell's centre still counts as on it, in pixels
     private static final float CELL_REACH = 1.5f;
 
