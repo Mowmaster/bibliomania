@@ -5,6 +5,7 @@ import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.mowlib.items.tools.CraftingToolItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ToolMaterial;
+import net.minecraft.world.item.equipment.ArmorType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -39,12 +40,18 @@ public class ItemRegistry {
     public static final DeferredItem<CraftingToolItem> KNIFE_STONE = CBITEMS.registerItem("knife_stone",
             properties -> new CraftingToolItem(properties.tool(ToolMaterial.STONE, BibliomaniaTags.MINEABLE_WITH_KNIFE, 0.5f, -2.0f, 0f)));
 
+    // ---- Reading Glasses ----
+    // A helmet (Item.Properties#humanoidArmor sets the armour, equippable and durability components, and makes it
+    // unstackable) that always has Reading Goggles (see ReadingGlassesItem)
+    public static final DeferredItem<ReadingGlassesItem> READING_GLASSES = CBITEMS.registerItem("reading_glasses",
+            properties -> new ReadingGlassesItem(properties.humanoidArmor(ReadingGlassesItem.MATERIAL, ArmorType.HELMET)));
+
     // In creative tab order
     public static final List<DeferredItem<? extends Item>> MATERIALS = List.of(
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,
             FIBERS_GRASS, THREAD_TWISTED_GRASS, WEAVE_GRASS,
             FIBERS_WOOL, THREAD_TWISTED_WOOL, WEAVE_WOOL,
-            BOOKBLOCK_STARTER);
+            BOOKBLOCK_STARTER, READING_GLASSES);
 
     public static void register(IEventBus eventBus)
     {

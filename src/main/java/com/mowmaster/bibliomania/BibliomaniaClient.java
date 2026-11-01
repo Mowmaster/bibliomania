@@ -15,6 +15,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
@@ -31,6 +32,8 @@ public class BibliomaniaClient {
         // The config screen is accessed by going to the Mods screen > clicking on your mod > clicking on config.
         // Do not forget to add translations for your config options to the en_us.json file.
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        // This player's screen settings (where the Reading Goggles' panels go)
+        container.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
     }
 
     @SubscribeEvent

@@ -86,5 +86,17 @@
   "bibliomania.configuration.title": "bibliomania Configs",
   "bibliomania.configuration.section.bibliomania.common.toml": "bibliomania Configs",
   "bibliomania.configuration.section.bibliomania.common.toml.title": "bibliomania Configs",
-  "bibliomania.configuration.items": "Item List"
+  "bibliomania.configuration.items": "Item List",
+  "item.bibliomania.reading_glasses": "Reading Glasses",
+  "enchantment.bibliomania.reading_goggles": "Reading Goggles",
+  "tooltip.bibliomania.reading_glasses": "Reading Goggles (always)",
+  "tooltip.bibliomania.reading_glasses.hint": "Look at a book to read it; at any block to name it",
+  "bibliomania.configuration.reading_hud": "Reading Goggles: book page",
+  "bibliomania.configuration.block_label": "Reading Goggles: block label",
+  "bibliomania.configuration.enabled": "Enabled",
+  "bibliomania.configuration.anchor": "Screen position",
+  "bibliomania.configuration.x_offset": "Move right (pixels)",
+  "bibliomania.configuration.y_offset": "Move down (pixels)",
+  "bibliomania.configuration.max_width": "Widest text (pixels)",
+  "bibliomania.configuration.show_amounts": "Show stored energy and fluids"
 }

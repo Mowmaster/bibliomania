@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "N N",
+    "PGP"
+  ],
+  "key": {
+    "N": "minecraft:gold_nugget",
+    "P": "minecraft:glass_pane",
+    "G": "minecraft:gold_ingot"
+  },
+  "result": {
+    "id": "bibliomania:reading_glasses",
+    "count": 1
+  }
+}
