@@ -83,9 +83,9 @@ public class CropBookBlock extends BookBlock
         if (!(level.getBlockEntity(pos) instanceof CropBookBlockEntity book)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         CropContents contents = book.getContents();
 
-        // An axe on a grown tree: stripped logs
+        // An axe on a grown tree: stripped logs (not mushrooms: their stems don't strip)
         CropProfile profile = contents.profile();
-        if (profile != null && profile.tree() != null && contents.grown() && stack.is(ItemTags.AXES))
+        if (profile != null && profile.tree() != null && profile.tree().strippable() && contents.grown() && stack.is(ItemTags.AXES))
         {
             if (level instanceof ServerLevel serverLevel)
             {

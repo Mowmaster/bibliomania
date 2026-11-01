@@ -40,6 +40,18 @@
     "#minecraft:logs": {
       "speed": 1.0,
       "any_plant": false
+    },
+    "minecraft:mycelium": {
+      "speed": 1.0,
+      "any_plant": false
+    },
+    "minecraft:warped_nylium": {
+      "speed": 1.0,
+      "any_plant": false
+    },
+    "minecraft:crimson_nylium": {
+      "speed": 1.0,
+      "any_plant": false
     }
   }
 }

@@ -17,11 +17,6 @@
         "minecraft:moss_block",
         "minecraft:mud"
       ],
-      "minecraft:nether_wart": {
-        "soils": [
-          "minecraft:soul_sand"
-        ]
-      },
       "speeds": {
         "minecraft:sand": 1.0,
         "minecraft:red_sand": 1.0,
@@ -41,6 +36,31 @@
         "minecraft:stripped_jungle_log": 1.25,
         "minecraft:stripped_jungle_wood": 1.25
       }
+    },
+    "minecraft:nether_wart": {
+      "soils": [
+        "minecraft:soul_sand"
+      ]
+    },
+    "minecraft:brown_mushroom": {
+      "soils": [
+        "minecraft:mycelium"
+      ]
+    },
+    "minecraft:red_mushroom": {
+      "soils": [
+        "minecraft:mycelium"
+      ]
+    },
+    "minecraft:warped_fungus": {
+      "soils": [
+        "minecraft:warped_nylium"
+      ]
+    },
+    "minecraft:crimson_fungus": {
+      "soils": [
+        "minecraft:crimson_nylium"
+      ]
     }
   }
 }

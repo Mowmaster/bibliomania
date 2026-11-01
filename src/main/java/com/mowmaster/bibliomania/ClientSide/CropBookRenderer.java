@@ -27,6 +27,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 // Draws a placed Farmer's Almanac's soil and crop on its pages, standing still (not spinning): the soil as a thin
 // slab (the top quarter of the block, squeezed), the crop at its growth stage on top, both half size. Tall plants
 // (sugar cane, cactus, kelp, vines) are drawn as tall as they have grown, a grown cactus with its flower on top;
@@ -40,8 +42,8 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
     // Half a block wide; the soil a quarter of that tall
     private static final float SCALE = 0.5f;
     private static final float SOIL_HEIGHT = 0.25f;
-    // A grown tree's blocks, in crop blocks (5 wide -> 2 crop blocks -> one world block)
-    private static final float TREE_SCALE = 0.4f;
+    // A grown tree's width, in crop blocks (2 crop blocks = one world block, the soil's width)
+    private static final float TREE_WIDTH = 2f;
 
     public CropBookRenderer(BlockEntityRendererProvider.Context context)
     {
@@ -73,10 +75,11 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         state.flipped = profile != null && profile.flipped();
         state.water = profile != null && profile.water();
         state.hasBody = profile != null && profile.body() != null;
-        // A grown sapling: the whole tree (Tree.PATTERN) in its log and leaves
+        // A grown sapling, mushroom or fungus: the whole tree (its pattern) in its log and leaves
         state.tree = profile != null && profile.tree() != null && contents.grown();
         if (state.tree)
         {
+            state.pattern = profile.tree().pattern();
             resolver.update(state.log, profile.tree().log().defaultBlockState(), DISPLAY);
             resolver.update(state.leaves, profile.tree().leaves().defaultBlockState(), DISPLAY);
         }
@@ -148,32 +151,30 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         poseStack.popPose();
     }
 
-    // A grown tree from Tree.PATTERN, read bottom-up: each row is one layer. A row's widest block (its distance from
-    // the middle column) gives the layer's size as a square: "  X  " one leaf, " XXX " 3x3, "XXLXX" 5x5. The middle is
-    // the row's middle character (a log under the leaves), the rest leaves. Blocks are TREE_SCALE of a crop block, so
-    // the 5-wide tree is as wide as the soil.
+    // A grown tree from its pattern, read bottom-up: each row is one square layer. Each character's distance from the
+    // middle column is a ring round the trunk: "  X  " is one leaf, " XXX " 3x3, "XXLXX" 5x5 with the log in the middle,
+    // "B S B" the stem with a ring of blocks two out (and a gap between). Left of the middle covers the ring's west
+    // half, right the east, so "B S  " hangs down on one side only. The tree is drawn as wide as the soil.
     private static void tree(State state, PoseStack poseStack, SubmitNodeCollector collector)
     {
-        String[] pattern = CropProfile.Tree.PATTERN;
-        int middle = pattern[0].length() / 2;
+        List<String> pattern = state.pattern;
+        int middle = pattern.getFirst().length() / 2;
+        float scale = TREE_WIDTH / pattern.getFirst().length();
         poseStack.pushPose();
         // Centred on the soil
-        poseStack.translate(0.5 - (middle + 0.5) * TREE_SCALE, 0, 0.5 - (middle + 0.5) * TREE_SCALE);
-        poseStack.scale(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-        for (int layer = 0; layer < pattern.length; layer++)
+        poseStack.translate(0.5 - (middle + 0.5) * scale, 0, 0.5 - (middle + 0.5) * scale);
+        poseStack.scale(scale, scale, scale);
+        for (int layer = 0; layer < pattern.size(); layer++)
         {
-            String row = pattern[pattern.length - 1 - layer];
-            int half = -1;
-            for (int column = 0; column < row.length(); column++)
+            String row = pattern.get(pattern.size() - 1 - layer);
+            for (int dx = -middle; dx <= middle; dx++)
             {
-                if (row.charAt(column) != ' ') half = Math.max(half, Math.abs(column - middle));
-            }
-            for (int dx = -half; dx <= half; dx++)
-            {
-                for (int dz = -half; dz <= half; dz++)
+                for (int dz = -middle; dz <= middle; dz++)
                 {
-                    boolean centre = dx == 0 && dz == 0;
-                    BlockModelRenderState model = centre && row.charAt(middle) == 'L' ? state.log : state.leaves;
+                    char block = cell(row, middle, dx, dz);
+                    BlockModelRenderState model = CropProfile.Tree.isLog(block) ? state.log
+                            : CropProfile.Tree.isLeaves(block) ? state.leaves : null;
+                    if (model == null) continue;
                     poseStack.pushPose();
                     poseStack.translate(middle + dx, layer, middle + dz);
                     model.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
@@ -182,6 +183,18 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
             }
         }
         poseStack.popPose();
+    }
+
+    // The pattern character for a spot in a layer: its ring (how far out it is, on the square), from the row's left
+    // side for the west half, its right side for the east half (either, for the middle column)
+    private static char cell(String row, int middle, int dx, int dz)
+    {
+        int ring = Math.max(Math.abs(dx), Math.abs(dz));
+        char left = row.charAt(middle - ring);
+        char right = row.charAt(middle + ring);
+        if (dx < 0) return left;
+        if (dx > 0) return right;
+        return left != ' ' ? left : right;
     }
 
     // A see-through water cube filling the current block (the crop's bottom block), in water's own texture and its
@@ -233,6 +246,7 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         final BlockModelRenderState log = new BlockModelRenderState();
         final BlockModelRenderState leaves = new BlockModelRenderState();
         boolean tree;
+        List<String> pattern = List.of();
         boolean hasBody;
         boolean flipped;
         boolean water;

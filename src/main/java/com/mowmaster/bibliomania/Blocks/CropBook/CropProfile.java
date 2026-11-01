@@ -52,7 +52,7 @@ import java.util.List;
 // - flipped:   grows downwards in the world (weeping vines): drawn upside down, so it grows up from the book
 // - water:     grows under water (kelp, sea pickles, seagrass): drawn with water round its bottom block
 // - flower:    never grows; bone meal gives one of it each time instead (CropBookActions#boneMeal)
-// - tree:      a sapling that grows into a tree in one go (its log, leaves and stripped log; see Tree), or null
+// - tree:      a sapling, mushroom or fungus that grows into a tree in one go (its blocks and shape; see Tree), or null
 // A plant with a bibliomania:crop_drops entry drops that instead of its harvest states' loot (see CropDrops).
 public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants,
                           int maxHeight, @Nullable BlockState body, @Nullable BlockState topper, boolean pod,
@@ -107,35 +107,83 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
 
     // ---- Trees ----
 
-    // A tree's blocks, found from its sapling's name: "oak_sapling" -> oak_log, oak_leaves, stripped_oak_log (the same
-    // in the sapling's own namespace, so modded trees named the usual way work too; "_propagule" for mangroves)
-    public record Tree(Block log, Block leaves, Block strippedLog)
+    // A tree's blocks and shape: its log (trunk), leaves (the canopy; a mushroom's cap, a fungus's wart blocks), the
+    // stripped log an axe right-click gives (null: it can't be stripped, like mushroom stems), and its pattern.
+    // Saplings are found by name: "oak_sapling" -> oak_log, oak_leaves, stripped_oak_log (in the sapling's own
+    // namespace, so modded trees named the usual way work too; "_propagule" for mangroves). Huge mushrooms and nether
+    // fungi are listed in Tree.of.
+    // List<String> rather than String[]: a record compares its fields with equals, which a List does by content.
+    public record Tree(Block log, Block leaves, @Nullable Block strippedLog, List<String> pattern)
     {
-        // The drawn tree, top row first: X leaves, L logs (as rows of a square tree: each X row is a square layer)
-        public static final String[] PATTERN = {
+        // Patterns, top row first. L or S: log/stem; X or B: leaves/cap blocks; space: nothing.
+        // Drawn as square layers (see CropBookRenderer#tree); a harvest gives one block per letter.
+        public static final List<String> SAPLING = List.of(
                 "  X  ",
                 " XXX ",
                 "XXLXX",
                 "  L  ",
                 "  L  ",
-                "  L  "};
+                "  L  ");
+        public static final List<String> MUSHROOM = List.of(
+                "BBBBBBB",
+                "   S   ",
+                "   S   ",
+                "   S   ",
+                "   S   ");
+        public static final List<String> FUNGUS = List.of(
+                "BBBBB",
+                "B S B",
+                "B S  ",
+                "  S  ",
+                "  S  ");
 
-        // How many logs and leaves a harvest gives: the L's and X's in the pattern
-        public static final int LOGS = count('L');
-        public static final int LEAVES = count('X');
+        public static boolean isLog(char c)
+        {
+            return c == 'L' || c == 'S';
+        }
 
-        private static int count(char block)
+        public static boolean isLeaves(char c)
+        {
+            return c == 'X' || c == 'B';
+        }
+
+        // How many logs and leaves a harvest gives: the letters in the pattern
+        public int logCount()
+        {
+            return count(true);
+        }
+
+        public int leavesCount()
+        {
+            return count(false);
+        }
+
+        private int count(boolean logs)
         {
             int total = 0;
-            for (String row : PATTERN) for (char c : row.toCharArray()) if (c == block) total++;
+            for (String row : pattern)
+            {
+                for (char c : row.toCharArray()) if (logs ? isLog(c) : isLeaves(c)) total++;
+            }
             return total;
         }
 
-        public static @Nullable Tree of(Block sapling)
+        public boolean strippable()
         {
+            return strippedLog != null;
+        }
+
+        public static @Nullable Tree of(Block plant)
+        {
+            // Huge mushrooms (one stem block for both) and nether fungi
+            if (plant == Blocks.BROWN_MUSHROOM) return new Tree(Blocks.MUSHROOM_STEM, Blocks.BROWN_MUSHROOM_BLOCK, null, MUSHROOM);
+            if (plant == Blocks.RED_MUSHROOM) return new Tree(Blocks.MUSHROOM_STEM, Blocks.RED_MUSHROOM_BLOCK, null, MUSHROOM);
+            if (plant == Blocks.WARPED_FUNGUS) return new Tree(Blocks.WARPED_STEM, Blocks.WARPED_WART_BLOCK, Blocks.STRIPPED_WARPED_STEM, FUNGUS);
+            if (plant == Blocks.CRIMSON_FUNGUS) return new Tree(Blocks.CRIMSON_STEM, Blocks.NETHER_WART_BLOCK, Blocks.STRIPPED_CRIMSON_STEM, FUNGUS);
+
             // A SaplingBlock, or anything in the #minecraft:saplings tag (newer or modded saplings with their own class)
-            if (!(sapling instanceof SaplingBlock) && !sapling.defaultBlockState().is(BlockTags.SAPLINGS)) return null;
-            Identifier id = BuiltInRegistries.BLOCK.getKey(sapling);
+            if (!(plant instanceof SaplingBlock) && !plant.defaultBlockState().is(BlockTags.SAPLINGS)) return null;
+            Identifier id = BuiltInRegistries.BLOCK.getKey(plant);
             String namespace = id.getNamespace();
             String name = id.getPath().replace("_sapling", "").replace("_propagule", "");
             // The wood: the name, or the name without its first words until there's a log of that wood
@@ -146,8 +194,9 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             if (log == null) return null;
             Block leaves = leaves(namespace, name, wood);
             if (leaves == null) return null;
+            // A sapling's tree with no stripped log of its own still "strips" (into its plain logs)
             Block stripped = block(namespace, "stripped_" + wood + "_log");
-            return new Tree(log, leaves, stripped != null ? stripped : log);
+            return new Tree(log, leaves, stripped != null ? stripped : log, SAPLING);
         }
 
         // "<sapling name>_leaves", then "<wood>_leaves", then any "<colour>_<wood>_leaves" (poplars have no plain
@@ -180,23 +229,29 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
     }
 
     // A tree's harvest: shears give its leaves (the blocks, and a roll of the leaves' own drops for each: saplings,
-    // sticks, apples); anything else its logs, stripped ones if `stripped`
+    // sticks, apples, mushrooms); anything else its logs, stripped ones if `stripped` (and it has them)
     public List<ItemStack> treeDrops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
     {
         List<ItemStack> drops = new ArrayList<>();
         if (tree == null) return drops;
         if (tool.is(Tags.Items.TOOLS_SHEAR))
         {
-            drops.add(new ItemStack(tree.leaves(), Tree.LEAVES));
-            for (int leaf = 0; leaf < Tree.LEAVES; leaf++)
+            int leaves = tree.leavesCount();
+            drops.add(new ItemStack(tree.leaves(), leaves));
+            for (int leaf = 0; leaf < leaves; leaf++)
             {
-                // Rolled without the shears (with them, leaves drop themselves)
-                drops.addAll(Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY));
+                // Rolled without the shears (with them, leaves drop themselves). Blocks that always drop themselves
+                // (wart blocks) would come twice, so the leaves block itself is left out of the roll.
+                for (ItemStack drop : Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY))
+                {
+                    if (!drop.is(tree.leaves().asItem())) drops.add(drop);
+                }
             }
         }
         else
         {
-            drops.add(new ItemStack(stripped ? tree.strippedLog() : tree.log(), Tree.LOGS));
+            Block log = stripped && tree.strippable() ? tree.strippedLog() : tree.log();
+            drops.add(new ItemStack(log, tree.logCount()));
         }
         return drops;
     }
@@ -343,7 +398,7 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             stages.add(flower.defaultBlockState());
             return basic(seed, plant, stages, List.of(flower.defaultBlockState()), true);
         }
-        // Saplings: a sapling, then (in one go) the whole tree
+        // Saplings, mushrooms and fungi: the plant, then (in one go) the whole tree
         Tree tree = Tree.of(plant);
         if (tree != null) return basic(seed, plant, List.of(base, base), List.of(), false).asTree(tree);
         // Flowers (and seagrass, under water): they don't grow; bone meal gives one at a time
