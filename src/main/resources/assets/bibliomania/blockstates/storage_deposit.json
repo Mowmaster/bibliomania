@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "bibliomania:block/item_return/item_return"
+    },
+    "facing=east": {
+      "model": "bibliomania:block/item_return/item_return",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "bibliomania:block/item_return/item_return",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "bibliomania:block/item_return/item_return",
+      "y": 270
+    }
+  }
+}

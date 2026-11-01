@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "bibliomania:storage_deposit"
+  ],
+  "result": {
+    "id": "bibliomania:storage_deposit_full",
+    "count": 1
+  }
+}

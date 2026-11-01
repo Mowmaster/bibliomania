@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlock;
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlock;
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageDepositBlock;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlock;
@@ -123,6 +126,19 @@ public class BlockRegistry
     // The Reading Lectern: the way into the Bookcases a work card points at (see ReadingLecternBlock)
     public static final DeferredBlock<ReadingLecternBlock> READING_LECTERN = registerBlock("reading_lectern",
             properties -> new ReadingLecternBlock(properties.strength(2.5f).sound(SoundType.WOOD).noOcclusion().ignitedByLava()));
+
+    // The Storage Deposit: a library's way in (see StorageDepositBlock); the modelled half block and a full block
+    public static final DeferredBlock<StorageDepositBlock> STORAGE_DEPOSIT = registerBlock("storage_deposit",
+            properties -> new StorageDepositBlock(properties.strength(2.5f).sound(SoundType.WOOD).noOcclusion().ignitedByLava(), false));
+    public static final DeferredBlock<StorageDepositBlock> STORAGE_DEPOSIT_FULL = registerBlock("storage_deposit_full",
+            properties -> new StorageDepositBlock(properties.strength(2.5f).sound(SoundType.WOOD).ignitedByLava(), true));
+
+    // The library's ways out on a redstone pulse: the Patterned Storage Requestor (StorageRequestorBlock) and the
+    // Storage Dispenser (StorageDispenserBlock). Stone, like a Dispenser: mined with a pickaxe
+    public static final DeferredBlock<StorageRequestorBlock> STORAGE_REQUESTOR = registerBlock("storage_requestor",
+            properties -> new StorageRequestorBlock(properties.strength(3.5f).requiresCorrectToolForDrops().sound(SoundType.STONE)));
+    public static final DeferredBlock<StorageDispenserBlock> STORAGE_DISPENSER = registerBlock("storage_dispenser",
+            properties -> new StorageDispenserBlock(properties.strength(3.5f).requiresCorrectToolForDrops().sound(SoundType.STONE)));
 
     // Wood, mined with an axe like a chiseled bookshelf, and see-through (it's open at the front)
     private static BlockBehaviour.Properties bookcaseProperties(BlockBehaviour.Properties properties)

@@ -4,6 +4,9 @@ import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Requestor.PatternDispenserBlock;
+import com.mowmaster.bibliomania.Blocks.Requestor.PatternHolder;
+import com.mowmaster.bibliomania.Blocks.Requestor.RequestPattern;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
@@ -182,6 +185,15 @@ public final class ReadingHud
                     // The placed book as an item with its contents, so its tooltip is the one it has in an inventory
                     if (ClientConfig.BOOK_ENABLED.get()) book = placed.toItem();
                 }
+                else if (blockEntity instanceof PatternHolder holder && state.getBlock() instanceof PatternDispenserBlock)
+                {
+                    // A Patterned Storage Requestor or Storage Dispenser: its pattern (the cell looked at first)
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get())
+                    {
+                        shelfLines = readPattern(state, holder, PatternDispenserBlock.cellAt(state, hit, holder), level, player);
+                    }
+                }
                 else if (blockEntity instanceof ReadingLecternBlockEntity lectern)
                 {
                     // A Reading Lectern: its open page
@@ -296,6 +308,40 @@ public final class ReadingHud
                 Component typeName = entry.subject().orElse(entry.title().orElse(Component.empty()));
                 lines.add(hud("drawer_type", typeName));
             }
+        }
+        return lines;
+    }
+
+    // ---- Patterned Storage Requestors and Storage Dispensers ----
+
+    // "Patterned Storage Requestor", the item in use (a Storage Dispenser's worn shears: its tooltip shows the wear),
+    // then the pattern: just the looked-at cell "32 Cobblestone", or else every set slot
+    private static List<Component> readPattern(BlockState state, PatternHolder holder, int cell, Level level, Player player)
+    {
+        List<Component> lines = new ArrayList<>();
+        lines.add(state.getBlock().getName());
+        RequestPattern pattern = holder.pattern();
+        if (!holder.inUse().isEmpty())
+        {
+            lines.add(hud("pattern_in_use", holder.inUse().getHoverName()));
+            if (holder.inUse().isDamaged())
+            {
+                lines.add(hud("pattern_durability", holder.inUse().getMaxDamage() - holder.inUse().getDamageValue(), holder.inUse().getMaxDamage()));
+            }
+        }
+        if (pattern.isEmpty())
+        {
+            lines.add(hud("pattern_empty"));
+            return lines;
+        }
+        if (!pattern.item(cell).isEmpty() && pattern.size() > 1)
+        {
+            lines.add(hud("page_item", pattern.count(cell), pattern.item(cell).getHoverName()));
+            return lines;
+        }
+        for (int slot = 0; slot < pattern.size(); slot++)
+        {
+            if (!pattern.item(slot).isEmpty()) lines.add(hud("page_item", pattern.count(slot), pattern.item(slot).getHoverName()));
         }
         return lines;
     }

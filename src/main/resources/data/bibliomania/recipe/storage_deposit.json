@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    " B ",
+    "PHP"
+  ],
+  "key": {
+    "B": "minecraft:book",
+    "H": "minecraft:hopper",
+    "P": "#minecraft:planks"
+  },
+  "result": {
+    "id": "bibliomania:storage_deposit",
+    "count": 1
+  }
+}

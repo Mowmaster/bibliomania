@@ -44,6 +44,10 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.READING_LECTERN.get());
                 output.accept(BlockRegistry.LIBRARY_CONTROLLER.get());
                 for (var catalog : BlockRegistry.CARD_CATALOGS) output.accept(catalog.get());
+                output.accept(BlockRegistry.STORAGE_DEPOSIT.get());
+                output.accept(BlockRegistry.STORAGE_DEPOSIT_FULL.get());
+                output.accept(BlockRegistry.STORAGE_REQUESTOR.get());
+                output.accept(BlockRegistry.STORAGE_DISPENSER.get());
                 // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
                 for (var item : ItemRegistry.MATERIALS) output.accept(item.get());
             }).build());

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:bone",
+    "bibliomania:knife_stone"
+  ],
+  "result": {
+    "id": "bibliomania:bone_folder",
+    "count": 1
+  }
+}

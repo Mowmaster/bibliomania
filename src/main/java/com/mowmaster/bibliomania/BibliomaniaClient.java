@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania;
 
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlockEntity;
+import com.mowmaster.bibliomania.ClientSide.RequestorRenderer;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
 import com.mowmaster.bibliomania.ClientSide.ClientMobBookTooltip;
@@ -72,6 +75,10 @@ public class BibliomaniaClient {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.READING_LECTERN.get(), ReadingLecternRenderer::new);
         // Card Catalog drawer icons and faces
         event.registerBlockEntityRenderer(libBlockEntityRegistry.CARD_CATALOG.get(), CardCatalogRenderer::new);
+        // The Patterned Storage Requestor's and Storage Dispenser's pattern on their grid face (one renderer class,
+        // made for each block entity type: the <...> says which)
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_REQUESTOR.get(), context -> new RequestorRenderer<StorageRequestorBlockEntity>(context));
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_DISPENSER.get(), context -> new RequestorRenderer<StorageDispenserBlockEntity>(context));
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it

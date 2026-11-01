@@ -160,5 +160,16 @@
   "hud.bibliomania.drawer_title": "%1$s (%2$s)",
   "hud.bibliomania.drawer_trade_line": "%1$s %2$s -> %3$s %4$s",
   "hud.bibliomania.drawer_type": "Every %s book in the library",
-  "hud.bibliomania.lectern_type_amount": "%1$s / %2$s"
+  "hud.bibliomania.lectern_type_amount": "%1$s / %2$s",
+  "block.bibliomania.storage_deposit": "Storage Deposit",
+  "block.bibliomania.storage_deposit_full": "Storage Deposit (Full Block)",
+  "block.bibliomania.storage_requestor": "Patterned Storage Requestor",
+  "block.bibliomania.storage_dispenser": "Storage Dispenser",
+  "item.bibliomania.bone_folder": "Bookbinder's Bone Folder",
+  "tooltip.bibliomania.bone_folder.tooltip": "Right-click a Bibliomania block to make it face that side; sneak to face the other way",
+  "message.bibliomania.deposit.no_library": "Not part of a library",
+  "message.bibliomania.deposit.full": "The library has no room for that",
+  "hud.bibliomania.pattern_in_use": "In use: %s",
+  "hud.bibliomania.pattern_durability": "Durability: %1$s / %2$s",
+  "hud.bibliomania.pattern_empty": "Nothing set: right-click its top with an item"
 }

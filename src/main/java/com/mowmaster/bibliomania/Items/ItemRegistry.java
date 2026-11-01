@@ -53,6 +53,10 @@ public class ItemRegistry {
     public static final DeferredItem<LibrarySealItem> LIBRARY_SEAL = CBITEMS.registerItem("library_seal",
             properties -> new LibrarySealItem(properties.stacksTo(1)));
 
+    // The Bookbinder's Bone Folder turns blocks to face the side clicked (BoneFolderItem)
+    public static final DeferredItem<BoneFolderItem> BONE_FOLDER = CBITEMS.registerItem("bone_folder",
+            properties -> new BoneFolderItem(properties.stacksTo(1)));
+
     // The Card Catalog's icon for an energy drawer (a red lightning bolt): only ever drawn, so not in the creative tab
     public static final DeferredItem<Item> ENERGY_ICON = CBITEMS.registerSimpleItem("energy_icon");
 
@@ -61,7 +65,7 @@ public class ItemRegistry {
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,
             FIBERS_GRASS, THREAD_TWISTED_GRASS, WEAVE_GRASS,
             FIBERS_WOOL, THREAD_TWISTED_WOOL, WEAVE_WOOL,
-            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL);
+            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL, BONE_FOLDER);
 
     public static void register(IEventBus eventBus)
     {

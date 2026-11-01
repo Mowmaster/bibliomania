@@ -1,0 +1,27 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser"
+    },
+    "facing=west": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser",
+      "y": 270
+    },
+    "facing=up": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser",
+      "x": 90
+    },
+    "facing=down": {
+      "model": "bibliomania:block/storage_requestor/storage_dispenser",
+      "x": 270
+    }
+  }
+}

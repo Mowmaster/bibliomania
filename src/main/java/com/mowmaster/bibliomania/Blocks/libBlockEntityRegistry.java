@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageDepositBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
@@ -77,6 +80,18 @@ public class libBlockEntityRegistry
     // Every Card Catalog size
     public static final Supplier<BlockEntityType<CardCatalogBlockEntity>> CARD_CATALOG = CBBLOCKENTITIES.register("card_catalog",
             () -> new BlockEntityType<>(CardCatalogBlockEntity::new, BlockRegistry.CARD_CATALOGS.stream().map(block -> (Block) block.get()).toArray(Block[]::new)));
+
+    // Both Storage Deposits (half and full)
+    public static final Supplier<BlockEntityType<StorageDepositBlockEntity>> STORAGE_DEPOSIT = CBBLOCKENTITIES.register("storage_deposit",
+            () -> new BlockEntityType<>(StorageDepositBlockEntity::new, BlockRegistry.STORAGE_DEPOSIT.get(), BlockRegistry.STORAGE_DEPOSIT_FULL.get()));
+
+    // The Patterned Storage Requestor
+    public static final Supplier<BlockEntityType<StorageRequestorBlockEntity>> STORAGE_REQUESTOR = CBBLOCKENTITIES.register("storage_requestor",
+            () -> new BlockEntityType<>(StorageRequestorBlockEntity::new, BlockRegistry.STORAGE_REQUESTOR.get()));
+
+    // The Storage Dispenser
+    public static final Supplier<BlockEntityType<StorageDispenserBlockEntity>> STORAGE_DISPENSER = CBBLOCKENTITIES.register("storage_dispenser",
+            () -> new BlockEntityType<>(StorageDispenserBlockEntity::new, BlockRegistry.STORAGE_DISPENSER.get()));
 
     public static void register(IEventBus eventBus)
     {

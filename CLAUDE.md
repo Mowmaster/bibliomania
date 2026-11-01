@@ -31,8 +31,18 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   - Temporary mobs: `MobBookActions.createTemporary` (ID -1, never added to the world).
   - Timers and amounts: `ServerConfig` (`ModConfig.Type.SYNCED`, `<world>/syncedconfig/bibliomania-server.toml`).
 
+- **Library** (`Blocks/Library/`, `Blocks/CardCatalog/`, `Blocks/Lectern/`, `Blocks/Deposit/`, `Blocks/Requestor/`):
+  a Library Controller finds its members (`LibraryMember` block entities) through touching blocks and Librarian's Quill
+  links; the Librarian's Seal locks settings. Bookcases hold the storage books; Card Catalog drawers pick what the
+  library's Reading Lecterns show. The Storage Deposit puts things in (by hand, hoppers, pipes); the Patterned Storage
+  Requestor (9-item pattern, on a redstone pulse into the container in front) and the Storage Dispenser (one item,
+  used like a Dispenser) take things out. `LibraryDeposit` has the shared in/out code. The Bookbinder's Bone Folder
+  turns Bibliomania blocks to face the side clicked.
+
 ## Known issues / to do
 - Crafting a book that holds items into a death book deletes those items (same as 1.20).
+- Idea: keep each book's contents keyed by its `bibliomania:book_id` UUID (Card Catalog book drawers already find
+  books by it), not started.
 
 ## Ideas, not started
 - Lecterns / shelves holding books, with hopper/pipe access (books themselves stay manual only). Plan to use MowLib's
