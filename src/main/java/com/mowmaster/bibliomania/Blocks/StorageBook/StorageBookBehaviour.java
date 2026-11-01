@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -50,6 +52,26 @@ public interface StorageBookBehaviour
 
     // Left-click on the placed book. true = handled (the click is cancelled: no mining).
     default boolean leftClickPlaced(StorageBookBlockEntity book, Level level, BlockPos pos, Player player)
+    {
+        return false;
+    }
+
+    // ---- The same placed actions on any storage of this type ----
+    // A Reading Lectern with a library-wide drawer open (Card Catalog) uses these on every book of the type in the
+    // library at once (LibraryControllerBlockEntity#typeHandler). `storage` holds `type`'s resources. Defaults: nothing.
+
+    default InteractionResult useItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, ItemStack held, Level level, BlockPos pos,
+                                               Player player, InteractionHand hand)
+    {
+        return InteractionResult.TRY_WITH_EMPTY_HAND;
+    }
+
+    default InteractionResult useWithoutItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, Level level, BlockPos pos, Player player)
+    {
+        return InteractionResult.PASS;
+    }
+
+    default boolean leftClickStorage(TransportType<?> type, ResourceHandler<?> storage, Level level, BlockPos pos, Player player)
     {
         return false;
     }

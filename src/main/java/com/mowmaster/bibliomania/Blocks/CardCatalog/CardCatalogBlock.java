@@ -48,7 +48,7 @@ import java.util.Map;
 //   instead; with an empty hand: cleared.
 // - Right-click a set drawer: opens it (closing any other open drawer in the whole library), or closes it. A drawer
 //   whose item or book the library doesn't have won't open (the locked chest sound), and shows a cross.
-// - Dyes: the case, or one drawer (whichever is clicked); a trade drawer stays emerald.
+// - Dyes: the case, or one drawer (whichever is clicked); Barter (gold) and trade (emerald) drawers keep their colour.
 // - The Librarian's Seal locks the drawer settings and colours.
 // Open drawers are the OPEN state (0: none, n: drawer n); the model opens to the north at facing=north.
 public class CardCatalogBlock extends Block implements IColorableBlock
@@ -200,10 +200,10 @@ public class CardCatalogBlock extends Block implements IColorableBlock
         int drawer = drawerAt(state, hitResult);
         DrawerEntry entry = catalog.drawer(drawer);
 
-        // Dyes (not on a trade drawer; not while locked)
+        // Dyes (not on a drawer with a fixed colour: Barter, trades; not while locked)
         if (IColorableBlock.dyeColorOf(stack) != null)
         {
-            if (catalog.isLocked() || (entry != null && entry.kind() == DrawerEntry.Kind.TRADE)) return InteractionResult.SUCCESS;
+            if (catalog.isLocked() || (entry != null && entry.hasTint())) return InteractionResult.SUCCESS;
             return tryDyeBlock(stack, state, level, pos, player, hitResult);
         }
         if (drawer < 0) return InteractionResult.TRY_WITH_EMPTY_HAND;

@@ -53,6 +53,9 @@ public class ItemRegistry {
     public static final DeferredItem<LibrarySealItem> LIBRARY_SEAL = CBITEMS.registerItem("library_seal",
             properties -> new LibrarySealItem(properties.stacksTo(1)));
 
+    // The Card Catalog's icon for an energy drawer (a red lightning bolt): only ever drawn, so not in the creative tab
+    public static final DeferredItem<Item> ENERGY_ICON = CBITEMS.registerSimpleItem("energy_icon");
+
     // In creative tab order
     public static final List<DeferredItem<? extends Item>> MATERIALS = List.of(
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,

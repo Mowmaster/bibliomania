@@ -100,7 +100,15 @@ public final class StorageBookBehaviours
         @Override
         public InteractionResult useItemOnPlaced(ItemStack held, StorageBookBlockEntity book, Level level, BlockPos pos, Player player, InteractionHand hand)
         {
-            return useWith(book.type(), book.storage(), StorageInteractions.heldAccess(player, hand), player.isShiftKeyDown(), level.isClientSide())
+            return useItemOnStorage(book.type(), book.storage(), held, level, pos, player, hand);
+        }
+
+        // A container (battery...) against any storage of the type: into the storage, or with sneak out of it
+        @Override
+        public InteractionResult useItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, ItemStack held, Level level, BlockPos pos,
+                                                  Player player, InteractionHand hand)
+        {
+            return useWith(type, storage, StorageInteractions.heldAccess(player, hand), player.isShiftKeyDown(), level.isClientSide())
                     ? InteractionResult.SUCCESS : InteractionResult.TRY_WITH_EMPTY_HAND;
         }
 

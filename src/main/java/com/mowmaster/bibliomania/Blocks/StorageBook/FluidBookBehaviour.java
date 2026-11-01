@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import net.minecraft.core.BlockPos;
@@ -60,7 +61,16 @@ public class FluidBookBehaviour implements StorageBookBehaviour
     @Override
     public InteractionResult useItemOnPlaced(ItemStack held, StorageBookBlockEntity book, Level level, BlockPos pos, Player player, InteractionHand hand)
     {
-        ResourceHandler<FluidResource> storage = book.storage(TransportTypes.FLUIDS.get());
+        return useItemOnStorage(TransportTypes.FLUIDS.get(), book.storage(TransportTypes.FLUIDS.get()), held, level, pos, player, hand);
+    }
+
+    // Bottles and buckets/tanks against any fluid storage (the placed book's, or a whole library's)
+    @Override
+    @SuppressWarnings("unchecked") // the fluids type's storage holds FluidResources
+    public InteractionResult useItemOnStorage(TransportType<?> type, ResourceHandler<?> fluidStorage, ItemStack held, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand)
+    {
+        ResourceHandler<FluidResource> storage = (ResourceHandler<FluidResource>) fluidStorage;
         if (isWaterBottle(held) || held.is(Items.GLASS_BOTTLE))
         {
             if (!level.isClientSide())

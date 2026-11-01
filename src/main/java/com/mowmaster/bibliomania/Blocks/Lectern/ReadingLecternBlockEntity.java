@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import net.minecraft.core.component.DataComponents;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
@@ -88,6 +89,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     private int shownAmount;
     private ItemStack shownBook = ItemStack.EMPTY;
     private int shownBookPage = -1;
+    // A type drawer's room in the library, or -1 (synced)
+    private long shownCapacity = -1;
 
     public ReadingLecternBlockEntity(BlockPos pos, BlockState state)
     {
@@ -213,14 +216,44 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
 
     public void selectItem(ServerLevel level, ItemStack item)
     {
+        selectedType = null;
         selectedItem = item.copyWithCount(1);
         refresh(level, true);
+    }
+
+    // A library-wide type drawer (Fluids, Experience, Energy) that's open, or null
+    private @Nullable DrawerEntry selectedType;
+
+    public void selectType(ServerLevel level, DrawerEntry entry)
+    {
+        selectedItem = null;
+        selectedType = entry;
+        refresh(level, true);
+    }
+
+    // Server: the open type drawer, if any
+    public @Nullable DrawerEntry typeSelection()
+    {
+        return selectedType;
+    }
+
+    // Whether it shows a library-wide type (clients: from what was synced); then shownAmount and getShownCapacity()
+    // are the library's total and room
+    public boolean showsType()
+    {
+        return shownCapacity >= 0;
+    }
+
+    public long getShownCapacity()
+    {
+        return shownCapacity;
     }
 
     // Turns to a book (and leaves any card catalog item)
     public void showBook(ServerLevel level, BookcaseBlockEntity shelf, int slot)
     {
         selectedItem = null;
+        selectedType = null;
         int index = 0;
         for (BookcaseBlockEntity each : cases())
         {
@@ -240,8 +273,9 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
 
     public void clearSelection(ServerLevel level)
     {
-        if (selectedItem == null) return;
+        if (selectedItem == null && selectedType == null) return;
         selectedItem = null;
+        selectedType = null;
         refresh(level, true);
     }
 
@@ -254,7 +288,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     // Server: whether the open page is a whole book (the lectern then acts as that book)
     public boolean isBookOpen(ServerLevel level)
     {
-        if (selectedItem != null) return false;
+        if (selectedItem != null || selectedType != null) return false;
         Page current = currentPage();
         return current != null && current.bookPage() < 0;
     }
@@ -303,6 +337,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     {
         // Turning a page leaves a card catalog item behind: back to the pages
         selectedItem = null;
+        selectedType = null;
         page = pageCount <= 0 ? 0 : Math.floorMod(newPage, pageCount);
         setChanged();
         if (level instanceof ServerLevel serverLevel) refresh(serverLevel, true);
@@ -396,7 +431,34 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         int count = countPages();
         // A card catalog item: that item from the whole library, shown with a glint
         LibraryControllerBlockEntity library = library(level, worldPosition);
-        if (selectedItem != null && library == null) selectedItem = null;
+        if (library == null)
+        {
+            selectedItem = null;
+            selectedType = null;
+        }
+        // A type drawer: the library's total and room of that type (a fluid: of that fluid), its icon glinting
+        if (selectedType != null && library != null && selectedType.transportType() != null)
+        {
+            ItemStack glinting = selectedType.icon().copyWithCount(1);
+            glinting.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+            long[] totals = library.typeTotals(selectedType.transportType(), selectedType.filter());
+            int total = (int) Math.min(Integer.MAX_VALUE, totals[0]);
+            boolean changed = force || count != pageCount || total != shownAmount || totals[1] != shownCapacity
+                    || shownBookPage != WHOLE_LIBRARY || !ItemStack.matches(glinting, shown);
+            pageCount = count;
+            shown = glinting;
+            shownAmount = total;
+            shownCapacity = totals[1];
+            shownBook = ItemStack.EMPTY;
+            shownBookPage = WHOLE_LIBRARY;
+            if (changed)
+            {
+                setChanged();
+                level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+            }
+            return;
+        }
+        shownCapacity = -1;
         if (selectedItem != null)
         {
             ItemStack glinting = selectedItem.copyWithCount(1);
@@ -563,6 +625,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         output.putInt(TAG_AMOUNT, shownAmount);
         output.store(TAG_BOOK, ItemStack.OPTIONAL_CODEC, shownBook);
         output.putInt(TAG_BOOK_PAGE, shownBookPage);
+        output.putLong("capacity", shownCapacity);
         tints.save(output);
         libraryLink.save(output);
     }
@@ -578,6 +641,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         shownAmount = input.getIntOr(TAG_AMOUNT, 0);
         shownBook = input.read(TAG_BOOK, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
         shownBookPage = input.getIntOr(TAG_BOOK_PAGE, -1);
+        shownCapacity = input.getLongOr("capacity", -1L);
         libraryLink.load(input);
         // Only re-mesh the chunk on clients when the colour really changed (pages change often)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))

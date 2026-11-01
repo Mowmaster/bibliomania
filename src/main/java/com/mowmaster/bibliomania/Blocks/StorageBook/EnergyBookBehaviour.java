@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.ServerConfig;
 import com.mowmaster.mowlib.transport.AmountResource;
 import com.mowmaster.mowlib.transport.TransportTypes;
@@ -28,6 +29,13 @@ public class EnergyBookBehaviour implements StorageBookBehaviour
     public InteractionResult useItemOnPlaced(ItemStack held, StorageBookBlockEntity book, Level level, BlockPos pos, Player player, InteractionHand hand)
     {
         return StorageBookBehaviours.GENERIC.useItemOnPlaced(held, book, level, pos, player, hand);
+    }
+
+    @Override
+    public InteractionResult useItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, ItemStack held, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand)
+    {
+        return StorageBookBehaviours.GENERIC.useItemOnStorage(type, storage, held, level, pos, player, hand);
     }
 
     @Override

@@ -110,7 +110,14 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
 
     @Override public int getColor(int region) { return tints.getColor(region); }
     @Override public void setColor(int region, int color) { tints.setColor(region, color); }
-    @Override public int getTint(int tintIndex) { return tints.getTint(tintIndex); }
+    // A drawer with a fixed colour (Barter: gold, trades: emerald) shows that, whatever it was dyed
+    @Override
+    public int getTint(int tintIndex)
+    {
+        DrawerEntry entry = drawer(tintIndex - 1);
+        if (entry != null && entry.hasTint()) return entry.tint();
+        return tints.getTint(tintIndex);
+    }
 
     // The case colour goes with the item (dyed_color), like the other dyeable blocks; drawer settings don't
     @Override
@@ -154,6 +161,7 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
     protected void loadAdditional(ValueInput input)
     {
         super.loadAdditional(input);
+        int[] fixedBefore = fixedTints();
         java.util.Arrays.fill(drawers, null);
         for (DrawerEntry.Slot slot : input.read(TAG_DRAWERS, DrawerEntry.Slot.CODEC.listOf()).orElse(List.of()))
         {
@@ -162,13 +170,22 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
         missing = input.getIntOr(TAG_MISSING, 0);
         libraryLink.load(input);
         // Only re-mesh on clients when a colour changed
-        boolean colours = level == null || !level.isClientSide();
+        // (a drawer's fixed colour changing counts too)
+        boolean colours = level == null || !level.isClientSide() || !java.util.Arrays.equals(fixedBefore, fixedTints());
         for (int region = 0; region <= MAX_DRAWERS && !colours; region++)
         {
             String key = region == 0 ? "color" : "color" + region;
             if (input.getIntOr(key, CBTintBlockEntity.UNDYED) != tints.getColor(region)) colours = true;
         }
         if (colours) tints.load(input);
+    }
+
+    // Each drawer's fixed colour, or -1
+    private int[] fixedTints()
+    {
+        int[] fixed = new int[MAX_DRAWERS];
+        for (int drawer = 0; drawer < MAX_DRAWERS; drawer++) fixed[drawer] = drawers[drawer] == null ? -1 : drawers[drawer].tint();
+        return fixed;
     }
 
     @Override

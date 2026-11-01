@@ -1,5 +1,11 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import com.mowmaster.mowlib.transport.TransportType;
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBehaviours;
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookBehaviour;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
+import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import com.mowmaster.bibliomania.Blocks.BarterBook.BarterBookItem;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookActions;
@@ -94,6 +100,38 @@ public final class LecternActions
             used = placed(level, book, pos, copy -> storage.book().behaviour().leftClickPlaced(copy, level, pos, player));
         }
         if (used) done(level, shelf, page.slot(), lectern);
+        return used;
+    }
+
+    // ---- A library-wide type drawer (Fluids, Experience, Energy) ----
+    // The storage books' own placed actions, on every book of the type in the library at once (the lectern's library's
+    // typeHandler): buckets, bottles, tanks and batteries; an empty hand stores your experience, left-click takes it.
+
+    public static boolean useType(ServerLevel level, Player player, InteractionHand hand, ItemStack held, ReadingLecternBlockEntity lectern)
+    {
+        DrawerEntry entry = lectern.typeSelection();
+        LibraryControllerBlockEntity library = lectern.library(level, lectern.getBlockPos());
+        TransportType<?> type = entry == null ? null : entry.transportType();
+        ResourceHandler<?> storage = type == null || library == null ? null : library.typeHandler(type);
+        if (storage == null) return false;
+        StorageBookBehaviour behaviour = StorageBookBehaviours.get(type);
+        BlockPos pos = lectern.getBlockPos();
+        boolean used = held.isEmpty()
+                ? behaviour.useWithoutItemOnStorage(type, storage, level, pos, player) != InteractionResult.PASS
+                : behaviour.useItemOnStorage(type, storage, held, level, pos, player, hand).consumesAction();
+        lectern.refresh(level, true);
+        return used;
+    }
+
+    public static boolean attackType(ServerLevel level, Player player, ReadingLecternBlockEntity lectern)
+    {
+        DrawerEntry entry = lectern.typeSelection();
+        LibraryControllerBlockEntity library = lectern.library(level, lectern.getBlockPos());
+        TransportType<?> type = entry == null ? null : entry.transportType();
+        ResourceHandler<?> storage = type == null || library == null ? null : library.typeHandler(type);
+        if (storage == null) return false;
+        boolean used = StorageBookBehaviours.get(type).leftClickStorage(type, storage, level, lectern.getBlockPos(), player);
+        lectern.refresh(level, true);
         return used;
     }
 

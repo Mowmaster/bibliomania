@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.ServerConfig;
 import com.mowmaster.mowlib.storage.StorageInteractions;
@@ -65,8 +66,31 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     @Override
     public InteractionResult useItemOnPlaced(ItemStack held, StorageBookBlockEntity book, Level level, BlockPos pos, Player player, InteractionHand hand)
     {
+        return useItemOnStorage(TransportTypes.EXPERIENCE.get(), book.storage(TransportTypes.EXPERIENCE.get()), held, level, pos, player, hand);
+    }
+
+    @Override
+    public InteractionResult useWithoutItemPlaced(StorageBookBlockEntity book, Level level, BlockPos pos, Player player)
+    {
+        return useWithoutItemOnStorage(TransportTypes.EXPERIENCE.get(), book.storage(TransportTypes.EXPERIENCE.get()), level, pos, player);
+    }
+
+    @Override
+    public boolean leftClickPlaced(StorageBookBlockEntity book, Level level, BlockPos pos, Player player)
+    {
+        if (level.isClientSide() || !book.clickReady(CLICK_DELAY)) return true;
+        return leftClickStorage(TransportTypes.EXPERIENCE.get(), book.storage(TransportTypes.EXPERIENCE.get()), level, pos, player);
+    }
+
+    // ---- The same on any experience storage (the placed book's, or a whole library's) ----
+
+    @Override
+    @SuppressWarnings("unchecked") // the experience type's storage holds AmountResources
+    public InteractionResult useItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, ItemStack held, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand)
+    {
         if (!held.is(Items.EXPERIENCE_BOTTLE)) return InteractionResult.TRY_WITH_EMPTY_HAND; // -> stores all (below)
-        if (!level.isClientSide() && storeBottles(book.storage(TransportTypes.EXPERIENCE.get()), held.getCount(), level.getRandom()))
+        if (!level.isClientSide() && storeBottles((ResourceHandler<AmountResource>) storage, held.getCount(), level.getRandom()))
         {
             int count = held.getCount();
             held.consume(count, player);
@@ -77,17 +101,19 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     }
 
     @Override
-    public InteractionResult useWithoutItemPlaced(StorageBookBlockEntity book, Level level, BlockPos pos, Player player)
+    @SuppressWarnings("unchecked")
+    public InteractionResult useWithoutItemOnStorage(TransportType<?> type, ResourceHandler<?> storage, Level level, BlockPos pos, Player player)
     {
-        if (!level.isClientSide() && storeAll(player, book.storage(TransportTypes.EXPERIENCE.get())) > 0) orbSound(level, pos);
+        if (!level.isClientSide() && storeAll(player, (ResourceHandler<AmountResource>) storage) > 0) orbSound(level, pos);
         return InteractionResult.SUCCESS;
     }
 
     @Override
-    public boolean leftClickPlaced(StorageBookBlockEntity book, Level level, BlockPos pos, Player player)
+    @SuppressWarnings("unchecked")
+    public boolean leftClickStorage(TransportType<?> type, ResourceHandler<?> xpStorage, Level level, BlockPos pos, Player player)
     {
-        if (level.isClientSide() || !book.clickReady(CLICK_DELAY)) return true;
-        ResourceHandler<AmountResource> storage = book.storage(TransportTypes.EXPERIENCE.get());
+        if (level.isClientSide()) return true;
+        ResourceHandler<AmountResource> storage = (ResourceHandler<AmountResource>) xpStorage;
         ItemStack held = player.getMainHandItem();
         if (held.is(Items.GLASS_BOTTLE)) fillBottles(player, storage, held);
         else if (giveLevels(player, storage, player.isShiftKeyDown() ? 10 : 1) > 0) orbSound(level, pos);

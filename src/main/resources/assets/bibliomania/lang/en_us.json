@@ -155,5 +155,10 @@
   "block.bibliomania.card_catalog_16": "Card Catalog (16 drawers)",
   "hud.bibliomania.lectern_whole_library": "From the whole library",
   "hud.bibliomania.drawer_trade": "Trade: opens its Trader's Ledger at this trade",
-  "hud.bibliomania.drawer_book": "Opens this book on the library's lecterns"
+  "hud.bibliomania.drawer_book": "Opens this book on the library's lecterns",
+  "item.bibliomania.energy_icon": "Energy",
+  "hud.bibliomania.drawer_title": "%1$s (%2$s)",
+  "hud.bibliomania.drawer_trade_line": "%1$s %2$s -> %3$s %4$s",
+  "hud.bibliomania.drawer_type": "Every %s book in the library",
+  "hud.bibliomania.lectern_type_amount": "%1$s / %2$s"
 }

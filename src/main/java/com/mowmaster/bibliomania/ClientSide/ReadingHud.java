@@ -266,11 +266,37 @@ public final class ReadingHud
     // ---- Card Catalogs ----
 
     // The drawer's item (name, enchantments, potion effects...), and for a trade drawer what it's for
+    // - an item: its tooltip (enchantments, potion effects...)
+    // - a book: "Grandad's Almanac (Farmer's Almanac)", what it holds ("Wheat Seeds", "Cow"), and what opening does
+    // - a trade: the Ledger's name, "2 Emerald -> 1 Enchanted Book", and what opening does
+    // - a type: "Water" / "Experience" / "Energy", and that it's every such book in the library
+    // (Only what the drawer itself knows: the books' own tooltips, "Activated" and the like, are left out)
     private static List<Component> readDrawer(DrawerEntry entry, Level level, Player player)
     {
-        List<Component> lines = new ArrayList<>(tooltip(entry.icon(), level, player));
-        if (entry.kind() == DrawerEntry.Kind.TRADE) lines.add(hud("drawer_trade"));
-        if (entry.kind() == DrawerEntry.Kind.BOOK) lines.add(hud("drawer_book"));
+        List<Component> lines = new ArrayList<>();
+        switch (entry.kind())
+        {
+            case ITEM -> lines.addAll(tooltip(entry.icon(), level, player));
+            case BOOK ->
+            {
+                entry.title().ifPresent(lines::add);
+                entry.subject().ifPresent(lines::add);
+                lines.add(hud("drawer_book"));
+            }
+            case TRADE ->
+            {
+                entry.title().ifPresent(lines::add);
+                lines.add(hud("drawer_trade_line", entry.badge().getCount(), entry.badge().getHoverName(),
+                        entry.icon().getCount(), entry.icon().getHoverName()));
+                lines.add(hud("drawer_trade"));
+            }
+            case TYPE ->
+            {
+                entry.title().ifPresent(lines::add);
+                Component typeName = entry.subject().orElse(entry.title().orElse(Component.empty()));
+                lines.add(hud("drawer_type", typeName));
+            }
+        }
         return lines;
     }
 
@@ -298,6 +324,14 @@ public final class ReadingHud
         lines.add(Component.translatable("hud." + BibliomaniaReferences.MODID + ".page", name, lectern.getPage() + 1, lectern.getPageCount()));
         ItemStack book = lectern.getShownBook();
         // A card catalog item: "128 Iron Ingot", from the whole library
+        // A type drawer: "Water", "2000 / 16000" for the whole library
+        if (lectern.showsType())
+        {
+            lines.add(lectern.getShown().getHoverName());
+            lines.add(hud("lectern_type_amount", lectern.getShownAmount(), lectern.getShownCapacity()));
+            lines.add(hud("lectern_whole_library"));
+            return lines;
+        }
         if (lectern.getShownBookPage() == ReadingLecternBlockEntity.WHOLE_LIBRARY)
         {
             ItemStack item = lectern.getShown();

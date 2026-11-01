@@ -170,7 +170,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         // SUCCESS and the server decides.
         if (level instanceof ServerLevel serverLevel)
         {
-            if (lectern.isBookOpen(serverLevel)) LecternActions.use(serverLevel, player, hand, stack, lectern);
+            if (lectern.typeSelection() != null) LecternActions.useType(serverLevel, player, hand, stack, lectern);
+            else if (lectern.isBookOpen(serverLevel)) LecternActions.use(serverLevel, player, hand, stack, lectern);
             else if (lectern.store(stack) > 0) level.playSound(null, pos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1f);
             else level.playSound(null, pos, SoundEvents.BUNDLE_INSERT_FAIL, SoundSource.BLOCKS, 0.8f, 1f);
         }
@@ -185,6 +186,12 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
         if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
         // A whole book open: an empty hand on it (a Book of Experience gives its levels...)
+        // A library-wide type drawer open: an empty hand on it (experience is stored...)
+        if (!player.isShiftKeyDown() && lectern.showsType())
+        {
+            if (level instanceof ServerLevel serverLevel) LecternActions.useType(serverLevel, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY, lectern);
+            return InteractionResult.SUCCESS;
+        }
         if (!player.isShiftKeyDown() && lectern.showsWholeBook() && !lectern.getShownBook().isEmpty())
         {
             if (level instanceof ServerLevel serverLevel) LecternActions.use(serverLevel, player, InteractionHand.MAIN_HAND, ItemStack.EMPTY, lectern);

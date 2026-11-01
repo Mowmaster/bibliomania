@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import net.neoforged.neoforge.transfer.CombinedResourceHandler;
+import net.neoforged.neoforge.transfer.resource.Resource;
+import com.mowmaster.mowlib.transport.TransportType;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
@@ -177,6 +180,45 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         return null;
     }
 
+    // Every book of `type` in the library as one handler (bookcase by bookcase, first book first), or null if there's
+    // none. A Reading Lectern with a TYPE drawer open uses this with the books' own actions.
+    public <R extends Resource> @Nullable ResourceHandler<R> typeHandler(TransportType<R> type)
+    {
+        List<ResourceHandler<R>> parts = new ArrayList<>();
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            ResourceHandler<R> part = shelf.handler(type);
+            if (part != null) parts.add(part);
+        }
+        return parts.isEmpty() ? null : new CombinedResourceHandler<>(parts);
+    }
+
+    // How much of `type` the library holds and has room for: {amount, capacity}. With a filter (a fluid), only that
+    // resource, and the room is its books plus every empty one (any of them can take it).
+    public long[] typeTotals(TransportType<?> type, @Nullable Resource filter)
+    {
+        ResourceHandler<?> handler = typeHandler(type);
+        long amount = 0, capacity = 0;
+        if (handler != null)
+        {
+            for (int index = 0; index < handler.size(); index++)
+            {
+                Resource resource = handler.getResource(index);
+                if (filter != null && !resource.isEmpty() && !resource.equals(filter)) continue;
+                amount += handler.getAmountAsLong(index);
+                capacity += capacityOf(handler, index, filter != null ? filter : resource);
+            }
+        }
+        return new long[]{amount, capacity};
+    }
+
+    // getCapacityAsLong wants the handler's own resource type: the cast is safe, every resource here came from it
+    @SuppressWarnings("unchecked")
+    private static <R extends Resource> long capacityOf(ResourceHandler<R> handler, int index, Resource resource)
+    {
+        return handler.getCapacityAsLong(index, (R) resource);
+    }
+
     // Whether a card catalog drawer's item or book is in the library
     public boolean has(DrawerEntry entry)
     {
@@ -184,6 +226,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         {
             case ITEM -> countItem(entry.icon()) > 0;
             case BOOK, TRADE -> entry.book().map(this::findBook).isPresent();
+            case TYPE -> entry.transportType() != null && typeHandler(entry.transportType()) != null;
         };
     }
 
@@ -219,6 +262,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         for (ReadingLecternBlockEntity lectern : lecterns())
         {
             if (entry.kind() == DrawerEntry.Kind.ITEM) lectern.selectItem(level, entry.icon());
+            else if (entry.kind() == DrawerEntry.Kind.TYPE) lectern.selectType(level, entry);
             else if (place != null) lectern.showBook(level, place.shelf(), place.slot());
         }
     }

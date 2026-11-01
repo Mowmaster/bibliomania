@@ -26,14 +26,17 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 // Draws over a Card Catalog's drawer fronts (the drawers themselves are the block model):
-// - each set drawer's icon, flat on the upper part of its front, above the handle
-// - a trade drawer's emerald face, and a missing item or book's cross (drawer_canceled), over the whole front
+// - each set drawer's icon, flat on the upper part of its front, above the handle, with its badge (a trade's price,
+//   the book behind a library-wide type) at half the width in the icon's bottom left corner
+// - a missing item or book's cross (drawer_canceled) over the whole front
+// (Barter and trade drawers' gold and emerald come from the block model's tint, see CardCatalogBlockEntity#getTint)
 // Faces are quads in the textures' own files (not the block atlas), drawn a hair in front of the drawer; an open
 // drawer's front is further out (CardCatalogLayout.OPEN_Z).
 public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlockEntity, CardCatalogRenderer.State>
 {
     private static final Identifier CANCELED = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "textures/block/card_catalog/drawer_canceled.png");
-    private static final Identifier EMERALD = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "textures/block/card_catalog/drawer_emerald.png");
+    // The badge: this part of the icon's width, in front of it
+    private static final float BADGE_SCALE = 0.5f;
     private static final float PX = 1f / 16f;
     // How far in front of a drawer face the overlays and icons sit, in pixels
     private static final float FACE_GAP = 0.02f;
@@ -65,11 +68,13 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
         {
             DrawerEntry entry = drawer < state.size ? catalog.drawer(drawer) : null;
             state.set[drawer] = entry != null;
-            state.trade[drawer] = entry != null && entry.kind() == DrawerEntry.Kind.TRADE;
+
             state.missing[drawer] = entry != null && catalog.isMissing(drawer);
             // FIXED: an item frame's flat look
             itemModelResolver.updateForTopItem(state.icons[drawer], entry == null ? net.minecraft.world.item.ItemStack.EMPTY : entry.icon(),
                     ItemDisplayContext.FIXED, catalog.getLevel(), null, drawer);
+            itemModelResolver.updateForTopItem(state.badges[drawer], entry == null ? net.minecraft.world.item.ItemStack.EMPTY : entry.badge(),
+                    ItemDisplayContext.FIXED, catalog.getLevel(), null, drawer + 100);
         }
     }
 
@@ -87,21 +92,32 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
             if (!state.set[drawer]) continue;
             float[] r = layout[drawer];
             float z = (state.open == drawer + 1 ? CardCatalogLayout.OPEN_Z : CardCatalogLayout.CLOSED_Z);
-            if (state.trade[drawer]) face(poseStack, collector, EMERALD, r, z - FACE_GAP, state.lightCoords);
             if (state.missing[drawer]) face(poseStack, collector, CANCELED, r, z - FACE_GAP * 2, state.lightCoords);
-            icon(poseStack, collector, state.icons[drawer], r, z, state.lightCoords);
+            icon(poseStack, collector, state.icons[drawer], state.badges[drawer], r, z, state.lightCoords);
         }
         poseStack.popPose();
     }
 
     // The icon: centred across the drawer, in its upper part (the handle is lower down), facing out (north)
-    private static void icon(PoseStack poseStack, SubmitNodeCollector collector, ItemStackRenderState icon, float[] r, float z, int light)
+    private static void icon(PoseStack poseStack, SubmitNodeCollector collector, ItemStackRenderState icon, ItemStackRenderState badge,
+                             float[] r, float z, int light)
     {
         if (icon.isEmpty()) return;
         float width = r[2] - r[0], height = r[3] - r[1];
         float size = Math.min(width, height) * 0.45f;
+        float centreX = (r[0] + r[2]) / 2, centreY = r[3] - height * 0.3f;
+        flat(poseStack, collector, icon, centreX, centreY, z - ICON_GAP, size, light);
+        if (badge.isEmpty()) return;
+        // Bottom left as seen from the front: the model's high x (it opens to the north), the low y; a little nearer
+        float badgeSize = size * BADGE_SCALE;
+        flat(poseStack, collector, badge, centreX + (size - badgeSize) / 2, centreY - (size - badgeSize) / 2, z - ICON_GAP - 0.1f, badgeSize, light);
+    }
+
+    // One item, flat, centred at (x, y) in pixels, `size` pixels across, at depth z
+    private static void flat(PoseStack poseStack, SubmitNodeCollector collector, ItemStackRenderState icon, float x, float y, float z, float size, int light)
+    {
         poseStack.pushPose();
-        poseStack.translate((r[0] + r[2]) / 2 * PX, (r[3] - height * 0.3f) * PX, (z - ICON_GAP) * PX);
+        poseStack.translate(x * PX, y * PX, z * PX);
         // A FIXED item faces south as built; half a turn makes it face out of the drawer, a flat squash keeps it on
         poseStack.rotate(Axis.YP.rotationDegrees(180));
         poseStack.scale(size * PX, size * PX, 0.05f * PX * 16);
@@ -145,12 +161,16 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
         int open;
         int size = 1;
         final boolean[] set = new boolean[CardCatalogBlockEntity.MAX_DRAWERS];
-        final boolean[] trade = new boolean[CardCatalogBlockEntity.MAX_DRAWERS];
         final boolean[] missing = new boolean[CardCatalogBlockEntity.MAX_DRAWERS];
         final ItemStackRenderState[] icons = new ItemStackRenderState[CardCatalogBlockEntity.MAX_DRAWERS];
+        final ItemStackRenderState[] badges = new ItemStackRenderState[CardCatalogBlockEntity.MAX_DRAWERS];
 
         {
-            for (int drawer = 0; drawer < icons.length; drawer++) icons[drawer] = new ItemStackRenderState();
+            for (int drawer = 0; drawer < icons.length; drawer++)
+            {
+                icons[drawer] = new ItemStackRenderState();
+                badges[drawer] = new ItemStackRenderState();
+            }
         }
     }
 }
