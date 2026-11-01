@@ -1,5 +1,13 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import net.minecraft.world.level.Level;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.sounds.SoundEvents;
+import com.mowmaster.mowlib.storage.StorageInteractions;
+import com.mowmaster.mowlib.items.tools.FilterToolItem;
+import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.transfer.resource.Resource;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
@@ -69,16 +77,50 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
         return book().defaultPages();
     }
 
+    // The book's own rules, and its filter if it has one (BookFilter)
     @Override
     public boolean accepts(ItemStack self, ItemResource resource)
     {
-        return book().accepts(resource);
+        return book().accepts(resource) && BookFilter.allows(BookFilter.get(self), resource);
     }
 
     @Override
     public boolean allowsInsert(ItemStack self)
     {
         return book().allowsManualInsert();
+    }
+
+    // ---- Filters: right-click the air with the book in the main hand ----
+    // A filter in the offhand goes in (not into a take-out-only book, nor while it has one); MowLib's Filter Tool in
+    // the offhand takes it out again.
+    @Override
+    public InteractionResult use(Level level, Player player, InteractionHand hand)
+    {
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        ItemStack self = player.getMainHandItem();
+        ItemStack offhand = player.getOffhandItem();
+        if (BookFilter.isFilter(offhand))
+        {
+            if (!allowsInsert(self) || !BookFilter.get(self).isEmpty()) return InteractionResult.FAIL;
+            if (!level.isClientSide())
+            {
+                self.set(DataComponentRegistry.BOOK_FILTER.get(), offhand.split(1));
+                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1.2f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (offhand.getItem() instanceof FilterToolItem && !BookFilter.get(self).isEmpty())
+        {
+            if (!level.isClientSide())
+            {
+                ItemStack filter = BookFilter.get(self);
+                self.remove(DataComponentRegistry.BOOK_FILTER.get());
+                StorageInteractions.giveToPlayer(player, filter);
+                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 0.8f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        return InteractionResult.PASS;
     }
 
     // ---- Bundle-style clicks and the tooltip (an interface can't override Item methods, so these forward) ----

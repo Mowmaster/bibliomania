@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.BibliomaniaReferences;
+import net.minecraft.network.chat.Component;
+import com.mowmaster.mowlib.items.tools.FilterToolItem;
 import java.util.Map;
 import java.util.List;
 import java.util.EnumMap;
@@ -156,6 +159,22 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     {
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
+
+        // MowLib's Filter Tool: card catalog items matched fuzzy (at any damage) or exact. A setting: not while sealed.
+        if (stack.getItem() instanceof FilterToolItem)
+        {
+            if (!level.isClientSide())
+            {
+                if (lectern.isLocked()) player.sendOverlayMessage(Component.translatable("message." + BibliomaniaReferences.MODID + ".library.locked"));
+                else
+                {
+                    boolean exact = lectern.toggleExact();
+                    player.sendOverlayMessage(Component.translatable("message." + BibliomaniaReferences.MODID + ".requestor." + (exact ? "match_exact" : "match_fuzzy")));
+                    level.playSound(null, pos, SoundEvents.COMPARATOR_CLICK, SoundSource.BLOCKS, 0.6f, exact ? 0.55f : 0.5f);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
 
         // Dyeing is a setting: not while locked (Librarian's Seal)
         InteractionResult dyed = lectern.isLocked() ? InteractionResult.TRY_WITH_EMPTY_HAND : tryDyeBlock(stack, state, level, pos, player, hitResult);

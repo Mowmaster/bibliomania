@@ -245,6 +245,17 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
             return InteractionResult.SUCCESS;
         }
 
+        // A filter in the offhand goes into the book (BookFilter), whatever the main hand holds. Main hand only, so the
+        // offhand's own turn doesn't store the filter as an item.
+        if (hand == InteractionHand.MAIN_HAND && BookFilter.isFilter(player.getOffhandItem()) && allowsManualInsert())
+        {
+            if (!level.isClientSide() && book.insertFilter(player.getOffhandItem()))
+            {
+                level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1.2f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
         // MowLib's colour tools work on the cover instead of being stored:
         // - the colour picker reads the cover colour: PASS lets the picker's own right-click (useOn) run
         // - the Color Palette (any IDyeSource) dyes a dyeable cover; tryDyeBlock mixes like leather armour
@@ -317,6 +328,8 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
     private void extract(ServerLevel level, BlockPos pos, Player player)
     {
         if (!(level.getBlockEntity(pos) instanceof BookBlockEntity book)) return;
+        // MowLib's Filter Tool in the offhand: takes the filter out instead (or says there isn't one)
+        if (StorageInteractions.removeFilter(player, book)) return;
         ItemStack taken = book.extractFromOpenPage(player.isShiftKeyDown() ? SHIFT_EXTRACT : 1);
         if (taken.isEmpty()) return;
 

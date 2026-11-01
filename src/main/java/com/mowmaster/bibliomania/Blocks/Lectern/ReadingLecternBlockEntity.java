@@ -213,6 +213,23 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
 
     // The item an open card catalog drawer picked, or null (then the lectern shows its page)
     private @Nullable ItemStack selectedItem;
+    // How a drawer's item is matched: fuzzy (false, the default: at any damage) or exact. MowLib's Filter Tool
+    // switches it (ReadingLecternBlock).
+    private boolean exact;
+
+    public boolean isExact()
+    {
+        return exact;
+    }
+
+    // Switches between fuzzy and exact; returns the new setting
+    public boolean toggleExact()
+    {
+        exact = !exact;
+        if (level instanceof ServerLevel serverLevel) refresh(serverLevel, true);
+        else setChanged();
+        return exact;
+    }
 
     public void selectItem(ServerLevel level, ItemStack item)
     {
@@ -469,7 +486,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
             ItemStack glinting = selectedItem.copyWithCount(1);
             // ENCHANTMENT_GLINT_OVERRIDE: true always shimmers like an enchanted item
             glinting.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
-            int total = (int) Math.min(Integer.MAX_VALUE, library.countItem(selectedItem));
+            int total = (int) Math.min(Integer.MAX_VALUE, library.countMatching(selectedItem, exact));
             boolean changed = force || count != pageCount || total != shownAmount || shownBookPage != WHOLE_LIBRARY
                     || !ItemStack.matches(glinting, shown);
             pageCount = count;
@@ -554,9 +571,10 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         LibraryControllerBlockEntity library = level instanceof ServerLevel ? library(level, worldPosition) : null;
         if (selectedItem != null && library != null)
         {
-            int taken = library.extractItem(selectedItem, Math.min(amount, selectedItem.getMaxStackSize()));
+            // The real item taken (fuzzy: possibly a worn one)
+            ItemStack taken = library.extractMatching(selectedItem, Math.min(amount, selectedItem.getMaxStackSize()), exact);
             if (level instanceof ServerLevel serverLevel) refresh(serverLevel, false);
-            return taken > 0 ? selectedItem.copyWithCount(taken) : ItemStack.EMPTY;
+            return taken;
         }
         Page current = currentPage();
         if (current == null || current.bookPage() < 0) return ItemStack.EMPTY;
@@ -641,6 +659,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         output.store(TAG_BOOK, ItemStack.OPTIONAL_CODEC, shownBook);
         output.putInt(TAG_BOOK_PAGE, shownBookPage);
         output.putLong("capacity", shownCapacity);
+        output.putBoolean("exact", exact);
         tints.save(output);
         libraryLink.save(output);
     }
@@ -657,6 +676,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         shownBook = input.read(TAG_BOOK, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
         shownBookPage = input.getIntOr(TAG_BOOK_PAGE, -1);
         shownCapacity = input.getLongOr("capacity", -1L);
+        exact = input.getBooleanOr("exact", false);
         libraryLink.load(input);
         // Only re-mesh the chunk on clients when the colour really changed (pages change often)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))

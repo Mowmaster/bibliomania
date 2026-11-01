@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.CardCatalogBlock;
@@ -247,9 +248,17 @@ public final class ReadingHud
         }
         else if (!book.isEmpty() && level != null)
         {
-            // Storage books: their pages (the item holds them as MowLib's PagedContents)
-            if (book.getItem() instanceof IPagedStorageItem paged) newPages = paged.contents(book);
-            newBook = wrap(minecraft.font, readBook(book, newPages, level, player), ClientConfig.BOOK_MAX_WIDTH.get());
+            // Storage books: their pages (the item holds them as MowLib's PagedContents); a whitelist-filtered book
+            // holding only what its filter allows: its items with their totals instead (no page grid)
+            List<ResourceStack<ItemResource>> summary = null;
+            if (book.getItem() instanceof IPagedStorageItem paged)
+            {
+                PagedContents contents = paged.contents(book);
+                summary = BookFilter.summary(book, contents);
+                if (summary == null) newPages = contents;
+            }
+            List<Component> lines = summary != null ? readFilteredBook(book, summary, level, player) : readBook(book, newPages, level, player);
+            newBook = wrap(minecraft.font, lines, ClientConfig.BOOK_MAX_WIDTH.get());
         }
         bookLines = newBook;
         bookWidth = width(minecraft.font, newBook);
@@ -411,6 +420,7 @@ public final class ReadingHud
         {
             ItemStack item = lectern.getShown();
             lines.add(hud("page_item", lectern.getShownAmount(), item.getHoverName()));
+            lines.add(hud(lectern.isExact() ? "pattern_match_exact" : "pattern_match_fuzzy"));
             if (worthReading(item))
             {
                 lines.add(Component.empty());
@@ -471,6 +481,9 @@ public final class ReadingHud
     private static List<Component> readBook(ItemStack item, @Nullable PagedContents pages, Level level, Player player)
     {
         List<Component> lines = new ArrayList<>(tooltip(item, level, player));
+        // A filter that isn't shown as a summary (a blacklist, or the book holds things it doesn't allow): named
+        ItemStack filter = BookFilter.get(item);
+        if (!filter.isEmpty() && !lines.isEmpty()) lines.add(1, hud("book_filter", filter.getHoverName()));
         if (pages != null && !lines.isEmpty())
         {
             // "Wool Book (Page 3/16)", then "24 Cobblestone" (or "Empty page")
@@ -486,6 +499,19 @@ public final class ReadingHud
             if (!worthReading(shown)) continue;
             lines.add(Component.empty());
             lines.addAll(tooltip(shown, level, player));
+        }
+        return lines;
+    }
+
+    // "Wool Book", "Filter: Item Filter", then each item it holds (and the filter's others): "1,240 Cobblestone"
+    private static List<Component> readFilteredBook(ItemStack book, List<ResourceStack<ItemResource>> summary, Level level, Player player)
+    {
+        List<Component> lines = new ArrayList<>();
+        lines.add(book.getHoverName());
+        lines.add(hud("book_filter", BookFilter.get(book).getHoverName()));
+        for (ResourceStack<ItemResource> stack : summary)
+        {
+            lines.add(hud("page_item", stack.amount(), stack.resource().toStack(1).getHoverName()));
         }
         return lines;
     }

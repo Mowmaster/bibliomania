@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
@@ -171,6 +172,36 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
             }
         }
         return total;
+    }
+
+    // How many items count as `item` in the whole library: exact, the same components; fuzzy, at any damage
+    // (LibraryDeposit#matches)
+    public long countMatching(ItemStack item, boolean exact)
+    {
+        long total = 0;
+        for (ResourceHandler<ItemResource> items : itemHandlers(true))
+        {
+            for (int index = 0; index < items.size(); index++)
+            {
+                if (LibraryDeposit.matches(items.getResource(index), item, exact)) total += items.getAmountAsLong(index);
+            }
+        }
+        return total;
+    }
+
+    // Takes up to `amount` of the first stored item that counts as `item` (exact or fuzzy). One kind only, so it's
+    // one stack: with fuzzy matching, a worn tool comes out as it is. EMPTY if there's none.
+    public ItemStack extractMatching(ItemStack item, int amount, boolean exact)
+    {
+        ResourceHandler<ItemResource> items = typeHandler(TransportTypes.ITEMS.get());
+        if (items == null || amount <= 0) return ItemStack.EMPTY;
+        try (Transaction transaction = Transaction.openRoot())
+        {
+            ResourceStack<ItemResource> got = ResourceHandlerUtil.extractFirst(items, resource -> LibraryDeposit.matches(resource, item, exact), amount, transaction);
+            if (got == null || got.amount() <= 0) return ItemStack.EMPTY;
+            transaction.commit();
+            return got.resource().toStack(got.amount());
+        }
     }
 
     // Takes up to `amount` of `item` from the whole library (bookcase by bookcase, first book first)
@@ -357,7 +388,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     {
         return switch (entry.kind())
         {
-            case ITEM -> countItem(entry.icon()) > 0;
+            case ITEM -> countMatching(entry.icon(), false) > 0;
             case BOOK, TRADE -> entry.book().map(this::findBook).isPresent();
             case TYPE -> entry.transportType() != null && typeHandler(entry.transportType()) != null;
         };

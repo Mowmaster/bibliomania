@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.BlockPos;
@@ -48,6 +49,11 @@ public class DataComponentRegistry
     // Codec.BOOL saves it as true/false; ByteBufCodecs.BOOL sends it as one byte.
     public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
             "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
+
+    // The MowLib filter an item book holds (BookFilter): it only takes what the filter allows. ItemStack.CODEC saves a
+    // whole stack (never an empty one: no filter means no component); STREAM_CODEC sends it to clients.
+    public static final Supplier<DataComponentType<ItemStack>> BOOK_FILTER = COMPONENTS.registerComponentType(
+            "book_filter", builder -> builder.persistent(ItemStack.CODEC).networkSynchronized(ItemStack.STREAM_CODEC));
 
     // What a Farmer's Almanac holds (CropContents)
     public static final Supplier<DataComponentType<CropContents>> CROP_CONTENTS = COMPONENTS.registerComponentType(

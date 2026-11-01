@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import java.util.List;
 import java.util.ArrayList;
 import net.minecraft.core.component.DataComponents;
@@ -48,6 +51,75 @@ public final class LibraryDeposit
     {
         if (stack.isEmpty()) return 0;
         return library.insertItems(ItemResource.of(stack), stack.getCount(), transaction);
+    }
+
+    // ---- Emptying a held container into the library ----
+
+    // The item in the player's hand, if it holds things, is emptied into the library (as much as fits; the rest stays
+    // in it): Bibliomania's storage books (an item book's pages, a Book of Fluids' fluid, experience, energy) and
+    // anything with an item handler (bundles, shulker boxes...). Returns how much moved, or -1 if the item doesn't hold
+    // anything (then it's stored as an item like any other).
+    // ItemAccess.forPlayerInteraction: the held stack as the item's own handlers see it; their changes (a book with
+    // fewer pages filled, a lighter bundle) are written back into the hand.
+    public static int emptyHeld(LibraryControllerBlockEntity library, Player player, InteractionHand hand)
+    {
+        ItemStack held = player.getItemInHand(hand);
+        if (held.isEmpty() || held.getCount() != 1) return -1;
+        ItemAccess access = ItemAccess.forPlayerInteraction(player, hand);
+        if (held.getItem() instanceof ShelvedBook shelved)
+        {
+            int moved = -1;
+            for (TransportType<?> type : TransportTypes.REGISTRY)
+            {
+                int each = emptyBook(library, shelved, type, access);
+                if (each >= 0) moved = Math.max(moved, 0) + each;
+            }
+            if (moved >= 0) return moved;
+        }
+        ResourceHandler<ItemResource> items = access.getCapability(Capabilities.Item.ITEM);
+        return items == null ? -1 : emptyInto(library, TransportTypes.ITEMS.get(), items);
+    }
+
+    // One type of a book's contents (-1: the book holds nothing of that type). A generic method so the type and the
+    // book's handler agree on R (a TransportType<?> from the registry can't be used for that directly).
+    private static <R extends Resource> int emptyBook(LibraryControllerBlockEntity library, ShelvedBook book, TransportType<R> type, ItemAccess access)
+    {
+        ResourceHandler<R> from = book.shelfHandler(type, access);
+        return from == null ? -1 : emptyInto(library, type, from);
+    }
+
+    // Moves everything it can from `from` into the library, index by index (each one all-or-what-fits, in its own
+    // nested transaction). Returns how much moved.
+    private static <R extends Resource> int emptyInto(LibraryControllerBlockEntity library, TransportType<R> type, ResourceHandler<R> from)
+    {
+        int moved = 0;
+        try (Transaction transaction = Transaction.openRoot())
+        {
+            for (int index = 0; index < from.size(); index++)
+            {
+                R resource = from.getResource(index);
+                int amount = from.getAmountAsInt(index);
+                if (resource.isEmpty() || amount <= 0) continue;
+                try (Transaction each = Transaction.open(transaction))
+                {
+                    int inserted = insertInto(library, type, resource, amount, each);
+                    if (inserted <= 0 || from.extract(index, resource, inserted, each) < inserted) continue;
+                    each.commit();
+                    moved += inserted;
+                }
+            }
+            transaction.commit();
+        }
+        return moved;
+    }
+
+    // Into the library: items its own way (insertItems), other types into their books (the cast is safe: R is
+    // ItemResource when the type is ITEMS)
+    private static <R extends Resource> int insertInto(LibraryControllerBlockEntity library, TransportType<R> type, R resource, int amount, TransactionContext transaction)
+    {
+        if (type == TransportTypes.ITEMS.get()) return library.insertItems((ItemResource) resource, amount, transaction);
+        ResourceHandler<R> to = library.typeHandler(type);
+        return to == null ? 0 : ResourceHandlerUtil.insertStacking(to, resource, amount, transaction);
     }
 
     // A bucket of fluid (water, lava, a modded fluid's bucket); not a bucket of fish or axolotl (MobBucketItem extends

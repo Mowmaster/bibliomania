@@ -176,5 +176,6 @@
   "message.bibliomania.requestor.match_exact": "Matching: exact (damage has to match too)",
   "message.bibliomania.requestor.match_fuzzy": "Matching: fuzzy (any damage)",
   "hud.bibliomania.pattern_match_exact": "Match: Exact",
-  "hud.bibliomania.pattern_match_fuzzy": "Match: Fuzzy (any damage)"
+  "hud.bibliomania.pattern_match_fuzzy": "Match: Fuzzy (any damage)",
+  "hud.bibliomania.book_filter": "Filter: %s"
 }

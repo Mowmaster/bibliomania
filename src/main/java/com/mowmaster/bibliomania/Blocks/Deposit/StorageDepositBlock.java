@@ -40,6 +40,8 @@ import java.util.Map;
 // The Storage Deposit (storage_deposit, the modelled half block; storage_deposit_full, a full block; they work the
 // same): a library's way in. In a library (touching it, or linked with the Librarian's Quill):
 // - right-click with an item: as much of the held stack as fits goes into the library's item books
+// - right-click with a storage book, bundle, shulker box or other container: its contents go in, the container stays
+//   in hand (LibraryDeposit#emptyHeld)
 // - right-click with a bucket of fluid: the fluid goes into the library's fluid books and the empty bucket stays in
 //   hand (if there's no room for the fluid, the full bucket is stored as an item instead); an empty bucket is just an
 //   item
@@ -113,6 +115,15 @@ public class StorageDepositBlock extends Block implements EntityBlock
         if (library == null)
         {
             message(player, "no_library");
+            return InteractionResult.SUCCESS;
+        }
+
+        // A storage book, bundle or other container: its contents in (as much as fits), the container kept in hand
+        int emptied = LibraryDeposit.emptyHeld(library, player, hand);
+        if (emptied >= 0)
+        {
+            if (emptied > 0) level.playSound(null, pos, SoundEvents.BUNDLE_DROP_CONTENTS, SoundSource.BLOCKS, 1f, 1f);
+            else message(player, "full");
             return InteractionResult.SUCCESS;
         }
 

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -67,7 +68,14 @@ public final class LecternEvents
         }
         ItemStack taken = lectern.take(player.isShiftKeyDown() ? 64 : 1);
         if (taken.isEmpty()) return;
-        StorageInteractions.giveToPlayer(player, taken);
+        // An item book in the main hand takes it first (its own rules and filter; IPagedStorageItem#insert changes
+        // the held book), whatever doesn't fit goes to the player
+        ItemStack held = player.getMainHandItem();
+        if (held.getItem() instanceof IPagedStorageItem paged && held.getCount() == 1)
+        {
+            taken.shrink(paged.insert(held, taken, false));
+        }
+        if (!taken.isEmpty()) StorageInteractions.giveToPlayer(player, taken);
         level.playSound(null, event.getPos(), SoundEvents.BUNDLE_REMOVE_ONE, SoundSource.BLOCKS, 0.8f, 1f);
     }
 }
