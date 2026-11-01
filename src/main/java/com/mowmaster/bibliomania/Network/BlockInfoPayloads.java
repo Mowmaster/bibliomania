@@ -73,7 +73,7 @@ public final class BlockInfoPayloads
         Player player = context.player();
         if (!(player.level() instanceof ServerLevel level) || !ReadingGlassesItem.canRead(player)) return;
         BlockPos pos = request.pos();
-        if (!level.isLoaded(pos) || player.distanceToSqr(pos.getCenter()) > 64 * 64) return;
+        if (!level.isLoaded(pos) || player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 * 64) return;
         context.reply(new Answer(pos, describe(level, pos)));
     }
 
