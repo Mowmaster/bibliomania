@@ -224,16 +224,22 @@ public final class VillagerBookActions
 
     public static @Nullable Trade trade(ServerLevel level, Player player, VillagerContents contents)
     {
+        return trade(level, player, contents, ItemStack.EMPTY);
+    }
+
+    // `cursor`: a stack held on the mouse in an inventory screen (not in the inventory itself), paid from first
+    public static @Nullable Trade trade(ServerLevel level, Player player, VillagerContents contents, ItemStack cursor)
+    {
         MerchantOffer offer = contents.currentOffer();
         if (offer == null || offer.isOutOfStock() || contents.villager().isEmpty()) return null;
         ItemCost costA = offer.getItemCostA();
         int countA = offer.getCostA().getCount();
         Optional<ItemCost> costB = offer.getItemCostB();
         int countB = offer.getCostB().getCount();
-        if (count(player, costA::test) < countA) return null;
-        if (costB.isPresent() && count(player, costB.get()::test) < countB) return null;
-        take(player, costA::test, countA);
-        costB.ifPresent(cost -> take(player, cost::test, countB));
+        if (count(player, cursor, costA::test) < countA) return null;
+        if (costB.isPresent() && count(player, cursor, costB.get()::test) < countB) return null;
+        take(player, cursor, costA::test, countA);
+        costB.ifPresent(cost -> take(player, cursor, cost::test, countB));
 
         // The trade is made on a copy of the offers (data components never change in place)
         MerchantOffers offers = contents.offers().copy();
@@ -283,10 +289,10 @@ public final class VillagerBookActions
         return slot < Inventory.INVENTORY_SIZE || slot == Inventory.SLOT_OFFHAND;
     }
 
-    private static int count(Player player, Predicate<ItemStack> matches)
+    private static int count(Player player, ItemStack cursor, Predicate<ItemStack> matches)
     {
         Inventory inventory = player.getInventory();
-        int total = 0;
+        int total = !cursor.isEmpty() && matches.test(cursor) ? cursor.getCount() : 0;
         for (int slot = 0; slot < inventory.getContainerSize(); slot++)
         {
             ItemStack stack = inventory.getItem(slot);
@@ -295,8 +301,14 @@ public final class VillagerBookActions
         return total;
     }
 
-    private static void take(Player player, Predicate<ItemStack> matches, int amount)
+    private static void take(Player player, ItemStack cursor, Predicate<ItemStack> matches, int amount)
     {
+        if (!cursor.isEmpty() && matches.test(cursor))
+        {
+            int taken = Math.min(amount, cursor.getCount());
+            cursor.shrink(taken);
+            amount -= taken;
+        }
         Inventory inventory = player.getInventory();
         for (int slot = 0; slot < inventory.getContainerSize() && amount > 0; slot++)
         {

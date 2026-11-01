@@ -4,6 +4,8 @@ import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.ServerConfig;
+import com.mowmaster.mowlib.paging.IPageable;
+import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -51,9 +53,14 @@ import java.util.function.Consumer;
 // - In an inventory the trades still restock (with the bell) after the timer; the tooltip lists the trades
 // - Upgrades, left-clicked onto the book (or the book onto them): enchanted golden apples take emeralds off the prices,
 //   nether stars make it restock sooner (see VillagerBookActions)
+// - Trading in an inventory: scroll over the book (or press MowLib's page keys over it, or while holding it) to pick
+//   the trade (the yellow one in the tooltip). Right-click the book with an empty cursor: buys it onto the cursor.
+//   Left-click one of the prices onto the book (or the book onto a price): buys it into the inventory. The prices
+//   come out of the inventory (and the cursor), as for the placed book.
 // Both right-clicks are NeoForge events, which come before the villager's trading screen or the block's own screen.
+// IPageable (MowLib): the trades are its pages; MowLib does the scrolling, the keys and telling the server.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class VillagerBookItem extends BlockItem
+public class VillagerBookItem extends BlockItem implements IPageable
 {
     public VillagerBookItem(Block block, Properties properties)
     {
@@ -69,6 +76,27 @@ public class VillagerBookItem extends BlockItem
     public static void setContents(ItemStack stack, VillagerContents contents)
     {
         stack.set(DataComponentRegistry.VILLAGER_CONTENTS.get(), contents);
+    }
+
+    // ---- Pages: the trade picked (IPageable) ----
+
+    @Override
+    public int getPageCount(ItemStack stack)
+    {
+        return contents(stack).pageCount();
+    }
+
+    @Override
+    public int getPage(ItemStack stack)
+    {
+        return Math.floorMod(contents(stack).page(), getPageCount(stack));
+    }
+
+    @Override
+    public void setPage(ItemStack stack, int page)
+    {
+        VillagerContents contents = contents(stack);
+        if (contents.hasVillager()) setContents(stack, contents.withPage(page));
     }
 
     // ---- Capturing a villager ----
@@ -161,19 +189,70 @@ public class VillagerBookItem extends BlockItem
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
     {
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !VillagerBookActions.isUpgrade(other)) return false;
-        return upgrade(self, other, player);
+        if (self.getCount() != 1 || !slot.allowModification(player)) return false;
+        VillagerContents contents = contents(self);
+        // Right-click with an empty cursor: buy the picked trade onto the cursor
+        if (clickAction == ClickAction.SECONDARY && other.isEmpty() && contents.hasVillager())
+        {
+            if (player.level() instanceof ServerLevel level)
+            {
+                ItemStack bought = buy(self, player, level, ItemStack.EMPTY);
+                if (!bought.isEmpty()) carriedItem.set(bought);
+            }
+            return true;
+        }
+        if (clickAction != ClickAction.PRIMARY) return false;
+        if (VillagerBookActions.isUpgrade(other)) return upgrade(self, other, player);
+        // Left-click with one of the prices: buy it into the inventory (the cursor's stack pays first)
+        if (VillagerBookActions.isPrice(contents, other))
+        {
+            if (player.level() instanceof ServerLevel level)
+            {
+                ItemStack bought = buy(self, player, level, other);
+                if (!bought.isEmpty()) StorageInteractions.giveToPlayer(player, bought);
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
     {
         ItemStack target = slot.getItem();
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !VillagerBookActions.isUpgrade(target)
-                || !slot.allowModification(player)) return false;
-        boolean handled = upgrade(self, target, player);
-        slot.setChanged();
-        return handled;
+        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !slot.allowModification(player)) return false;
+        if (VillagerBookActions.isUpgrade(target))
+        {
+            boolean handled = upgrade(self, target, player);
+            slot.setChanged();
+            return handled;
+        }
+        // The book onto one of the prices: buy it into the inventory (the prices come out of the inventory, that
+        // slot included)
+        if (VillagerBookActions.isPrice(contents(self), target))
+        {
+            if (player.level() instanceof ServerLevel level)
+            {
+                ItemStack bought = buy(self, player, level, ItemStack.EMPTY);
+                if (!bought.isEmpty()) StorageInteractions.giveToPlayer(player, bought);
+                slot.setChanged();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // Server: makes the picked trade (VillagerBookActions#trade), with a yes or no sound. Returns what was bought, or
+    // EMPTY if it couldn't be (sold out, or not enough to pay).
+    private static ItemStack buy(ItemStack book, Player player, ServerLevel level, ItemStack cursor)
+    {
+        VillagerBookActions.Trade trade = VillagerBookActions.trade(level, player, contents(book), cursor);
+        // level.playSound with null: everyone nearby hears it, the player too (this runs on the server only)
+        level.playSound(null, player.blockPosition(), trade != null ? SoundEvents.VILLAGER_YES : SoundEvents.VILLAGER_NO,
+                SoundSource.PLAYERS, 0.6f, 1f);
+        if (trade == null) return ItemStack.EMPTY;
+        setContents(book, trade.contents());
+        return trade.result();
     }
 
     private static boolean upgrade(ItemStack book, ItemStack item, Player player)
@@ -235,6 +314,8 @@ public class VillagerBookItem extends BlockItem
             tooltip.accept(line("upgrades", contents.discounts(), ServerConfig.villagerMaxDiscounts(), contents.speedUps())
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
+        // "Scroll to pick a trade; right-click to buy"
+        if (!contents.offers().isEmpty()) tooltip.accept(line("inventory_hint").withStyle(ChatFormatting.DARK_GRAY));
         for (int index = 0; index < contents.offers().size(); index++)
         {
             MerchantOffer offer = contents.offers().get(index);

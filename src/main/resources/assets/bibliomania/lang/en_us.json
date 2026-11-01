@@ -26,6 +26,7 @@
   "tooltip.bibliomania.villager_book.villager_max": "%1$s, %2$s",
   "tooltip.bibliomania.villager_book.restock": "Trades restock in: %s",
   "tooltip.bibliomania.villager_book.upgrades": "Discounts: %1$s/%2$s, faster restocks: %3$s",
+  "tooltip.bibliomania.villager_book.inventory_hint": "Scroll to pick a trade: right-click to buy, or left-click a price onto it",
   "tooltip.bibliomania.villager_book.trade": "%1$s -> %2$s (%3$s/%4$s)",
   "block.bibliomania.crop_book": "Farmer's Almanac",
   "tooltip.bibliomania.crop_book.no_soil": "Empty: put a soil in first (dirt, sand, moss...)",
