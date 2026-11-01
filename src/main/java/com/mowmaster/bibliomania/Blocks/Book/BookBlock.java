@@ -72,6 +72,14 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
 
     private static final int SHIFT_EXTRACT = 64;
 
+    // The THICKNESS (0-5) a book this full (0-1) shows
+    public static int thicknessFor(float fullness)
+    {
+        int thickness = 0;
+        while (thickness < THICKNESS_STEPS.length && fullness >= THICKNESS_STEPS[thickness]) thickness++;
+        return thickness;
+    }
+
     private final int pageCapacity;
     private final int defaultPages;
     // One shape per facing per thickness, built once
@@ -206,8 +214,7 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
     // Called by the block entity whenever the contents change
     public void updateThickness(Level level, BlockPos pos, BlockState state, float fullness)
     {
-        int thickness = 0;
-        while (thickness < THICKNESS_STEPS.length && fullness >= THICKNESS_STEPS[thickness]) thickness++;
+        int thickness = thicknessFor(fullness);
         if (state.getValue(THICKNESS) != thickness)
         {
             level.setBlock(pos, state.setValue(THICKNESS, thickness), Block.UPDATE_ALL);

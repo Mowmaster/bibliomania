@@ -22,7 +22,11 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.EntityBlock;
+import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -245,6 +249,38 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     public double getDisplayHeight()
     {
         return 1.25;
+    }
+
+    // ---- The open book, as placed (client) ----
+    // A client-only copy of the open book's block entity (made from the book item, never added to the level), so the
+    // lectern can draw the book the way it looks placed: its block model and its own renderer (crop, villager...).
+    // Made again whenever the open book changes.
+
+    private @Nullable BlockEntity displayBook;
+    private ItemStack displayBookStack = ItemStack.EMPTY;
+
+    // The open whole book as a placed block entity, or null (no book open, or a page of items)
+    public @Nullable BlockEntity getDisplayBook()
+    {
+        if (level == null || shownBookPage >= 0 || shownBook.isEmpty()) return null;
+        if (displayBook != null && ItemStack.matches(displayBookStack, shownBook)) return displayBook;
+        displayBookStack = shownBook.copy();
+        displayBook = null;
+        if (!(shownBook.getItem() instanceof BlockItem item) || !(item.getBlock() instanceof EntityBlock entityBlock)) return null;
+        BlockState state = item.getBlock().defaultBlockState();
+        if (state.hasProperty(BookBlock.FACING)) state = state.setValue(BookBlock.FACING, getBlockState().getValue(ReadingLecternBlock.FACING));
+        if (state.hasProperty(BookBlock.THICKNESS) && shownBook.getItem() instanceof ShelvedBook shelved)
+        {
+            float fullness = shelved.shelfFullness(shownBook);
+            if (fullness >= 0) state = state.setValue(BookBlock.THICKNESS, BookBlock.thicknessFor(fullness));
+        }
+        BlockEntity book = entityBlock.newBlockEntity(worldPosition, state);
+        if (book == null) return null;
+        book.setLevel(level);
+        // The item's data components (its contents) onto the block entity, as when it's placed
+        book.applyComponentsFromItemStack(shownBook);
+        displayBook = book;
+        return book;
     }
 
     // ---- Ticking and refreshing (server) ----
