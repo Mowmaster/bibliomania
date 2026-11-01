@@ -69,6 +69,8 @@ public class VillagerBookRecipe extends CustomRecipe
             if (stack.isEmpty()) continue;
             if (!(stack.getItem() instanceof VillagerBookItem)) return null;
             VillagerContents contents = VillagerBookItem.contents(stack);
+            // Wandering traders have no level to reach and nothing to reset
+            if (contents.wandering()) return null;
             if (contents.hasVillager())
             {
                 full++;

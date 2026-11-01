@@ -21,7 +21,9 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -47,6 +49,10 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
     private static final float ITEM_SCALE = 0.5f;
     // All of it together, made bigger (1.5 = 150%), so the parts keep their places relative to each other
     private static final float DISPLAY_SCALE = 1.5f;
+    // A wandering trader's "workstation": a blue cushion (looked up by id; empty if it isn't there)
+    private static final ItemStack CUSHION = BuiltInRegistries.ITEM.getOptional(Identifier.fromNamespaceAndPath("minecraft", "blue_cushion"))
+            .map(ItemStack::new).orElse(ItemStack.EMPTY);
+    private static final float CUSHION_SCALE = 0.6f;
 
     private final ItemModelResolver itemModelResolver;
 
@@ -68,6 +74,7 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
         BlockEntityRenderer.super.extractRenderState(book, state, partialTick, cameraPos, crumblingOverlay);
         state.villager = null;
         state.hasWorkstation = false;
+        state.cushion = false;
         Level level = book.getLevel();
         VillagerContents contents = book.getContents();
         if (level == null || !contents.hasVillager()) return;
@@ -78,13 +85,19 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
         state.angle = (float) Math.atan2(towardsPlacer.getStepX(), towardsPlacer.getStepZ());
         state.height = (book.getBlockState().getValue(BookBlock.THICKNESS) + 2) / 16f;
 
-        Villager villager = book.getDisplayVillager();
+        LivingEntity villager = book.getDisplayVillager();
         if (villager != null)
         {
             EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
             state.villager = dispatcher.extractEntity(villager, partialTick);
         }
-        if (contents.workstation().isPresent())
+        // A wandering trader has no workstation block: it sits behind a (blue) cushion, an item since 26.3
+        if (contents.wandering())
+        {
+            itemModelResolver.updateForTopItem(state.cushionItem, CUSHION, ItemDisplayContext.GROUND, level, null, 3);
+            state.cushion = !state.cushionItem.isEmpty();
+        }
+        else if (contents.workstation().isPresent())
         {
             Minecraft.getInstance().getBlockModelResolver().update(state.workstation, contents.workstation().get().defaultBlockState(), DISPLAY);
             state.hasWorkstation = true;
@@ -114,7 +127,7 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
     @Override
     public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera)
     {
-        if (state.villager == null && !state.hasWorkstation) return;
+        if (state.villager == null && !state.hasWorkstation && !state.cushion) return;
         poseStack.pushPose();
         // From here on +Z points at the player who placed the book
         poseStack.translate(0.5, state.height, 0.5);
@@ -142,6 +155,9 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
             poseStack.popPose();
         }
 
+        // A wandering trader's cushion where the workstation would be
+        if (state.cushion) item(state.cushionItem, poseStack, collector, state.lightCoords, 0, 0, workstationZ, CUSHION_SCALE);
+
         // The item on offer, above the workstation
         item(state.result, poseStack, collector, state.lightCoords, 0, WORKSTATION_SIZE + 0.04f, workstationZ);
         // The price in front: one item in the middle, or two side by side
@@ -161,10 +177,15 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
 
     private static void item(ItemStackRenderState item, PoseStack poseStack, SubmitNodeCollector collector, int light, float x, float y, float z)
     {
+        item(item, poseStack, collector, light, x, y, z, ITEM_SCALE);
+    }
+
+    private static void item(ItemStackRenderState item, PoseStack poseStack, SubmitNodeCollector collector, int light, float x, float y, float z, float scale)
+    {
         if (item.isEmpty()) return;
         poseStack.pushPose();
         poseStack.translate(x, y, z);
-        poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
+        poseStack.scale(scale, scale, scale);
         item.submit(poseStack, collector, light, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
     }
@@ -181,6 +202,8 @@ public class VillagerBookRenderer implements BlockEntityRenderer<VillagerBookBlo
         @Nullable EntityRenderState villager;
         final BlockModelRenderState workstation = new BlockModelRenderState();
         boolean hasWorkstation;
+        final ItemStackRenderState cushionItem = new ItemStackRenderState();
+        boolean cushion;
         final ItemStackRenderState costA = new ItemStackRenderState();
         final ItemStackRenderState costB = new ItemStackRenderState();
         final ItemStackRenderState result = new ItemStackRenderState();

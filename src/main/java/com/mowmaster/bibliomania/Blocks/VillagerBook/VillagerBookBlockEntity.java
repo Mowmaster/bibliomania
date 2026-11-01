@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -37,7 +38,8 @@ public class VillagerBookBlockEntity extends BlockEntity implements IPageHolder,
     private boolean pickedUp = false;
 
     // Client only: the villager drawn above the book, made again when its data changes
-    @Nullable private Villager displayVillager;
+    // (a Villager, or a WanderingTrader for a book holding one)
+    @Nullable private LivingEntity displayVillager;
 
     public VillagerBookBlockEntity(BlockPos pos, BlockState state)
     {
@@ -89,10 +91,16 @@ public class VillagerBookBlockEntity extends BlockEntity implements IPageHolder,
 
     // ---- The display villager (client) ----
 
-    public @Nullable Villager getDisplayVillager()
+    public @Nullable LivingEntity getDisplayVillager()
     {
         if (level == null || contents.villager().isEmpty()) return null;
-        if (displayVillager == null || !displayVillager.getVillagerData().equals(contents.villager().get()))
+        if (contents.wandering())
+        {
+            // `instanceof Villager` false: a wandering trader is already showing (or nothing is)
+            if (displayVillager == null || displayVillager instanceof Villager) displayVillager = VillagerBookActions.temporaryWanderingTrader(level);
+        }
+        // Pattern matching: `!(x instanceof Villager v) || ...` - v only exists where the instanceof was true
+        else if (!(displayVillager instanceof Villager villager) || !villager.getVillagerData().equals(contents.villager().get()))
         {
             displayVillager = VillagerBookActions.temporaryVillager(level, contents.villager().get(), 0);
         }

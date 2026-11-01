@@ -104,8 +104,8 @@ public class VillagerBookBlock extends BookBlock
             return InteractionResult.SUCCESS;
         }
 
-        // A workstation: new profession
-        if (stack.getItem() instanceof BlockItem blockItem)
+        // A workstation: new profession (not for wandering traders)
+        if (!contents.wandering() && stack.getItem() instanceof BlockItem blockItem)
         {
             Optional<Holder<VillagerProfession>> profession = VillagerBookActions.professionFor(blockItem.getBlock().defaultBlockState());
             if (profession.isPresent())

@@ -14,6 +14,7 @@ import net.minecraft.world.entity.ai.village.poi.PoiTypes;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -45,21 +46,42 @@ public final class VillagerBookActions
 
     // A villager (not in the world) with the book's villager data and experience, and no trades yet: asking it for
     // its offers (server) makes it roll the trades for its profession at its current level
-    public static @Nullable Villager temporaryVillager(Level level, VillagerData data, int xp)
+    // (`data` null: a new villager's own, plains with no profession)
+    public static @Nullable Villager temporaryVillager(Level level, @Nullable VillagerData data, int xp)
     {
         Entity entity = MobBookActions.createTemporary(EntityTypes.VILLAGER, level, EntitySpawnReason.TRIGGERED);
         if (!(entity instanceof Villager villager)) return null;
-        villager.setVillagerData(data);
+        if (data != null) villager.setVillagerData(data);
         villager.setVillagerXp(xp);
         return villager;
     }
 
+    // A wandering trader (not in the world), for drawing a book that holds one
+    public static @Nullable WanderingTrader temporaryWanderingTrader(Level level)
+    {
+        Entity entity = MobBookActions.createTemporary(EntityTypes.WANDERING_TRADER, level, EntitySpawnReason.TRIGGERED);
+        return entity instanceof WanderingTrader trader ? trader : null;
+    }
+
     // ---- Capturing ----
 
-    // Grown villagers only (not babies), and not ones that are trading with someone
+    // Grown villagers (not babies) and wandering traders, and not ones that are trading with someone
     public static boolean canCapture(Entity target)
     {
-        return target instanceof Villager villager && !villager.isBaby() && !villager.isTrading();
+        if (target instanceof Villager villager) return !villager.isBaby() && !villager.isTrading();
+        if (target instanceof WanderingTrader trader) return !trader.isTrading();
+        return false;
+    }
+
+    // A wandering trader into the book, with its trades (keeping the book's upgrades). It has no villager data of its
+    // own, so a plain villager's stands in (never shown or used). Null if that villager couldn't be made.
+    public static @Nullable VillagerContents capture(VillagerContents book, WanderingTrader trader)
+    {
+        Villager placeholder = temporaryVillager(trader.level(), null, 0);
+        if (placeholder == null) return null;
+        MerchantOffers offers = trader.getOffers().copy();
+        applyDiscounts(offers, book.discounts());
+        return book.withWanderingTrader(placeholder.getVillagerData(), offers);
     }
 
     // The villager into the book (keeping the book's upgrades). Server: getOffers rolls its first trades if it has
@@ -98,10 +120,10 @@ public final class VillagerBookActions
     }
 
     // The villager set to a new profession at its workstation: level 1, no experience, new trades (rolled by
-    // vanilla for that profession). Null if the book is empty or the villager couldn't be made.
+    // vanilla for that profession). Null if the book is empty, holds a wandering trader, or the villager couldn't be made.
     public static @Nullable VillagerContents setProfession(ServerLevel level, VillagerContents contents, Holder<VillagerProfession> profession, Block block)
     {
-        if (contents.villager().isEmpty()) return null;
+        if (contents.villager().isEmpty() || contents.wandering()) return null;
         VillagerData data = contents.villager().get().withProfession(profession).withLevel(1);
         Villager villager = temporaryVillager(level, data, 0);
         if (villager == null) return null;
@@ -115,7 +137,7 @@ public final class VillagerBookActions
     // stay.
     public static VillagerContents reset(VillagerContents contents)
     {
-        if (contents.villager().isEmpty()) return contents;
+        if (contents.villager().isEmpty() || contents.wandering()) return contents;
         Holder<VillagerProfession> none = BuiltInRegistries.VILLAGER_PROFESSION.getOrThrow(VillagerProfession.NONE);
         VillagerData data = contents.villager().get().withProfession(none).withLevel(1);
         return contents.withVillager(data, new MerchantOffers(), 0, Optional.empty());
@@ -221,8 +243,10 @@ public final class VillagerBookActions
 
         VillagerData data = contents.villager().get();
         int xp = contents.xp() + used.getXp();
-        // Level up (maybe more than once): each new level's trades are added to the ones it already has
-        while (data.level() < MAX_LEVEL && xp >= NEXT_LEVEL_XP[data.level()])
+        // Level up (maybe more than once): each new level's trades are added to the ones it already has. Wandering
+        // traders have no levels (or experience).
+        if (contents.wandering()) xp = 0;
+        while (!contents.wandering() && data.level() < MAX_LEVEL && xp >= NEXT_LEVEL_XP[data.level()])
         {
             data = data.withLevel(data.level() + 1);
             addLevelTrades(level, data, offers, contents.discounts());

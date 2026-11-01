@@ -19,6 +19,8 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.villager.VillagerData;
 import net.minecraft.world.entity.npc.villager.VillagerProfession;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickAction;
@@ -42,6 +44,8 @@ import java.util.function.Consumer;
 
 // The Trader's Ledger as an item.
 // - Right-click a grown villager with an empty book: it goes into the book, trades, level and all
+// - Or a wandering trader: its trades go in (it has no level or profession, so it can't level up, change job, be
+//   reset or be bred)
 // - Right-click a workstation block (lectern, composter, smithing table...) with a book holding a villager: the
 //   villager takes that profession (level 1, new trades); the block stays where it is
 // - In an inventory the trades still restock (with the bell) after the timer; the tooltip lists the trades
@@ -75,7 +79,7 @@ public class VillagerBookItem extends BlockItem
         ItemStack book = event.getItemStack();
         if (!(book.getItem() instanceof VillagerBookItem)) return;
         Entity target = event.getTarget();
-        if (!(target instanceof Villager)) return;
+        if (!(target instanceof Villager) && !(target instanceof WanderingTrader)) return;
         Player player = event.getEntity();
         // Cancelled with a result: the villager's trading screen doesn't open, and the arm swings
         event.setCanceled(true);
@@ -86,12 +90,16 @@ public class VillagerBookItem extends BlockItem
             player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
             return;
         }
-        if (event.getLevel() instanceof ServerLevel serverLevel && target instanceof Villager villager)
+        if (event.getLevel() instanceof ServerLevel serverLevel)
         {
-            setContents(book, VillagerBookActions.capture(contents(book), villager));
+            VillagerContents captured = target instanceof Villager villager
+                    ? VillagerBookActions.capture(contents(book), villager)
+                    : VillagerBookActions.capture(contents(book), (WanderingTrader) target);
+            if (captured == null) return;
+            setContents(book, captured);
             serverLevel.sendParticles(ParticleTypes.HAPPY_VILLAGER, target.getX(), target.getY() + 1, target.getZ(), 10, 0.3, 0.5, 0.3, 0);
             serverLevel.playSound(null, target.blockPosition(), SoundEvents.VILLAGER_CELEBRATE, SoundSource.PLAYERS, 1f, 1f);
-            villager.discard(); // gone from the world, now in the book
+            target.discard(); // gone from the world, now in the book
         }
     }
 
@@ -111,7 +119,8 @@ public class VillagerBookItem extends BlockItem
         ItemStack book = event.getItemStack();
         if (!(book.getItem() instanceof VillagerBookItem)) return;
         VillagerContents contents = contents(book);
-        if (!contents.hasVillager()) return;
+        // Wandering traders don't take jobs: the block works as normal
+        if (!contents.hasVillager() || contents.wandering()) return;
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
         BlockState state = level.getBlockState(pos);
@@ -200,7 +209,12 @@ public class VillagerBookItem extends BlockItem
             return;
         }
         VillagerData data = contents.villager().get();
-        if (data.level() >= VillagerBookActions.MAX_LEVEL)
+        if (contents.wandering())
+        {
+            // "Wandering Trader" (the entity's own name)
+            tooltip.accept(Component.empty().append(EntityTypes.WANDERING_TRADER.getDescription()).withStyle(ChatFormatting.GREEN));
+        }
+        else if (data.level() >= VillagerBookActions.MAX_LEVEL)
         {
             tooltip.accept(line("villager_max", data.profession().value().name(), VillagerBookActions.levelName(data.level())).withStyle(ChatFormatting.GREEN));
         }
