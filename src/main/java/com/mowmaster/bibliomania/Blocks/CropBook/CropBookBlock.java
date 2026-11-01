@@ -11,6 +11,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LevelEvent;
@@ -26,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 // the pages (CropBookRenderer). Grows on random ticks, like a real crop (see CropBookActions#tryGrow).
 // - Right-click with soil (first), then a seed: plants it (one item used)
 // - Right-click with bone meal: the next stage straight away
+// - Right-click with a water bucket: water in the book (needed by under-water plants); an empty bucket takes it out
 // - Left-click with the hand or any tool once fully grown: harvests, drops on the book, back to the first stage
 //   (trees: an axe for logs, shears for leaves; right-click with an axe for stripped logs)
 //   (CropBookEvents#onLeftClickBlock, like the mob books' left-clicks)
@@ -93,6 +95,21 @@ public class CropBookBlock extends BookBlock
                 book.setContents(contents.withStage(0));
                 stack.hurtAndBreak(1, player, hand);
                 level.playSound(null, pos, SoundEvents.AXE_STRIP.value(), SoundSource.BLOCKS, 1f, 1f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
+        // Buckets: water in or out
+        CropContents watered = CropBookActions.useBucket(contents, stack);
+        if (watered != null)
+        {
+            if (level instanceof ServerLevel)
+            {
+                book.setContents(watered);
+                // createFilledResult: in creative the bucket stays as it was; otherwise one bucket becomes the other
+                // (from a stack of empty buckets, the water bucket goes into the inventory)
+                player.setItemInHand(hand, ItemUtils.createFilledResult(stack, player, CropBookActions.bucketAfter(stack)));
+                level.playSound(null, pos, watered.water() ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL, SoundSource.BLOCKS, 1f, 1f);
             }
             return InteractionResult.SUCCESS;
         }

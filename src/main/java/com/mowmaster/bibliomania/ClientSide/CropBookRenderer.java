@@ -73,7 +73,8 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         state.hasTopper = false;
         state.pod = profile != null && profile.pod();
         state.flipped = profile != null && profile.flipped();
-        state.water = profile != null && profile.water();
+        // Water drawn whenever the book has some (a water bucket was poured in)
+        state.water = contents.water();
         state.hasBody = profile != null && profile.body() != null;
         // A grown sapling, mushroom or fungus: the whole tree (its pattern) in its log and leaves
         state.tree = profile != null && profile.tree() != null && contents.grown();
@@ -85,7 +86,9 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         }
         if (profile != null && state.hasSoil)
         {
-            resolver.update(state.crop, profile.stage(contents.stage()), DISPLAY);
+            // Coral with no water: its dead form
+            BlockState shown = profile.dead() != null && !contents.water() ? profile.dead() : profile.stage(contents.stage());
+            resolver.update(state.crop, shown, DISPLAY);
             // Tall plants with a different block under the tip (kelp plant under kelp)
             if (profile.body() != null) resolver.update(state.body, profile.body(), DISPLAY);
             state.cropHeight = profile.height(contents.stage());
@@ -113,6 +116,8 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
 
         // The crop on top, one block per block of height (sugar cane)
         poseStack.translate(0, SOIL_HEIGHT, 0);
+        // Water in the book: round the bottom block only
+        if (state.water) water(poseStack, collector, state.lightCoords);
         if (state.tree)
         {
             tree(state, poseStack, collector);
@@ -127,8 +132,6 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
             poseStack.rotate(Axis.XP.rotationDegrees(-90));
             poseStack.translate(-0.5, -0.5, -0.5);
         }
-        // Under-water plants: water round the bottom block only
-        if (state.water) water(poseStack, collector, state.lightCoords);
         for (int block = 0; block < state.cropHeight; block++)
         {
             // The tip at the top; under it the body block, if the plant has one

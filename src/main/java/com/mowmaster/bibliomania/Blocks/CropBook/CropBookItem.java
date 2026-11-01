@@ -27,7 +27,8 @@ import java.util.function.Consumer;
 // The Farmer's Almanac as an item.
 // - In inventories, either way round (the book on the cursor onto an item, or the item onto the book):
 //     left-click with soil (first) or a seed that grows on it: puts one in; a boost item (nether star) or a yield
-//     item (heavy core) any time; bone meal grows it a stage (a flower gives one of itself)
+//     item (heavy core) any time; bone meal grows it a stage (a flower gives one of itself); a water bucket pours
+//     water in, an empty bucket takes it out
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
@@ -89,6 +90,26 @@ public class CropBookItem extends BlockItem
     {
         if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !slot.allowModification(player)) return false;
         ItemStack target = slot.getItem();
+        // A bucket in the slot: it's swapped for the other bucket in place
+        CropContents watered = CropBookActions.useBucket(contents(self), target);
+        if (watered != null)
+        {
+            if (!player.level().isClientSide())
+            {
+                setContents(self, watered);
+                ItemStack after = CropBookActions.bucketAfter(target);
+                if (target.getCount() == 1) slot.set(after);
+                else
+                {
+                    // One of a stack of empty buckets: the water bucket goes into the inventory
+                    target.shrink(1);
+                    slot.setChanged();
+                    StorageInteractions.giveToPlayer(player, after);
+                }
+            }
+            player.playSound(watered.water() ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL, 0.8f, 1f);
+            return true;
+        }
         if (CropBookActions.isBoneMeal(target))
         {
             boolean handled = boneMeal(self, target, player);
@@ -126,6 +147,27 @@ public class CropBookItem extends BlockItem
             }
             player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8f, 1f);
             return true;
+        }
+        // Left-click with a bucket: water in or out; the cursor's bucket becomes the other one
+        if (clickAction == ClickAction.PRIMARY)
+        {
+            CropContents watered = CropBookActions.useBucket(contents, other);
+            if (watered != null)
+            {
+                if (!player.level().isClientSide())
+                {
+                    setContents(self, watered);
+                    ItemStack after = CropBookActions.bucketAfter(other);
+                    if (other.getCount() == 1) carriedItem.set(after);
+                    else
+                    {
+                        other.shrink(1);
+                        StorageInteractions.giveToPlayer(player, after);
+                    }
+                }
+                player.playSound(watered.water() ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL, 0.8f, 1f);
+                return true;
+            }
         }
         // Left-click with bone meal: like on the placed book (a ripe crop is harvested straight into the inventory)
         if (clickAction == ClickAction.PRIMARY && CropBookActions.isBoneMeal(other)) return boneMeal(self, other, player);
@@ -206,6 +248,7 @@ public class CropBookItem extends BlockItem
             return;
         }
         tooltip.accept(line("soil", contents.soil().get().getName()).withStyle(ChatFormatting.GRAY));
+        if (contents.water()) tooltip.accept(line("water").withStyle(ChatFormatting.AQUA));
         CropProfile profile = contents.profile();
         if (profile == null)
         {
@@ -216,7 +259,11 @@ public class CropBookItem extends BlockItem
                 .withStyle(ChatFormatting.GREEN));
         // "Growth chance: 41%" (each random tick when placed, each timer in an inventory)
         tooltip.accept(line("chance", Math.round(CropBookActions.growChance(contents) * 100)).withStyle(ChatFormatting.DARK_GRAY));
-        if (profile.flower())
+        if (CropBookActions.needsWater(contents))
+        {
+            tooltip.accept(line("needs_water").withStyle(ChatFormatting.RED));
+        }
+        else if (profile.flower())
         {
             tooltip.accept(line("flower").withStyle(ChatFormatting.GOLD));
         }

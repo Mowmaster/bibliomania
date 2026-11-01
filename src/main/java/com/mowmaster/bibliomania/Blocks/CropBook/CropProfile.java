@@ -52,42 +52,44 @@ import java.util.List;
 // - flipped:   grows downwards in the world (weeping vines): drawn upside down, so it grows up from the book
 // - water:     grows under water (kelp, sea pickles, seagrass): drawn with water round its bottom block
 // - flower:    never grows; bone meal gives one of it each time instead (CropBookActions#boneMeal)
+// - dead:      what's drawn while the book has no water (coral: its dead form), or null
 // - tree:      a sapling, mushroom or fungus that grows into a tree in one go (its blocks and shape; see Tree), or null
 // A plant with a bibliomania:crop_drops entry drops that instead of its harvest states' loot (see CropDrops).
 public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants,
                           int maxHeight, @Nullable BlockState body, @Nullable BlockState topper, boolean pod,
-                          boolean flipped, boolean water, boolean flower, @Nullable Tree tree)
+                          boolean flipped, boolean water, boolean flower, @Nullable Tree tree,
+                          @Nullable BlockState dead)
 {
     // A plain profile (one block tall, no special drawing); the with... methods below add the rest
     private static CropProfile basic(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants)
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, 0, null, null, false, false, false, false, null);
+        return new CropProfile(seed, plant, stages, harvest, replants, 0, null, null, false, false, false, false, null, null);
     }
 
     private CropProfile tall(int height, @Nullable BlockState bodyState, @Nullable BlockState topperState)
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, height, bodyState, topperState, pod, flipped, water, flower, tree);
+        return new CropProfile(seed, plant, stages, harvest, replants, height, bodyState, topperState, pod, flipped, water, flower, tree, dead);
     }
 
     private CropProfile asPod()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, true, flipped, water, flower, tree);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, true, flipped, water, flower, tree, dead);
     }
 
     private CropProfile asFlipped()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, true, water, flower, tree);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, true, water, flower, tree, dead);
     }
 
     // Under water: and every state that can be waterlogged is (sea pickles glow only when they are)
     private CropProfile inWater()
     {
-        return new CropProfile(seed, plant, waterlogged(stages), waterlogged(harvest), replants, maxHeight, body, topper, pod, flipped, true, flower, tree);
+        return new CropProfile(seed, plant, waterlogged(stages), waterlogged(harvest), replants, maxHeight, body, topper, pod, flipped, true, flower, tree, dead);
     }
 
     private CropProfile asFlower()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, true, tree);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, true, tree, dead);
     }
 
     private static List<BlockState> waterlogged(List<BlockState> states)
@@ -100,9 +102,14 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
         return result;
     }
 
+    private CropProfile withDead(@Nullable BlockState deadState)
+    {
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, flower, tree, deadState);
+    }
+
     private CropProfile asTree(Tree treeBlocks)
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, flower, treeBlocks);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, flower, treeBlocks, dead);
     }
 
     // ---- Trees ----
@@ -415,6 +422,17 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             List<BlockState> stages = new ArrayList<>(ages(base));
             stages.add(flower.defaultBlockState());
             return basic(seed, plant, stages, List.of(flower.defaultBlockState()), true);
+        }
+        // Coral, coral fans and coral blocks: like flowers (bone meal gives one more), but under water; with no water
+        // in the book they're drawn as their dead form ("dead_" + the name, in the same namespace)
+        if (base.is(BlockTags.CORALS) || base.is(BlockTags.CORAL_BLOCKS))
+        {
+            Identifier id = BuiltInRegistries.BLOCK.getKey(plant);
+            BlockState dead = BuiltInRegistries.BLOCK.getOptional(Identifier.fromNamespaceAndPath(id.getNamespace(), "dead_" + id.getPath()))
+                    .map(Block::defaultBlockState).orElse(null);
+            // Dead coral out of water isn't waterlogged
+            if (dead != null && dead.hasProperty(BlockStateProperties.WATERLOGGED)) dead = dead.setValue(BlockStateProperties.WATERLOGGED, false);
+            return basic(seed, plant, List.of(base), List.of(), false).asFlower().inWater().withDead(dead);
         }
         // Saplings, mushrooms and fungi: the plant, then (in one go) the whole tree
         Tree tree = Tree.of(plant);

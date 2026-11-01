@@ -61,6 +61,12 @@
       "soils": [
         "minecraft:crimson_nylium"
       ]
+    },
+    "#minecraft:corals": {
+      "soils": "#minecraft:sand"
+    },
+    "#minecraft:coral_blocks": {
+      "soils": "#minecraft:sand"
     }
   }
 }

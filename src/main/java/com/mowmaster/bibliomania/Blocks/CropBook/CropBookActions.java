@@ -37,11 +37,49 @@ public final class CropBookActions
         return contents.canPlant(stack.getItem()) ? contents.withSeed(stack.getItem()) : null;
     }
 
-    // What taking out gives back: the seed (losing the growth so far), or with no seed the soil
+    // What taking out gives back: the seed (losing the growth so far), or with no seed the soil. Coral comes out dead
+    // if the book has no water.
     public static ItemStack topItem(CropContents contents)
     {
+        CropProfile profile = contents.profile();
+        if (profile != null && profile.dead() != null && !contents.water()) return new ItemStack(profile.dead().getBlock());
         if (contents.seed().isPresent()) return new ItemStack(contents.seed().get());
         return contents.soil().map(block -> new ItemStack(block)).orElse(ItemStack.EMPTY);
+    }
+
+    // ---- Water ----
+    // A water bucket pours water into the book (the bucket comes back empty); an empty bucket takes it back out.
+
+    public static boolean isWaterBucket(ItemStack stack)
+    {
+        return stack.is(Items.WATER_BUCKET);
+    }
+
+    public static boolean isEmptyBucket(ItemStack stack)
+    {
+        return stack.is(Items.BUCKET);
+    }
+
+    // The book after `bucket` is used on it, or null if it does nothing (water into a watered book, or an empty
+    // bucket on a dry one)
+    public static @Nullable CropContents useBucket(CropContents contents, ItemStack bucket)
+    {
+        if (isWaterBucket(bucket) && !contents.water()) return contents.withWater(true);
+        if (isEmptyBucket(bucket) && contents.water()) return contents.withWater(false);
+        return null;
+    }
+
+    // What the bucket becomes: a water bucket empties, an empty bucket fills
+    public static ItemStack bucketAfter(ItemStack bucket)
+    {
+        return new ItemStack(isWaterBucket(bucket) ? Items.BUCKET : Items.WATER_BUCKET);
+    }
+
+    // Under-water plants without water in the book don't grow (and bone meal does nothing)
+    public static boolean needsWater(CropContents contents)
+    {
+        CropProfile profile = contents.profile();
+        return profile != null && profile.water() && !contents.water();
     }
 
     // ---- Growing ----
@@ -75,7 +113,7 @@ public final class CropBookActions
     public static @Nullable CropContents tryGrow(CropContents contents, RandomSource random)
     {
         CropProfile profile = contents.profile();
-        if (!contents.planted() || contents.grown() || profile == null || profile.flower()) return null;
+        if (!contents.planted() || contents.grown() || profile == null || profile.flower() || needsWater(contents)) return null;
         if (random.nextFloat() >= growChance(contents)) return null;
         return nextStage(contents, profile, random);
     }
@@ -98,7 +136,7 @@ public final class CropBookActions
     public static @Nullable BoneMeal boneMeal(CropContents contents, RandomSource random)
     {
         CropProfile profile = contents.profile();
-        if (!contents.planted() || profile == null) return null;
+        if (!contents.planted() || profile == null || needsWater(contents)) return null;
         if (profile.flower()) return new BoneMeal(contents, List.of(new ItemStack(profile.seed())));
         if (contents.grown()) return null;
         if (profile.tree() != null && random.nextFloat() >= ServerConfig.treeBoneMealChance()) return new BoneMeal(contents, List.of());
