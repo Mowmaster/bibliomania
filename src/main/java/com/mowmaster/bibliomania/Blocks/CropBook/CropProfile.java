@@ -1,8 +1,11 @@
 package com.mowmaster.bibliomania.Blocks.CropBook;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -12,6 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CaveVines;
 import net.minecraft.world.level.block.CocoaBlock;
 import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.SaplingBlock;
 import net.minecraft.world.level.block.SeaPickleBlock;
 import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,6 +23,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.common.Tags;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -35,6 +40,8 @@ import java.util.List;
 // - chorus flowers: their ages; harvest gives the fruit of a small chorus plant
 // - sea pickles: 1 to 4 pickles, under water; a replanting harvest
 // - flowers (and seagrass): don't grow; each bone meal gives one more of them
+// - saplings: one stage to a whole tree (drawn from a fixed pattern); harvested with an axe (logs, or stripped logs
+//   on a right-click) or shears (leaves and what leaves drop), then a sapling again
 // - anything else whose block has an "age" (nether wart, cocoa, pitcher pods, modded plants): its ages, replanting
 // The fields:
 // - replants:  the harvest takes the plant (like breaking a crop), so one seed from the drops goes back in
@@ -45,41 +52,42 @@ import java.util.List;
 // - flipped:   grows downwards in the world (weeping vines): drawn upside down, so it grows up from the book
 // - water:     grows under water (kelp, sea pickles, seagrass): drawn with water round its bottom block
 // - flower:    never grows; bone meal gives one of it each time instead (CropBookActions#boneMeal)
+// - tree:      a sapling that grows into a tree in one go (its log, leaves and stripped log; see Tree), or null
 // A plant with a bibliomania:crop_drops entry drops that instead of its harvest states' loot (see CropDrops).
 public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants,
                           int maxHeight, @Nullable BlockState body, @Nullable BlockState topper, boolean pod,
-                          boolean flipped, boolean water, boolean flower)
+                          boolean flipped, boolean water, boolean flower, @Nullable Tree tree)
 {
     // A plain profile (one block tall, no special drawing); the with... methods below add the rest
     private static CropProfile basic(Item seed, Block plant, List<BlockState> stages, List<BlockState> harvest, boolean replants)
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, 0, null, null, false, false, false, false);
+        return new CropProfile(seed, plant, stages, harvest, replants, 0, null, null, false, false, false, false, null);
     }
 
     private CropProfile tall(int height, @Nullable BlockState bodyState, @Nullable BlockState topperState)
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, height, bodyState, topperState, pod, flipped, water, flower);
+        return new CropProfile(seed, plant, stages, harvest, replants, height, bodyState, topperState, pod, flipped, water, flower, tree);
     }
 
     private CropProfile asPod()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, true, flipped, water, flower);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, true, flipped, water, flower, tree);
     }
 
     private CropProfile asFlipped()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, true, water, flower);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, true, water, flower, tree);
     }
 
     // Under water: and every state that can be waterlogged is (sea pickles glow only when they are)
     private CropProfile inWater()
     {
-        return new CropProfile(seed, plant, waterlogged(stages), waterlogged(harvest), replants, maxHeight, body, topper, pod, flipped, true, flower);
+        return new CropProfile(seed, plant, waterlogged(stages), waterlogged(harvest), replants, maxHeight, body, topper, pod, flipped, true, flower, tree);
     }
 
     private CropProfile asFlower()
     {
-        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, true);
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, true, tree);
     }
 
     private static List<BlockState> waterlogged(List<BlockState> states)
@@ -90,6 +98,84 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             result.add(state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, true) : state);
         }
         return result;
+    }
+
+    private CropProfile asTree(Tree treeBlocks)
+    {
+        return new CropProfile(seed, plant, stages, harvest, replants, maxHeight, body, topper, pod, flipped, water, flower, treeBlocks);
+    }
+
+    // ---- Trees ----
+
+    // A tree's blocks, found from its sapling's name: "oak_sapling" -> oak_log, oak_leaves, stripped_oak_log (the same
+    // in the sapling's own namespace, so modded trees named the usual way work too; "_propagule" for mangroves)
+    public record Tree(Block log, Block leaves, Block strippedLog)
+    {
+        // The drawn tree, top row first: X leaves, L logs (as rows of a square tree: each X row is a square layer)
+        public static final String[] PATTERN = {
+                "  X  ",
+                " XXX ",
+                "XXLXX",
+                "  L  ",
+                "  L  ",
+                "  L  "};
+
+        // How many logs and leaves a harvest gives: the L's and X's in the pattern
+        public static final int LOGS = count('L');
+        public static final int LEAVES = count('X');
+
+        private static int count(char block)
+        {
+            int total = 0;
+            for (String row : PATTERN) for (char c : row.toCharArray()) if (c == block) total++;
+            return total;
+        }
+
+        public static @Nullable Tree of(Block sapling)
+        {
+            if (!(sapling instanceof SaplingBlock)) return null;
+            Identifier id = BuiltInRegistries.BLOCK.getKey(sapling);
+            String wood = id.getPath().replace("_sapling", "").replace("_propagule", "");
+            Block log = block(id.getNamespace(), wood + "_log");
+            Block leaves = block(id.getNamespace(), wood + "_leaves");
+            Block stripped = block(id.getNamespace(), "stripped_" + wood + "_log");
+            if (log == null || leaves == null) return null;
+            return new Tree(log, leaves, stripped != null ? stripped : log);
+        }
+
+        private static @Nullable Block block(String namespace, String path)
+        {
+            // getOptional: the registered block, or empty if there's none with that id
+            return BuiltInRegistries.BLOCK.getOptional(Identifier.fromNamespaceAndPath(namespace, path)).orElse(null);
+        }
+    }
+
+    // Tools that harvest a grown tree: an axe (logs) or shears (leaves). Other plants take anything (the hand too).
+    public boolean canHarvestWith(ItemStack tool)
+    {
+        return tree == null || tool.is(ItemTags.AXES) || tool.is(Tags.Items.TOOLS_SHEAR);
+    }
+
+    // A tree's harvest: shears give its leaves (the blocks, and a roll of the leaves' own drops for each: saplings,
+    // sticks, apples); anything else its logs, stripped ones if `stripped`
+    public List<ItemStack> treeDrops(ServerLevel level, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
+    {
+        List<ItemStack> drops = new ArrayList<>();
+        if (tree == null) return drops;
+        if (tool.is(Tags.Items.TOOLS_SHEAR))
+        {
+            drops.add(new ItemStack(tree.leaves(), Tree.LEAVES));
+            for (int leaf = 0; leaf < Tree.LEAVES; leaf++)
+            {
+                // Rolled without the shears (with them, leaves drop themselves)
+                drops.addAll(Block.getDrops(tree.leaves().defaultBlockState(), level, pos, null, harvester, ItemStack.EMPTY));
+            }
+        }
+        else
+        {
+            drops.add(new ItemStack(stripped ? tree.strippedLog() : tree.log(), Tree.LOGS));
+        }
+        return drops;
     }
 
     // ---- Reading ----
@@ -123,6 +209,7 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
         // A data map override replaces all of this
         CropDrops.Override override = CropDrops.overrideFor(plant);
         if (override != null) return override.roll(level.getRandom());
+        if (tree != null) return treeDrops(level, pos, tool, harvester, false);
         List<ItemStack> drops = new ArrayList<>();
         for (BlockState state : harvest)
         {
@@ -220,6 +307,9 @@ public record CropProfile(Item seed, Block plant, List<BlockState> stages, List<
             stages.add(flower.defaultBlockState());
             return basic(seed, plant, stages, List.of(flower.defaultBlockState()), true);
         }
+        // Saplings: a sapling, then (in one go) the whole tree
+        Tree tree = Tree.of(plant);
+        if (tree != null) return basic(seed, plant, List.of(base, base), List.of(), false).asTree(tree);
         // Flowers (and seagrass, under water): they don't grow; bone meal gives one at a time
         if (base.is(BlockTags.FLOWERS) || plant == Blocks.SEAGRASS)
         {

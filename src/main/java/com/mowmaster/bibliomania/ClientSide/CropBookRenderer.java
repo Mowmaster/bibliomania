@@ -40,6 +40,8 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
     // Half a block wide; the soil a quarter of that tall
     private static final float SCALE = 0.5f;
     private static final float SOIL_HEIGHT = 0.25f;
+    // A grown tree's blocks, in crop blocks (5 wide -> 2 crop blocks -> one world block)
+    private static final float TREE_SCALE = 0.4f;
 
     public CropBookRenderer(BlockEntityRendererProvider.Context context)
     {
@@ -71,6 +73,13 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         state.flipped = profile != null && profile.flipped();
         state.water = profile != null && profile.water();
         state.hasBody = profile != null && profile.body() != null;
+        // A grown sapling: the whole tree (Tree.PATTERN) in its log and leaves
+        state.tree = profile != null && profile.tree() != null && contents.grown();
+        if (state.tree)
+        {
+            resolver.update(state.log, profile.tree().log().defaultBlockState(), DISPLAY);
+            resolver.update(state.leaves, profile.tree().leaves().defaultBlockState(), DISPLAY);
+        }
         if (profile != null && state.hasSoil)
         {
             resolver.update(state.crop, profile.stage(contents.stage()), DISPLAY);
@@ -101,6 +110,12 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
 
         // The crop on top, one block per block of height (sugar cane)
         poseStack.translate(0, SOIL_HEIGHT, 0);
+        if (state.tree)
+        {
+            tree(state, poseStack, collector);
+            poseStack.popPose();
+            return;
+        }
         if (state.pod)
         {
             // A pod's model hangs from the north side of its block (cocoa faces north by default). Turned a quarter
@@ -130,6 +145,42 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
             poseStack.translate(0, 1, 0);
         }
         if (state.hasTopper) state.topper.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+        poseStack.popPose();
+    }
+
+    // A grown tree from Tree.PATTERN, read bottom-up: each row is one layer. A row's widest block (its distance from
+    // the middle column) gives the layer's size as a square: "  X  " one leaf, " XXX " 3x3, "XXLXX" 5x5. The middle is
+    // the row's middle character (a log under the leaves), the rest leaves. Blocks are TREE_SCALE of a crop block, so
+    // the 5-wide tree is as wide as the soil.
+    private static void tree(State state, PoseStack poseStack, SubmitNodeCollector collector)
+    {
+        String[] pattern = CropProfile.Tree.PATTERN;
+        int middle = pattern[0].length() / 2;
+        poseStack.pushPose();
+        // Centred on the soil
+        poseStack.translate(0.5 - (middle + 0.5) * TREE_SCALE, 0, 0.5 - (middle + 0.5) * TREE_SCALE);
+        poseStack.scale(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+        for (int layer = 0; layer < pattern.length; layer++)
+        {
+            String row = pattern[pattern.length - 1 - layer];
+            int half = -1;
+            for (int column = 0; column < row.length(); column++)
+            {
+                if (row.charAt(column) != ' ') half = Math.max(half, Math.abs(column - middle));
+            }
+            for (int dx = -half; dx <= half; dx++)
+            {
+                for (int dz = -half; dz <= half; dz++)
+                {
+                    boolean centre = dx == 0 && dz == 0;
+                    BlockModelRenderState model = centre && row.charAt(middle) == 'L' ? state.log : state.leaves;
+                    poseStack.pushPose();
+                    poseStack.translate(middle + dx, layer, middle + dz);
+                    model.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
+                    poseStack.popPose();
+                }
+            }
+        }
         poseStack.popPose();
     }
 
@@ -179,6 +230,9 @@ public class CropBookRenderer implements BlockEntityRenderer<CropBookBlockEntity
         final BlockModelRenderState crop = new BlockModelRenderState();
         final BlockModelRenderState topper = new BlockModelRenderState();
         final BlockModelRenderState body = new BlockModelRenderState();
+        final BlockModelRenderState log = new BlockModelRenderState();
+        final BlockModelRenderState leaves = new BlockModelRenderState();
+        boolean tree;
         boolean hasBody;
         boolean flipped;
         boolean water;

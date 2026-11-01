@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -26,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 // - Right-click with soil (first), then a seed: plants it (one item used)
 // - Right-click with bone meal: the next stage straight away
 // - Left-click with the hand or any tool once fully grown: harvests, drops on the book, back to the first stage
+//   (trees: an axe for logs, shears for leaves; right-click with an axe for stripped logs)
 //   (CropBookEvents#onLeftClickBlock, like the mob books' left-clicks)
 // - Sneak + right-click with an empty hand: picks the book up, crop and all
 public class CropBookBlock extends BookBlock
@@ -81,9 +83,23 @@ public class CropBookBlock extends BookBlock
         if (!(level.getBlockEntity(pos) instanceof CropBookBlockEntity book)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         CropContents contents = book.getContents();
 
+        // An axe on a grown tree: stripped logs
+        CropProfile profile = contents.profile();
+        if (profile != null && profile.tree() != null && contents.grown() && stack.is(ItemTags.AXES))
+        {
+            if (level instanceof ServerLevel serverLevel)
+            {
+                for (ItemStack drop : CropBookActions.harvest(serverLevel, contents, pos, stack, player, true)) Block.popResource(serverLevel, pos, drop);
+                book.setContents(contents.withStage(0));
+                stack.hurtAndBreak(1, player, hand);
+                level.playSound(null, pos, SoundEvents.AXE_STRIP.value(), SoundSource.BLOCKS, 1f, 1f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+
         if (CropBookActions.isBoneMeal(stack))
         {
-            CropBookActions.BoneMeal grown = CropBookActions.boneMeal(contents);
+            CropBookActions.BoneMeal grown = CropBookActions.boneMeal(contents, level.getRandom());
             if (grown == null) return InteractionResult.TRY_WITH_EMPTY_HAND;
             if (level instanceof ServerLevel serverLevel)
             {
@@ -146,7 +162,12 @@ public class CropBookBlock extends BookBlock
     public static void harvest(ServerLevel level, BlockPos pos, Player player)
     {
         if (!(level.getBlockEntity(pos) instanceof CropBookBlockEntity book) || !book.getContents().grown()) return;
-        for (ItemStack drop : CropBookActions.harvest(level, book.getContents(), pos, player.getMainHandItem(), player))
+        // Trees need an axe or shears (and use them a little); other crops take anything
+        ItemStack tool = player.getMainHandItem();
+        CropProfile profile = book.getContents().profile();
+        if (profile == null || !profile.canHarvestWith(tool)) return;
+        if (profile.tree() != null) tool.hurtAndBreak(1, player, InteractionHand.MAIN_HAND);
+        for (ItemStack drop : CropBookActions.harvest(level, book.getContents(), pos, tool, player))
         {
             // popResource drops it in the block space with a little spread, like a broken block's drops
             Block.popResource(level, pos, drop);

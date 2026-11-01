@@ -127,6 +127,14 @@ public final class ServerConfig
             .comment("Ticks between growth chances for a book in a player's inventory. Default 1200 = 1 minute.")
             .defineInRange("inventoryInterval", 1200, 20, Integer.MAX_VALUE);
 
+    private static final ModConfigSpec.DoubleValue TREE_GROW_CHANCE = BUILDER
+            .comment("Chance (0 to 1) that a growth chance turns a sapling into a tree (times the soil's speed and boosts). Default 0.1.")
+            .defineInRange("treeGrowChance", 0.1, 0.0, 1.0);
+
+    private static final ModConfigSpec.DoubleValue TREE_BONE_MEAL_CHANCE = BUILDER
+            .comment("Chance (0 to 1) that bone meal turns a sapling into a tree (the bone meal is used either way). Default 0.3.")
+            .defineInRange("treeBoneMealChance", 0.3, 0.0, 1.0);
+
     private static final ModConfigSpec.ConfigValue<String> CROP_BOOST_ITEM = BUILDER
             .comment("Item that boosts a Farmer's Almanac's growth. Default minecraft:nether_star.")
             .define("boostItem", "minecraft:nether_star");
@@ -250,6 +258,8 @@ public final class ServerConfig
 
     public static float cropGrowChance()       { return (float) (double) get(CROP_GROW_CHANCE); }
     public static int cropInventoryInterval()  { return get(CROP_INVENTORY_INTERVAL); }
+    public static float treeGrowChance()       { return (float) (double) get(TREE_GROW_CHANCE); }
+    public static float treeBoneMealChance()   { return (float) (double) get(TREE_BONE_MEAL_CHANCE); }
     public static double cropBoostPercent()    { return get(CROP_BOOST_PERCENT); }
 
     public static double cropYieldPercent()    { return get(CROP_YIELD_PERCENT); }

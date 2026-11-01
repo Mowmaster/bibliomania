@@ -56,7 +56,10 @@ public final class CropBookActions
     public static float growChance(CropContents contents)
     {
         float boost = 1f + contents.boosts() * (float) ServerConfig.cropBoostPercent() / 100f;
-        return Math.min(1f, ServerConfig.cropGrowChance() * contents.speed() * boost);
+        // Saplings have their own (lower) chance: a whole tree in one go
+        CropProfile profile = contents.profile();
+        float base = profile != null && profile.tree() != null ? ServerConfig.treeGrowChance() : ServerConfig.cropGrowChance();
+        return Math.min(1f, base * contents.speed() * boost);
     }
 
     // Ticks between growth chances in an inventory: the config's 1 minute, shortened by each boost in turn (10% each
@@ -82,12 +85,15 @@ public final class CropBookActions
     // Null if it does nothing (nothing planted, or already ripe).
     public record BoneMeal(CropContents contents, List<ItemStack> drops) {}
 
-    public static @Nullable BoneMeal boneMeal(CropContents contents)
+    // Saplings only grow from bone meal sometimes (ServerConfig.treeBoneMealChance(), 30% by default); the bone meal
+    // is used either way, like on a real sapling
+    public static @Nullable BoneMeal boneMeal(CropContents contents, RandomSource random)
     {
         CropProfile profile = contents.profile();
         if (!contents.planted() || profile == null) return null;
         if (profile.flower()) return new BoneMeal(contents, List.of(new ItemStack(profile.seed())));
         if (contents.grown()) return null;
+        if (profile.tree() != null && random.nextFloat() >= ServerConfig.treeBoneMealChance()) return new BoneMeal(contents, List.of());
         return new BoneMeal(contents.withStage(contents.stage() + 1), List.of());
     }
 
@@ -97,9 +103,17 @@ public final class CropBookActions
     // contents.withStage(0)
     public static List<ItemStack> harvest(ServerLevel level, CropContents contents, BlockPos pos, ItemStack tool, @Nullable Entity harvester)
     {
+        return harvest(level, contents, pos, tool, harvester, false);
+    }
+
+    // `stripped`: a tree right-clicked with an axe gives stripped logs
+    public static List<ItemStack> harvest(ServerLevel level, CropContents contents, BlockPos pos, ItemStack tool, @Nullable Entity harvester, boolean stripped)
+    {
         CropProfile profile = contents.profile();
         if (profile == null || !contents.grown()) return List.of();
-        List<ItemStack> drops = profile.drops(level, pos, tool, harvester);
+        List<ItemStack> drops = stripped && profile.tree() != null
+                ? profile.treeDrops(level, pos, tool, harvester, true)
+                : profile.drops(level, pos, tool, harvester);
         double multiplier = yieldMultiplier(contents);
         if (multiplier == 1.0) return drops;
         List<ItemStack> bigger = new ArrayList<>();

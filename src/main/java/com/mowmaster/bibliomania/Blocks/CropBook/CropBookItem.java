@@ -154,7 +154,7 @@ public class CropBookItem extends BlockItem
     // same as when it ripens there on its own.
     private static boolean boneMeal(ItemStack book, ItemStack boneMeal, Player player)
     {
-        CropBookActions.BoneMeal result = CropBookActions.boneMeal(contents(book));
+        CropBookActions.BoneMeal result = CropBookActions.boneMeal(contents(book), player.getRandom());
         if (result == null)
         {
             player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
