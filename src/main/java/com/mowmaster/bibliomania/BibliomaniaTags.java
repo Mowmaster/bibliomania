@@ -15,6 +15,9 @@ public class BibliomaniaTags
     // Books that can be crafted into a death book
     public static final TagKey<Item> STORAGE_BOOKS = item("storage_books");
 
+    // Books a library puts on its Chiseled Bookshelves before its Bookcases' item books (enchanted and written books)
+    public static final TagKey<Item> LIBRARY_SHELF_BOOKS = item("library_shelf_books");
+
     // Blocks a knife mines quickly
     public static final TagKey<Block> MINEABLE_WITH_KNIFE = block("mineable/knife");
     // Plants that sometimes drop grass fibers when cut with a knife

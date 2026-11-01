@@ -182,15 +182,18 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
     {
         if (items.isEmpty()) return true;
         LibraryControllerBlockEntity library = library(level, worldPosition);
-        ResourceHandler<ItemResource> handler = library != null ? library.typeHandler(TransportTypes.ITEMS.get()) : handler(TransportTypes.ITEMS.get());
-        if (handler == null) return false;
+        ResourceHandler<ItemResource> handler = library != null ? null : handler(TransportTypes.ITEMS.get());
+        if (library == null && handler == null) return false;
         // try-with-resources: the transaction is closed at the end of the block; closing without commit() undoes it
         try (Transaction transaction = Transaction.openRoot())
         {
             for (ItemStack item : items)
             {
                 if (item.isEmpty()) continue;
-                if (handler.insert(ItemResource.of(item), item.getCount(), transaction) < item.getCount()) return false;
+                // In a library, the library's way in (enchanted books from a Book of Barter onto Chiseled Bookshelves)
+                int stored = library != null ? library.insertItems(ItemResource.of(item), item.getCount(), transaction)
+                        : handler.insert(ItemResource.of(item), item.getCount(), transaction);
+                if (stored < item.getCount()) return false;
             }
             transaction.commit();
             return true;

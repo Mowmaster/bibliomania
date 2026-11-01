@@ -35,10 +35,8 @@ public class StorageDepositBlockEntity extends BlockEntity implements LibraryMem
     // What hoppers and pipes get for `type`: the library's books of that type, insert only (see StorageDepositEvents)
     public <R extends Resource> ResourceHandler<R> inputHandler(TransportType<R> type)
     {
-        return new LibraryDeposit.InsertOnly<>(() -> {
-            LibraryControllerBlockEntity library = library(level, worldPosition);
-            return library == null ? null : library.typeHandler(type);
-        });
+        // () -> library(...): a Supplier, asked again on every use
+        return new LibraryDeposit.InsertOnly<>(() -> library(level, worldPosition), type);
     }
 
     // ---- Library (LibraryMember) ----

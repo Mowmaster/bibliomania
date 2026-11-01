@@ -1,5 +1,10 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import com.mowmaster.bibliomania.BibliomaniaTags;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
+import net.minecraft.world.level.block.entity.ChiseledBookShelfBlockEntity;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
 import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import net.neoforged.neoforge.transfer.CombinedResourceHandler;
@@ -53,6 +58,10 @@ import java.util.Set;
 // - Everything else asks the controller: its bookcases in walk order (the order a lectern pages through them), its
 //   lecterns. Only member counts go to clients (for the Reading Goggles), never the lists.
 // - Linked and removed positions, and the lock, are saved.
+// - Vanilla Chiseled Bookshelves join too (touching, or linked with the Quill), each one its own small store of six
+//   books: enchanted and written books (#bibliomania:library_shelf_books) go onto them first, then into the item books
+//   (insertItems); everything that takes items out (lecterns, requestors, the dispenser) finds books on them too. A
+//   vanilla block can't be told which library it's in, so a chiseled shelf touching two libraries is in both.
 public class LibraryControllerBlockEntity extends BlockEntity implements LibraryLockable
 {
     public static final int MAX_MEMBERS = 1024;
@@ -107,6 +116,24 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         return found;
     }
 
+    // The library's Chiseled Bookshelves, in walk order (those loaded)
+    public List<ChiseledBookShelfBlockEntity> chiseledShelves()
+    {
+        List<ChiseledBookShelfBlockEntity> found = new ArrayList<>();
+        if (level == null) return found;
+        for (BlockPos pos : members)
+        {
+            if (level.isLoaded(pos) && level.getBlockEntity(pos) instanceof ChiseledBookShelfBlockEntity shelf) found.add(shelf);
+        }
+        return found;
+    }
+
+    // A block the walk takes in: a library member, or a Chiseled Bookshelf
+    private static boolean joins(@Nullable BlockEntity blockEntity)
+    {
+        return blockEntity instanceof LibraryMember || blockEntity instanceof ChiseledBookShelfBlockEntity;
+    }
+
     public List<ReadingLecternBlockEntity> lecterns()
     {
         List<ReadingLecternBlockEntity> found = new ArrayList<>();
@@ -136,10 +163,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     {
         ItemResource wanted = ItemResource.of(item);
         long total = 0;
-        for (BookcaseBlockEntity shelf : bookcases())
+        for (ResourceHandler<ItemResource> items : itemHandlers(true))
         {
-            ResourceHandler<ItemResource> items = shelf.handler(TransportTypes.ITEMS.get());
-            if (items == null) continue;
             for (int index = 0; index < items.size(); index++)
             {
                 if (items.getResource(index).equals(wanted)) total += items.getAmountAsLong(index);
@@ -153,11 +178,9 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     {
         ItemResource wanted = ItemResource.of(item);
         int taken = 0;
-        for (BookcaseBlockEntity shelf : bookcases())
+        for (ResourceHandler<ItemResource> items : itemHandlers(true))
         {
             if (taken >= amount) break;
-            ResourceHandler<ItemResource> items = shelf.handler(TransportTypes.ITEMS.get());
-            if (items == null) continue;
             try (Transaction transaction = Transaction.openRoot())
             {
                 taken += items.extract(wanted, amount - taken, transaction);
@@ -184,15 +207,65 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
 
     // Every book of `type` in the library as one handler (bookcase by bookcase, first book first), or null if there's
     // none. A Reading Lectern with a TYPE drawer open uses this with the books' own actions.
+    // For items, the Chiseled Bookshelves come after the item books (so taking out finds books on them too; putting in
+    // should go through insertItems, which puts the right books on them first).
+    @SuppressWarnings("unchecked")
     public <R extends Resource> @Nullable ResourceHandler<R> typeHandler(TransportType<R> type)
     {
         List<ResourceHandler<R>> parts = new ArrayList<>();
-        for (BookcaseBlockEntity shelf : bookcases())
+        if (type == TransportTypes.ITEMS.get())
         {
-            ResourceHandler<R> part = shelf.handler(type);
-            if (part != null) parts.add(part);
+            // The cast is safe: R is ItemResource when the type is ITEMS
+            for (ResourceHandler<ItemResource> part : itemHandlers(true)) parts.add((ResourceHandler<R>) part);
+        }
+        else
+        {
+            for (BookcaseBlockEntity shelf : bookcases())
+            {
+                ResourceHandler<R> part = shelf.handler(type);
+                if (part != null) parts.add(part);
+            }
         }
         return parts.isEmpty() ? null : new CombinedResourceHandler<>(parts);
+    }
+
+    // Each Bookcase's item books (in walk order), then (withChiseled) each Chiseled Bookshelf's six slots.
+    // VanillaContainerWrapper (NeoForge): a vanilla Container (the chiseled shelf's block entity) as a ResourceHandler,
+    // one index per slot; it only accepts what the container does (books: #minecraft:bookshelf_books), one per slot.
+    private List<ResourceHandler<ItemResource>> itemHandlers(boolean withChiseled)
+    {
+        List<ResourceHandler<ItemResource>> handlers = new ArrayList<>();
+        for (BookcaseBlockEntity shelf : bookcases())
+        {
+            ResourceHandler<ItemResource> part = shelf.handler(TransportTypes.ITEMS.get());
+            if (part != null) handlers.add(part);
+        }
+        if (withChiseled) for (ChiseledBookShelfBlockEntity shelf : chiseledShelves()) handlers.add(VanillaContainerWrapper.of(shelf));
+        return handlers;
+    }
+
+    // Puts up to `amount` of `resource` into the library, within `transaction`: enchanted and written books
+    // (#bibliomania:library_shelf_books) onto the Chiseled Bookshelves first; the rest (and those books once the shelves
+    // are full) into the item books, onto pages already holding it first. Never onto a chiseled shelf otherwise (a
+    // plain book goes to the item books like any stackable item). Returns how many went in.
+    public int insertItems(ItemResource resource, int amount, TransactionContext transaction)
+    {
+        if (resource.isEmpty() || amount <= 0) return 0;
+        int inserted = 0;
+        if (resource.toStack(1).is(BibliomaniaTags.LIBRARY_SHELF_BOOKS))
+        {
+            for (ChiseledBookShelfBlockEntity shelf : chiseledShelves())
+            {
+                if (inserted >= amount) break;
+                inserted += VanillaContainerWrapper.of(shelf).insert(resource, amount - inserted, transaction);
+            }
+        }
+        if (inserted < amount)
+        {
+            List<ResourceHandler<ItemResource>> books = itemHandlers(false);
+            if (!books.isEmpty()) inserted += ResourceHandlerUtil.insertStacking(new CombinedResourceHandler<>(books), resource, amount - inserted, transaction);
+        }
+        return inserted;
     }
 
     // How much of `type` the library holds and has room for: {amount, capacity}. With a filter (a fluid), only that
@@ -367,8 +440,9 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         {
             BlockPos pos = queue.poll();
             if (pos.equals(worldPosition) || found.contains(pos) || removed.contains(pos) || !level.isLoaded(pos)) continue;
-            if (!(level.getBlockEntity(pos) instanceof LibraryMember member)) continue;
-            if (inOtherLibrary(level, member, pos)) continue;
+            BlockEntity joining = level.getBlockEntity(pos);
+            if (!joins(joining)) continue;
+            if (joining instanceof LibraryMember member && inOtherLibrary(level, member, pos)) continue;
             found.add(pos.immutable());
             for (Direction direction : Direction.values()) queue.add(pos.relative(direction));
         }
@@ -387,7 +461,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof LibraryMember member) member.setLibrary(worldPosition);
-            if (blockEntity instanceof BookcaseBlockEntity) bookcases++;
+            if (blockEntity instanceof BookcaseBlockEntity || blockEntity instanceof ChiseledBookShelfBlockEntity) bookcases++;
             if (blockEntity instanceof ReadingLecternBlockEntity) lecterns++;
         }
         members = List.copyOf(found);
@@ -425,7 +499,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
             removed.add(target);
             change = LinkChange.REMOVED;
         }
-        else if (!(level.getBlockEntity(target) instanceof LibraryMember)) return LinkChange.NOT_A_MEMBER;
+        else if (!joins(level.getBlockEntity(target))) return LinkChange.NOT_A_MEMBER;
         else if (Math.abs(target.getX() - worldPosition.getX()) > LINK_RANGE || Math.abs(target.getY() - worldPosition.getY()) > LINK_RANGE
                 || Math.abs(target.getZ() - worldPosition.getZ()) > LINK_RANGE) return LinkChange.TOO_FAR;
         else

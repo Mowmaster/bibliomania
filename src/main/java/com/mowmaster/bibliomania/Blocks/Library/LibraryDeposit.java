@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
@@ -37,13 +38,13 @@ public final class LibraryDeposit
 
     // ---- In ----
 
-    // Puts as much of `stack` as fits into the library's item books (pages already holding it first, then empty
-    // pages: ResourceHandlerUtil.insertStacking). Returns how many went in. The stack itself isn't changed.
+    // Puts as much of `stack` as fits into the library (enchanted and written books onto its Chiseled Bookshelves
+    // first, everything else into the item books: LibraryControllerBlockEntity#insertItems). Returns how many went in.
+    // The stack itself isn't changed.
     public static int insertItems(LibraryControllerBlockEntity library, ItemStack stack, TransactionContext transaction)
     {
         if (stack.isEmpty()) return 0;
-        ResourceHandler<ItemResource> items = library.typeHandler(TransportTypes.ITEMS.get());
-        return items == null ? 0 : ResourceHandlerUtil.insertStacking(items, ItemResource.of(stack), stack.getCount(), transaction);
+        return library.insertItems(ItemResource.of(stack), stack.getCount(), transaction);
     }
 
     // A bucket of fluid (water, lava, a modded fluid's bucket); not a bucket of fish or axolotl (MobBucketItem extends
@@ -152,15 +153,24 @@ public final class LibraryDeposit
     // ---- Hoppers and pipes ----
 
     // A handler that puts things into the library's books of one type and never gives anything out: what a Storage
-    // Deposit offers hoppers and pipes. It asks for the library's handler on every call (`target` may give null: no
-    // library, or no books of the type), so a pipe can keep it for as long as it likes.
+    // Deposit offers hoppers and pipes. It asks for the library on every call (`library` may give null: not in one),
+    // so a pipe can keep it for as long as it likes. Items go in the library's way (insertItems: enchanted and written
+    // books onto Chiseled Bookshelves first).
     public static final class InsertOnly<R extends Resource> implements ResourceHandler<R>
     {
+        private final Supplier<@Nullable LibraryControllerBlockEntity> library;
+        private final TransportType<R> type;
+        // The library's handler for the type (null: no library, or no books of the type)
         private final Supplier<@Nullable ResourceHandler<R>> target;
 
-        public InsertOnly(Supplier<@Nullable ResourceHandler<R>> target)
+        public InsertOnly(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type)
         {
-            this.target = target;
+            this.library = library;
+            this.type = type;
+            this.target = () -> {
+                LibraryControllerBlockEntity found = library.get();
+                return found == null ? null : found.typeHandler(type);
+            };
         }
 
         // Callers only ask for indices below size(), and it's 0 with no library, so the others always have a handler
@@ -193,6 +203,12 @@ public final class LibraryDeposit
         @Override
         public int insert(R resource, int amount, TransactionContext transaction)
         {
+            // Items: the library's own way in (the cast is safe: R is ItemResource when the type is ITEMS)
+            if (type == TransportTypes.ITEMS.get())
+            {
+                LibraryControllerBlockEntity found = library.get();
+                return found == null ? 0 : found.insertItems((ItemResource) resource, amount, transaction);
+            }
             ResourceHandler<R> handler = target.get();
             return handler == null ? 0 : ResourceHandlerUtil.insertStacking(handler, resource, amount, transaction);
         }
