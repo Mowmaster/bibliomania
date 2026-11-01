@@ -7,6 +7,7 @@ import com.mowmaster.bibliomania.Blocks.Requestor.RequestPattern;
 import com.mowmaster.bibliomania.Blocks.Requestor.RequestorGrid;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
@@ -60,6 +61,13 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
     {
         BlockEntityRenderer.super.extractRenderState(holder, state, partialTick, cameraPos, crumblingOverlay);
         state.facing = holder.getBlockState().getValue(DispenserBlock.FACING);
+        // The light at the block itself is what's inside a solid block: dark. The grid's items sit on its face, so
+        // they're lit like the space in front of that face (the same light the face itself gets).
+        // LevelRenderer.getLightCoords: block and sky light packed into one int, as renderers want it
+        if (holder.getLevel() != null)
+        {
+            state.lightCoords = LightCoordsUtil.getLightCoords(holder.getLevel(), holder.getBlockPos().relative(RequestorGrid.gridFace(state.facing)));
+        }
         RequestPattern pattern = holder.pattern();
         state.slots = pattern.size();
         for (int slot = 0; slot < MAX_SLOTS; slot++)
