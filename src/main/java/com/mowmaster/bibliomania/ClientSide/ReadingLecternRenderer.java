@@ -88,7 +88,7 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
             poseStack.pushPose();
             // Centred on the top, turned like the lectern (the book's own model and renderer already face its FACING,
             // which is the lectern's), shrunk round the middle of its block space
-            poseStack.translate(0.5, TOP, 0.5);
+            poseStack.translate(0.5, TOP - 2f / 16f, 0.5);
             // Tilted to lie on the slanted top, like a vanilla lectern's book: turned into the lectern's own frame
             // (facing north: the reader at the north, the top rising to the south), tipped so the far side rises,
             // then turned back (the book's model and renderer turn themselves by their FACING, the lectern's)
@@ -110,8 +110,7 @@ public class ReadingLecternRenderer implements BlockEntityRenderer<ReadingLecter
         // A little below the top: a ground item's model already sits up off its origin
         // Moved towards the reader: 30% of the way from the middle to the model's front edge (1 px in from the
         // block's edge), along the way it faces
-        poseStack.translate(0.5 + state.facing.getStepX() * ITEM_FORWARD, TOP - 0.15, 0.5 + state.facing.getStepZ() * ITEM_FORWARD);
-        poseStack.rotate(Axis.YP.rotationDegrees(state.spin));
+        poseStack.translate(0.5 + state.facing.getStepX() * ITEM_FORWARD, TOP - 0.15 + 1f / 16f, 0.5 + state.facing.getStepZ() * ITEM_FORWARD);        poseStack.rotate(Axis.YP.rotationDegrees(state.spin));
         poseStack.scale(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE);
         state.item.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
         poseStack.popPose();
