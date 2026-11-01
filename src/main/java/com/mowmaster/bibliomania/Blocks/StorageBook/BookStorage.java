@@ -10,6 +10,7 @@ import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.resource.Resource;
 import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import net.neoforged.neoforge.transfer.transaction.Transaction;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -109,12 +110,19 @@ public final class BookStorage implements TransportStorageHost
         return new TransportContents<>(type, stacks);
     }
 
-    // Puts saved contents into a storage of the same type (anything over its capacity is lost)
-    @SuppressWarnings("unchecked")
+    // Puts saved contents into a storage of the same type (anything over its capacity is lost).
+    // Books are often opened while another transaction is already running (a Bookcase's handlers open the book to
+    // read it, in the middle of a library insert or extract), and only one root transaction may be open at a time:
+    // then this one is opened inside the running one instead (Transaction.open(parent)). The filled storage is only a
+    // fresh view of the book, so it doesn't matter that its filling is undone if the outer transaction is.
+    @SuppressWarnings({"unchecked", "deprecation"})
     public static <R extends Resource> void fill(TransportContents<R> contents, TransportStorage<?> storage)
     {
+        // getCurrentOpenedTransaction: the innermost open transaction on this thread (deprecated only as a hint to
+        // pass transactions along where possible; here the caller can't). null: none open, so this one is the root.
+        TransactionContext running = Transaction.getLifecycle() == Transaction.Lifecycle.OPEN ? Transaction.getCurrentOpenedTransaction() : null;
         // try-with-resources: the transaction closes at the end of the block; only a commit keeps the changes
-        try (Transaction transaction = Transaction.openRoot())
+        try (Transaction transaction = Transaction.open(running))
         {
             contents.insertInto((TransportStorage<R>) storage, transaction);
             transaction.commit();
