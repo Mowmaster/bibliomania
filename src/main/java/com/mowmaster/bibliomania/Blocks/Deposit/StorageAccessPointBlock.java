@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 // The Storage Access Point: a library's door for automation only. In a library (touching it, or linked with the
 // Librarian's Quill), hoppers, pipes, cables and copper golems can put any transport type in (highest priority shelves
 // first) and take any out, from every side (StorageAccessPointEvents). Players can only dye it (one colour, MowLib's
-// tint: the greyscale texture shows the colour; undyed it's the texture as it is) and seal it.
+// tint: the greyscale texture shows the colour; undyed it's DEFAULT_COLOR, #CDA15E) and seal it.
 public class StorageAccessPointBlock extends Block implements IColorableBlock
 {
     public StorageAccessPointBlock(Properties properties)
@@ -35,6 +35,15 @@ public class StorageAccessPointBlock extends Block implements IColorableBlock
     public boolean usesTintBlockEntity()
     {
         return false;
+    }
+
+    // Undyed: the greyscale texture tinted to its wood colour (the same as an undyed Card Catalog's case)
+    public static final int DEFAULT_COLOR = 0xCDA15E;
+
+    @Override
+    public int getDefaultColor(int region)
+    {
+        return DEFAULT_COLOR;
     }
 
     // Dyes (not while sealed); nothing else
