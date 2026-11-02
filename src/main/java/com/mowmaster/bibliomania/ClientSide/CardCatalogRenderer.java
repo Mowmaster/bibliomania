@@ -34,7 +34,10 @@ import org.jetbrains.annotations.Nullable;
 // drawer's front is further out (CardCatalogLayout.OPEN_Z).
 public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlockEntity, CardCatalogRenderer.State>
 {
-    private static final Identifier CANCELED = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "textures/block/card_catalog/drawer_canceled.png");
+    // A missing drawer: the drawer front (the grey texture the model tints) in the drawer's own colour, then a red cross
+    private static final Identifier CANCELED_FRONT = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "textures/block/card_catalog/drawer_front_tint.png");
+    private static final Identifier CANCELED_CROSS = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "textures/block/card_catalog/drawer_canceled_cross.png");
+    private static final int WHITE = 0xFFFFFF;
     // The badge: this part of the icon's width, in front of it
     private static final float BADGE_SCALE = 0.5f;
     private static final float PX = 1f / 16f;
@@ -70,6 +73,8 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
             state.set[drawer] = entry != null;
 
             state.missing[drawer] = entry != null && catalog.isMissing(drawer);
+            // The drawer's colour, as the model gets it (tint region drawer + 1: dyed, fixed gold/emerald, or default)
+            state.tints[drawer] = catalog.getTint(drawer + 1);
             // FIXED: an item frame's flat look
             itemModelResolver.updateForTopItem(state.icons[drawer], entry == null ? net.minecraft.world.item.ItemStack.EMPTY : entry.icon(),
                     ItemDisplayContext.FIXED, catalog.getLevel(), null, drawer);
@@ -92,7 +97,11 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
             if (!state.set[drawer]) continue;
             float[] r = layout[drawer];
             float z = (state.open == drawer + 1 ? CardCatalogLayout.OPEN_Z : CardCatalogLayout.CLOSED_Z);
-            if (state.missing[drawer]) face(poseStack, collector, CANCELED, r, z - FACE_GAP * 2, state.lightCoords);
+            if (state.missing[drawer])
+            {
+                face(poseStack, collector, CANCELED_FRONT, r, z - FACE_GAP * 2, state.tints[drawer], state.lightCoords);
+                face(poseStack, collector, CANCELED_CROSS, r, z - FACE_GAP * 3, WHITE, state.lightCoords);
+            }
             icon(poseStack, collector, state.icons[drawer], state.badges[drawer], r, z, state.lightCoords);
         }
         poseStack.popPose();
@@ -125,21 +134,22 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
     }
 
     // A quad over a drawer's front, facing north, in `texture` (the whole file stretched over it)
-    private static void face(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture, float[] r, float z, int light)
+    // color: RGB the texture is multiplied by (WHITE leaves it as it is), as a block model's tint does
+    private static void face(PoseStack poseStack, SubmitNodeCollector collector, Identifier texture, float[] r, float z, int color, int light)
     {
         float x0 = r[0] * PX, y0 = r[1] * PX, x1 = r[2] * PX, y1 = r[3] * PX, zz = z * PX;
         collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucent(texture), (pose, buffer) -> {
             // Counter-clockwise seen from the north; seen from there the texture's left (u 0) is at the high x
-            vertex(buffer, pose, x0, y0, zz, 1, 1, light);
-            vertex(buffer, pose, x0, y1, zz, 1, 0, light);
-            vertex(buffer, pose, x1, y1, zz, 0, 0, light);
-            vertex(buffer, pose, x1, y0, zz, 0, 1, light);
+            vertex(buffer, pose, x0, y0, zz, 1, 1, color, light);
+            vertex(buffer, pose, x0, y1, zz, 1, 0, color, light);
+            vertex(buffer, pose, x1, y1, zz, 0, 0, color, light);
+            vertex(buffer, pose, x1, y0, zz, 0, 1, color, light);
         });
     }
 
-    private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z, float u, float v, int light)
+    private static void vertex(VertexConsumer buffer, PoseStack.Pose pose, float x, float y, float z, float u, float v, int color, int light)
     {
-        buffer.addVertex(pose, x, y, z).setColor(0xFFFFFFFF).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light)
+        buffer.addVertex(pose, x, y, z).setColor(0xFF000000 | color).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light)
                 .setNormal(pose, 0, 0, -1);
     }
 
@@ -161,6 +171,7 @@ public class CardCatalogRenderer implements BlockEntityRenderer<CardCatalogBlock
         int size = 1;
         final boolean[] set = new boolean[CardCatalogBlockEntity.MAX_DRAWERS];
         final boolean[] missing = new boolean[CardCatalogBlockEntity.MAX_DRAWERS];
+        final int[] tints = new int[CardCatalogBlockEntity.MAX_DRAWERS];
         final ItemStackRenderState[] icons = new ItemStackRenderState[CardCatalogBlockEntity.MAX_DRAWERS];
         final ItemStackRenderState[] badges = new ItemStackRenderState[CardCatalogBlockEntity.MAX_DRAWERS];
 
