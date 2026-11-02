@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlock;
 import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookItem;
 import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookBlock;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlock;
@@ -138,6 +139,10 @@ public class BlockRegistry
             properties -> new StorageDepositBlock(properties.strength(2.5f).sound(SoundType.WOOD).noOcclusion().ignitedByLava(), false));
     public static final DeferredBlock<StorageDepositBlock> STORAGE_DEPOSIT_FULL = registerBlock("storage_deposit_full",
             properties -> new StorageDepositBlock(properties.strength(2.5f).sound(SoundType.WOOD).ignitedByLava(), true));
+
+    // The Storage Access Point: automation in and out of a library (see StorageAccessPointBlock). Dyeable stone
+    public static final DeferredBlock<StorageAccessPointBlock> STORAGE_ACCESS_POINT = registerBlock("storage_access_point",
+            properties -> new StorageAccessPointBlock(properties.strength(3.5f).requiresCorrectToolForDrops().sound(SoundType.STONE)));
 
     // The library's ways out on a redstone pulse: the Patterned Storage Requestor (StorageRequestorBlock) and the
     // Storage Dispenser (StorageDispenserBlock). Stone, like a Dispenser: mined with a pickaxe

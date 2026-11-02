@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "CHC",
+    "BRB",
+    "CHC"
+  ],
+  "key": {
+    "C": "minecraft:cobblestone",
+    "H": "minecraft:hopper",
+    "B": "minecraft:book",
+    "R": "minecraft:redstone_block"
+  },
+  "result": {
+    "id": "bibliomania:storage_access_point",
+    "count": 1
+  }
+}

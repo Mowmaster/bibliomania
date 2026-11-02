@@ -166,12 +166,25 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
 
     // ---- Pages ----
 
-    // How many pages a book is: an item book's pages, any other book 1
+    // The pages a book shows on a lectern: an item book's pages that hold something (empty ones are skipped: items put
+    // into the lectern still fill them; a Book of Death with nothing in it is skipped altogether), any other book as
+    // one whole page (-1)
+    private static List<Integer> shownPages(ItemStack book)
+    {
+        if (book.isEmpty()) return List.of();
+        if (!(book.getItem() instanceof IPagedStorageItem paged)) return List.of(-1);
+        PagedContents contents = paged.contents(book);
+        List<Integer> pages = new ArrayList<>();
+        for (int page = 0; page < contents.pages(); page++)
+        {
+            if (!contents.stack(page).isEmpty()) pages.add(page);
+        }
+        return pages;
+    }
+
     private static int pagesOf(ItemStack book)
     {
-        if (book.isEmpty()) return 0;
-        if (book.getItem() instanceof IPagedStorageItem paged) return paged.contents(book).pages();
-        return 1;
+        return shownPages(book).size();
     }
 
     private int countPages()
@@ -193,10 +206,9 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         {
             for (int slot = 0; slot < BookcaseBlockEntity.SLOTS; slot++)
             {
-                ItemStack book = shelf.getBook(slot);
-                int pages = pagesOf(book);
-                if (remaining < pages) return new Page(shelf, slot, book.getItem() instanceof IPagedStorageItem ? remaining : -1);
-                remaining -= pages;
+                List<Integer> pages = shownPages(shelf.getBook(slot));
+                if (remaining < pages.size()) return new Page(shelf, slot, pages.get(remaining));
+                remaining -= pages.size();
             }
         }
         return null;

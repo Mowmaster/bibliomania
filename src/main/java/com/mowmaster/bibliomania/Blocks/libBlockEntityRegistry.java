@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlockEntity;
@@ -89,6 +90,10 @@ public class libBlockEntityRegistry
     // Both Storage Deposits (half and full)
     public static final Supplier<BlockEntityType<StorageDepositBlockEntity>> STORAGE_DEPOSIT = CBBLOCKENTITIES.register("storage_deposit",
             () -> new BlockEntityType<>(StorageDepositBlockEntity::new, BlockRegistry.STORAGE_DEPOSIT.get(), BlockRegistry.STORAGE_DEPOSIT_FULL.get()));
+
+    // The Storage Access Point
+    public static final Supplier<BlockEntityType<StorageAccessPointBlockEntity>> STORAGE_ACCESS_POINT = CBBLOCKENTITIES.register("storage_access_point",
+            () -> new BlockEntityType<>(StorageAccessPointBlockEntity::new, BlockRegistry.STORAGE_ACCESS_POINT.get()));
 
     // The Patterned Storage Requestor
     public static final Supplier<BlockEntityType<StorageRequestorBlockEntity>> STORAGE_REQUESTOR = CBBLOCKENTITIES.register("storage_requestor",

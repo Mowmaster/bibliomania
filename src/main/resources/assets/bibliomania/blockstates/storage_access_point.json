@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "bibliomania:block/library/storage_access_point"
+    }
+  }
+}

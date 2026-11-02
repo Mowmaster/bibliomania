@@ -141,6 +141,8 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
     @Override
     public Optional<TooltipComponent> getTooltipImage(ItemStack stack)
     {
+        // A take-out-only book (the Book of Death: 64 pages) only shows its pages when something's in them
+        if (!allowsInsert(stack) && contents(stack).totalAmount() <= 0) return Optional.empty();
         return PagedStorageInteractions.tooltipImage(this, stack);
     }
 }

@@ -18,6 +18,11 @@ public class BibliomaniaTags
     // Books a library puts on its Chiseled Bookshelves before its Bookcases' item books (enchanted and written books)
     public static final TagKey<Item> LIBRARY_SHELF_BOOKS = item("library_shelf_books");
 
+    // Books that stand on a Bookcase at full thickness, however full they are (the Ledger, the Book of Barter, the
+    // Breakfast Club, the Farmer's Almanac, the Book of Essence, the Bestiary, the Book of Death). Their item models
+    // pick their thickest model on shelves (display context "none", used only by the Bookcase renderer).
+    public static final TagKey<Item> THICK_ON_SHELF = item("thick_on_shelf");
+
     // Blocks a knife mines quickly
     public static final TagKey<Block> MINEABLE_WITH_KNIFE = block("mineable/knife");
     // Plants that sometimes drop grass fibers when cut with a knife

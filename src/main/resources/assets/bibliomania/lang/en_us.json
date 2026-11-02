@@ -188,5 +188,6 @@
   "block.bibliomania.compacting_book": "Compacting Book",
   "tooltip.bibliomania.compacting.empty": "Empty: put in any item that compacts (gold nuggets, ingots or blocks...). Holds %s of its most compact form",
   "tooltip.bibliomania.compacting.tier": "%1$s %2$s",
-  "tooltip.bibliomania.compacting.capacity": "Holds up to %1$s %2$s"
+  "tooltip.bibliomania.compacting.capacity": "Holds up to %1$s %2$s",
+  "block.bibliomania.storage_access_point": "Storage Access Point"
 }

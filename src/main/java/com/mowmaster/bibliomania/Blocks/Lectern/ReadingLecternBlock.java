@@ -63,6 +63,9 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     // Base, post, and the slanted top as three steps rising away from the reader (facing north: low at the north), so
     // a click on the top lands about where the model's surface is. One shape for every facing: the steps are turned
     // to match in SHAPES.
+    // Where the slanted desk starts (9 px up): clicks below it are on the pillar or base
+    private static final double DESK_BOTTOM = 9.0 / 16.0;
+
     private static final List<CBPixelBox> BOXES = List.of(
             new CBPixelBox(3, 0, 3, 13, 2, 13),
             new CBPixelBox(5, 2, 5, 11, 11, 11),
@@ -194,8 +197,10 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
         // SUCCESS and the server decides.
         if (level instanceof ServerLevel serverLevel)
         {
-            if (lectern.typeSelection() != null) LecternActions.useType(serverLevel, player, hand, stack, lectern);
-            else if (lectern.isBookOpen(serverLevel)) LecternActions.use(serverLevel, player, hand, stack, lectern);
+            // The pillar and base (below the desk) always store what's held, whatever's open on top
+            boolean onDesk = hitResult.getLocation().y - pos.getY() >= DESK_BOTTOM;
+            if (onDesk && lectern.typeSelection() != null) LecternActions.useType(serverLevel, player, hand, stack, lectern);
+            else if (onDesk && lectern.isBookOpen(serverLevel)) LecternActions.use(serverLevel, player, hand, stack, lectern);
             else if (lectern.store(stack) > 0) level.playSound(null, pos, SoundEvents.BUNDLE_INSERT, SoundSource.BLOCKS, 0.8f, 1f);
             else level.playSound(null, pos, SoundEvents.BUNDLE_INSERT_FAIL, SoundSource.BLOCKS, 0.8f, 1f);
         }

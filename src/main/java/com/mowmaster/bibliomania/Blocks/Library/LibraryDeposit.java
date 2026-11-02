@@ -269,7 +269,7 @@ public final class LibraryDeposit
     // Deposit offers hoppers and pipes. It asks for the library on every call (`library` may give null: not in one),
     // so a pipe can keep it for as long as it likes. Items go in the library's way (insertItems: enchanted and written
     // books onto Chiseled Bookshelves first).
-    public static final class InsertOnly<R extends Resource> implements ResourceHandler<R>
+    public static class InsertOnly<R extends Resource> implements ResourceHandler<R>
     {
         private final Supplier<@Nullable LibraryControllerBlockEntity> library;
         private final TransportType<R> type;
@@ -287,7 +287,7 @@ public final class LibraryDeposit
         }
 
         // Callers only ask for indices below size(), and it's 0 with no library, so the others always have a handler
-        private ResourceHandler<R> handler()
+        protected ResourceHandler<R> handler()
         {
             ResourceHandler<R> handler = target.get();
             if (handler == null) throw new IndexOutOfBoundsException("No library storage");
@@ -330,6 +330,35 @@ public final class LibraryDeposit
         public int extract(R resource, int amount, TransactionContext transaction)
         {
             return 0;
+        }
+    }
+
+    // The same, but taking out works too: what a Storage Access Point offers hoppers, pipes and copper golems
+    // (in: the library's way, highest priority first; out: from its books of the type, first found first)
+    public static class FullAccess<R extends Resource> extends InsertOnly<R>
+    {
+        private final Supplier<@Nullable ResourceHandler<R>> books;
+
+        public FullAccess(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type)
+        {
+            super(library, type);
+            this.books = () -> {
+                LibraryControllerBlockEntity found = library.get();
+                return found == null ? null : found.typeHandler(type);
+            };
+        }
+
+        @Override
+        public int extract(int index, R resource, int amount, TransactionContext transaction)
+        {
+            return handler().extract(index, resource, amount, transaction);
+        }
+
+        @Override
+        public int extract(R resource, int amount, TransactionContext transaction)
+        {
+            ResourceHandler<R> handler = books.get();
+            return handler == null ? 0 : handler.extract(resource, amount, transaction);
         }
     }
 }

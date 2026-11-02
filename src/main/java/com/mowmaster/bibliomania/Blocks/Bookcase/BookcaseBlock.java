@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLockable;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
@@ -109,11 +110,14 @@ public class BookcaseBlock extends Block implements IColorableBlock
     public static final float BOOK_GAP = 0.15f;
     // Thickness of books whose model doesn't change (Bestiary, Almanac, storage books...), in model pixels
     private static final float FIXED_THICKNESS = 5f;
+    // A full book's thickness (size_9)
+    private static final float MAX_THICKNESS = 10f;
 
     // How thick a book's item model is, in model pixels: item books grow with their fullness the way their item models
     // pick a size (mowlib:paged_fullness, one size per tenth: 1.5 px empty, then 2 to 10 px); the rest are 5 px
     public static float bookThickness(ItemStack book)
     {
+        if (book.is(BibliomaniaTags.THICK_ON_SHELF)) return MAX_THICKNESS;
         if (!(book.getItem() instanceof IPagedStorageItem paged)) return FIXED_THICKNESS;
         int size = Math.clamp((int) Math.floor(paged.fullness(book) * 10 + 1e-4), 0, 9);
         return size == 0 ? 1.5f : size + 1;

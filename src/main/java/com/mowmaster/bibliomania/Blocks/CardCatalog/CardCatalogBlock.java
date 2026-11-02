@@ -197,6 +197,8 @@ public class CardCatalogBlock extends Block implements IColorableBlock
                                                    Player player, InteractionHand hand, BlockHitResult hitResult)
     {
         if (!(level.getBlockEntity(pos) instanceof CardCatalogBlockEntity catalog)) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        // Vanilla calls this with an empty hand too: that's useWithoutItem's (open/close, sneak to clear)
+        if (stack.isEmpty()) return InteractionResult.TRY_WITH_EMPTY_HAND;
         int drawer = drawerAt(state, hitResult);
         DrawerEntry entry = catalog.drawer(drawer);
 
