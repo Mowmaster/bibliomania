@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import net.minecraft.world.item.ItemStack;
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.mowmaster.bibliomania.Blocks.Requestor.PatternHolder;
@@ -41,6 +43,8 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
     // Count text: this many pixels tall (the font's lines are 9 units)
     private static final float TEXT_HEIGHT = 1.6f;
     private static final int MAX_SLOTS = 9;
+    // The badge on the dispenser's icon: this part of the icon's width
+    private static final float BADGE_SCALE = 0.5f;
 
     private final ItemModelResolver itemModelResolver;
 
@@ -73,8 +77,12 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
         for (int slot = 0; slot < MAX_SLOTS; slot++)
         {
             state.counts[slot] = pattern.count(slot);
+            // The dispenser's one item: a Book of Fluids is drawn as a bucket with the book small in its corner
+            ItemStack shown = pattern.size() == 1 ? StorageDispenserBlockEntity.displayIcon(pattern.item(slot)) : pattern.item(slot);
+            ItemStack badge = pattern.size() == 1 ? StorageDispenserBlockEntity.displayBadge(pattern.item(slot)) : ItemStack.EMPTY;
             // FIXED: an item frame's flat look
-            itemModelResolver.updateForTopItem(state.items[slot], pattern.item(slot), ItemDisplayContext.FIXED, holder.getLevel(), null, slot);
+            itemModelResolver.updateForTopItem(state.items[slot], shown, ItemDisplayContext.FIXED, holder.getLevel(), null, slot);
+            itemModelResolver.updateForTopItem(state.badges[slot], badge, ItemDisplayContext.FIXED, holder.getLevel(), null, slot + 100);
         }
     }
 
@@ -105,7 +113,13 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
                 z = RequestorGrid.CELL_Z[slot / 3];
                 size = CELL_ITEM;
             }
-            item(poseStack, collector, state.items[slot], x, z, size, state.lightCoords);
+            item(poseStack, collector, state.items[slot], x, z, size, 0.3f, state.lightCoords);
+            // The badge: half as wide, in the icon's bottom left corner as seen from the front (west, south), above it
+            if (!state.badges[slot].isEmpty())
+            {
+                float badgeSize = size * BADGE_SCALE;
+                item(poseStack, collector, state.badges[slot], x - (size - badgeSize) / 2, z + (size - badgeSize) / 2, badgeSize, 0.4f, state.lightCoords);
+            }
             if (state.counts[slot] > 1) count(poseStack, collector, font, state.counts[slot], x + size / 2, z + size / 2, state.lightCoords);
         }
         poseStack.popPose();
@@ -114,10 +128,11 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
     // One item lying on the top face, centred at (x, z) in pixels, its top towards the back (north) so it reads the
     // right way up from the front. A FIXED item faces north (-z) as drawn: turned a quarter round x it faces up, then
     // half round z so its top points north.
-    private static void item(PoseStack poseStack, SubmitNodeCollector collector, ItemStackRenderState item, float x, float z, float size, int light)
+    // lift: how far above the face, in pixels
+    private static void item(PoseStack poseStack, SubmitNodeCollector collector, ItemStackRenderState item, float x, float z, float size, float lift, int light)
     {
         poseStack.pushPose();
-        poseStack.translate(x * PX, 1f + 0.3f * PX, z * PX);
+        poseStack.translate(x * PX, 1f + lift * PX, z * PX);
         poseStack.rotate(Axis.XP.rotationDegrees(90));
         poseStack.rotate(Axis.ZP.rotationDegrees(180));
         poseStack.scale(size * PX, size * PX, 0.05f * PX * 16);
@@ -148,9 +163,14 @@ public class RequestorRenderer<T extends BlockEntity & PatternHolder> implements
         int slots;
         final int[] counts = new int[MAX_SLOTS];
         final ItemStackRenderState[] items = new ItemStackRenderState[MAX_SLOTS];
+        final ItemStackRenderState[] badges = new ItemStackRenderState[MAX_SLOTS];
 
         {
-            for (int slot = 0; slot < MAX_SLOTS; slot++) items[slot] = new ItemStackRenderState();
+            for (int slot = 0; slot < MAX_SLOTS; slot++)
+            {
+                items[slot] = new ItemStackRenderState();
+                badges[slot] = new ItemStackRenderState();
+            }
         }
     }
 }

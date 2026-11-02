@@ -182,5 +182,7 @@
   "tooltip.bibliomania.priority_scroll.tooltip": "Right-click a Bookcase, Chiseled Bookshelf or placed storage book to raise its library priority, left-click to lower it (sneak: by 10; the page keys work too). Higher is filled first",
   "tooltip.bibliomania.priority": "Library priority: %s",
   "message.bibliomania.priority": "Priority: %1$s / %2$s",
-  "hud.bibliomania.priority": "Priority: %s"
+  "hud.bibliomania.priority": "Priority: %s",
+  "hud.bibliomania.dispenser_pump": "Picks up fluid in front into the library's Books of Fluids",
+  "hud.bibliomania.dispenser_place": "Places %s from the library's Books of Fluids"
 }

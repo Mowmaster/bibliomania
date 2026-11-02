@@ -1,5 +1,15 @@
 package com.mowmaster.bibliomania.Blocks.Requestor;
 
+import net.neoforged.neoforge.transfer.fluid.FluidUtil;
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.minecraft.world.level.block.DispenserBlock;
+import net.minecraft.world.item.Items;
+import net.minecraft.core.Direction;
+import com.mowmaster.mowlib.transport.TransportTypes;
+import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
+import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import java.util.List;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
@@ -57,10 +67,12 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
 
     // 1. Anything that isn't the set item (what an earlier use turned it into, if the library was full then; the old
     //    item after the setting changed) goes back to the library first.
-    // 2. No item in hand: one is taken from the library (fuzzy: at any damage; exact: only one just like the set one).
-    // 3. It's used as a Dispenser would use it. The result: the same item (worn shears, bone meal that found nothing
+    // 2. Set to a Book of Fluids: the dispenser works the library's fluid books directly (workFluid), no items.
+    // 3. No item in hand: one is taken from the library's items (fuzzy: at any damage; exact: only one just like the
+    //    set one). Buckets too: an empty bucket set needs an empty bucket stored, a water bucket a water bucket.
+    // 4. It's used as a Dispenser would use it. The result: the same item (worn shears, bone meal that found nothing
     //    to grow) stays in hand for next time; nothing (used up, or broken) leaves the hand empty; anything else (an
-    //    empty bucket, a honey bottle, a water bucket) is stored in the library (a water bucket as water and a bucket).
+    //    empty bucket, a honey bottle, a water bucket) is stored in the library as an item.
     // Returns whether it did anything.
     public boolean dispense(ServerLevel level, BlockState state, StorageDispenserBlock block)
     {
@@ -71,11 +83,12 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         ItemStack held = getItem(0);
         if (!held.isEmpty() && (wanted.isEmpty() || !ItemStack.isSameItem(held, wanted)))
         {
-            ItemStack left = LibraryDeposit.store(library, held);
+            ItemStack left = LibraryDeposit.storeItems(library, held);
             setItem(0, left);
             if (!left.isEmpty()) return false;
         }
         if (wanted.isEmpty()) return false;
+        if (isFluidBook(wanted)) return workFluid(level, state, library, bookFluid(wanted));
         if (getItem(0).isEmpty() && !load(library, wanted)) return false;
 
         ItemStack loaded = getItem(0);
@@ -84,8 +97,62 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         // BlockSource: the dispenser as the behaviours see it (where it is, its state, its block entity)
         ItemStack result = behaviour.dispense(new BlockSource(level, worldPosition, state, this), loaded);
         if (result.isEmpty() || ItemStack.isSameItem(result, wanted)) setItem(0, result);
-        else setItem(0, LibraryDeposit.store(library, result));
+        else setItem(0, LibraryDeposit.storeItems(library, result));
         storeExtras(library);
+        return true;
+    }
+
+    // ---- Set to a Book of Fluids ----
+
+    // A Book of Fluids as the set item (by an empty one: the pump; by one holding a fluid: placing that fluid)
+    public static boolean isFluidBook(ItemStack stack)
+    {
+        return stack.getItem() instanceof StorageBookItem book && book.book().type() == TransportTypes.FLUIDS.get();
+    }
+
+    // The fluid in a Book of Fluids (EMPTY for an empty one)
+    public static FluidResource bookFluid(ItemStack book)
+    {
+        BookStorage storage = BookStorage.open(book);
+        return storage != null && storage.storage().getResource(0) instanceof FluidResource fluid ? fluid : FluidResource.EMPTY;
+    }
+
+    // What's drawn for the set item: a Book of Fluids as a bucket (its fluid's, or an empty one) with the book small in
+    // its corner (displayBadge); anything else as itself
+    public static ItemStack displayIcon(ItemStack set)
+    {
+        if (!isFluidBook(set)) return set;
+        FluidResource fluid = bookFluid(set);
+        ItemStack bucket = fluid.isEmpty() ? ItemStack.EMPTY : new ItemStack(fluid.getFluid().getBucket());
+        return bucket.isEmpty() ? new ItemStack(Items.BUCKET) : bucket;
+    }
+
+    public static ItemStack displayBadge(ItemStack set)
+    {
+        return isFluidBook(set) ? new ItemStack(set.getItem()) : ItemStack.EMPTY;
+    }
+
+    // No fluid: the fluid in front is picked up into the library's fluid books (FluidUtil.tryPickupFluid, into an
+    // insert-only handler of them; null transaction: it opens and commits its own). A fluid: a bucket's worth of it is
+    // taken from the fluid books and placed in front, in one transaction that's only kept if the placing worked.
+    private boolean workFluid(ServerLevel level, BlockState state, LibraryControllerBlockEntity library, FluidResource fluid)
+    {
+        Direction facing = state.getValue(DispenserBlock.FACING);
+        BlockPos front = worldPosition.relative(facing);
+        if (fluid.isEmpty())
+        {
+            ResourceHandler<FluidResource> into = new LibraryDeposit.InsertOnly<>(() -> library, TransportTypes.FLUIDS.get());
+            return !FluidUtil.tryPickupFluid(into, null, level, front, facing.getOpposite(), null).isEmpty();
+        }
+        ResourceHandler<FluidResource> fluids = library.typeHandler(TransportTypes.FLUIDS.get());
+        if (fluids == null) return false;
+        try (Transaction transaction = Transaction.openRoot())
+        {
+            if (fluids.extract(fluid, FluidType.BUCKET_VOLUME, transaction) < FluidType.BUCKET_VOLUME) return false;
+            // false: like a bucket, it counts as placed even into a block that takes fluid but says no
+            if (!FluidUtil.tryPlaceFluid(fluid, null, level, front, false)) return false;
+            transaction.commit();
+        }
         return true;
     }
 
@@ -94,7 +161,8 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
     {
         try (Transaction transaction = Transaction.openRoot())
         {
-            List<ItemStack> got = LibraryDeposit.take(library, wanted, 1, pattern.exact(), transaction);
+            // false: a bucket must be stored as a bucket (never filled from the fluid books)
+            List<ItemStack> got = LibraryDeposit.take(library, wanted, 1, pattern.exact(), false, transaction);
             if (got.isEmpty()) return false;
             transaction.commit();
             // getFirst (Java 21): the list's first element
@@ -109,7 +177,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         for (int slot = 1; slot < getContainerSize(); slot++)
         {
             ItemStack extra = getItem(slot);
-            if (!extra.isEmpty()) setItem(slot, LibraryDeposit.store(library, extra));
+            if (!extra.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, extra));
         }
     }
 
@@ -137,7 +205,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
             for (int slot = 0; slot < getContainerSize(); slot++)
             {
                 ItemStack stack = getItem(slot);
-                if (!stack.isEmpty()) setItem(slot, LibraryDeposit.store(library, stack));
+                if (!stack.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, stack));
             }
         }
         super.preRemoveSideEffects(pos, state);

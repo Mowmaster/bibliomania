@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import net.neoforged.neoforge.transfer.fluid.FluidResource;
+import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
@@ -371,6 +373,13 @@ public final class ReadingHud
         if (pattern.isEmpty())
         {
             lines.add(hud("pattern_empty"));
+            return lines;
+        }
+        // A Storage Dispenser set to a Book of Fluids: what it does instead of using an item
+        if (pattern.size() == 1 && StorageDispenserBlockEntity.isFluidBook(pattern.item(0)))
+        {
+            FluidResource fluid = StorageDispenserBlockEntity.bookFluid(pattern.item(0));
+            lines.add(fluid.isEmpty() ? hud("dispenser_pump") : hud("dispenser_place", fluid.getHoverName()));
             return lines;
         }
         lines.add(hud(pattern.exact() ? "pattern_match_exact" : "pattern_match_fuzzy"));

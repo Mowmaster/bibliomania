@@ -153,6 +153,21 @@ public final class LibraryDeposit
         }
     }
 
+    // Stores `stack` in the library's item books as it is (a water bucket stays a water bucket), committed. Returns
+    // what didn't fit (EMPTY if it all did). The stack itself isn't changed.
+    public static ItemStack storeItems(LibraryControllerBlockEntity library, ItemStack stack)
+    {
+        ItemStack rest = stack.copy();
+        if (rest.isEmpty()) return ItemStack.EMPTY;
+        try (Transaction transaction = Transaction.openRoot())
+        {
+            int inserted = insertItems(library, rest, transaction);
+            transaction.commit();
+            rest.shrink(inserted);
+        }
+        return rest;
+    }
+
     // Stores `stack` in the library (its own transactions, committed): fluid buckets are emptied into the fluid books
     // one at a time and the empty buckets stored as items; everything else goes to the item books. Returns what didn't
     // fit (EMPTY if it all did). The stack itself isn't changed.
@@ -203,6 +218,12 @@ public final class LibraryDeposit
     // made from an empty bucket (item books) and a bucket's worth of its fluid (fluid books), one at a time.
     public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, TransactionContext transaction)
     {
+        return take(library, wanted, count, exact, true, transaction);
+    }
+
+    // The same; fillBuckets false: only bucket items already stored count (the Storage Dispenser)
+    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, boolean fillBuckets, TransactionContext transaction)
+    {
         List<ItemStack> got = new ArrayList<>();
         ResourceHandler<ItemResource> items = library.typeHandler(TransportTypes.ITEMS.get());
         if (items == null || wanted.isEmpty() || count <= 0) return got;
@@ -215,7 +236,7 @@ public final class LibraryDeposit
             got.add(each.resource().toStack(each.amount()));
             taken += each.amount();
         }
-        if (taken >= count || !isFluidBucket(wanted)) return got;
+        if (taken >= count || !fillBuckets || !isFluidBucket(wanted)) return got;
         ResourceHandler<FluidResource> fluids = library.typeHandler(TransportTypes.FLUIDS.get());
         if (fluids == null) return got;
         FluidStack fluid = FluidUtil.getFirstStackContained(wanted);
