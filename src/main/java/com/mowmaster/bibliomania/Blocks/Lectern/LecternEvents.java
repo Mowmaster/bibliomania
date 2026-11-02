@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.mowlib.tint.IColorableBlock;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import net.minecraft.util.TriState;
 import net.minecraft.world.level.block.state.BlockState;
@@ -34,7 +35,11 @@ public final class LecternEvents
         if (!event.getEntity().isShiftKeyDown()) return;
         BlockState state = event.getLevel().getBlockState(event.getPos());
         if (!(state.getBlock() instanceof ReadingLecternBlock)) return;
-        if (ReadingLecternBlock.arrowAt(state, event.getHitVec()) != 0) event.setUseBlock(TriState.TRUE);
+        // ... and sneak + a dye dyes the lectern (without sneaking, an open book gets the dye)
+        if (ReadingLecternBlock.arrowAt(state, event.getHitVec()) != 0 || IColorableBlock.dyeColorOf(event.getItemStack()) != null)
+        {
+            event.setUseBlock(TriState.TRUE);
+        }
     }
 
     @SubscribeEvent

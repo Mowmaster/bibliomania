@@ -176,8 +176,11 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
             return InteractionResult.SUCCESS;
         }
 
-        // Dyeing is a setting: not while locked (Librarian's Seal)
-        InteractionResult dyed = lectern.isLocked() ? InteractionResult.TRY_WITH_EMPTY_HAND : tryDyeBlock(stack, state, level, pos, player, hitResult);
+        // Dyeing is a setting: not while locked (Librarian's Seal). With a whole book open the dye is the book's (a
+        // Bestiary's sheep); sneak to dye the lectern then (LecternEvents lets that click through). showsWholeBook is
+        // synced, so both sides agree.
+        boolean bookTakesDye = lectern.showsWholeBook() && !player.isShiftKeyDown();
+        InteractionResult dyed = lectern.isLocked() || bookTakesDye ? InteractionResult.TRY_WITH_EMPTY_HAND : tryDyeBlock(stack, state, level, pos, player, hitResult);
         if (dyed == InteractionResult.SUCCESS)
         {
             if (!level.isClientSide() && !state.getValue(DYED)) level.setBlock(pos, state.setValue(DYED, true), Block.UPDATE_ALL);
