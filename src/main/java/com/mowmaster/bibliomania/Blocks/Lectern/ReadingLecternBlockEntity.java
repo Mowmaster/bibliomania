@@ -75,6 +75,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     private static final String TAG_AMOUNT = "amount";
     private static final String TAG_BOOK = "book";
     private static final String TAG_BOOK_PAGE = "book_page";
+    private static final String TAG_SELECTED_ITEM = "selected_item";
+    private static final String TAG_SELECTED_TYPE = "selected_type";
 
     private final CBTintData tints;
     private final LibraryLink libraryLink = new LibraryLink(this::libraryChanged);
@@ -248,10 +250,10 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         refresh(level, true);
     }
 
-    // Server: the open type drawer, if any
+    // Server: the open type drawer, if any (none while the library isn't there: the selection is kept for when it is)
     public @Nullable DrawerEntry typeSelection()
     {
-        return selectedType;
+        return selectedType != null && library(level, worldPosition) != null ? selectedType : null;
     }
 
     // Whether it shows a library-wide type (clients: from what was synced); then shownAmount and getShownCapacity()
@@ -305,7 +307,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     // Server: whether the open page is a whole book (the lectern then acts as that book)
     public boolean isBookOpen(ServerLevel level)
     {
-        if (selectedItem != null || selectedType != null) return false;
+        // A drawer's selection only counts while the library is there (it's kept, not used, without one)
+        if ((selectedItem != null || selectedType != null) && library(level, worldPosition) != null) return false;
         Page current = currentPage();
         return current != null && current.bookPage() < 0;
     }
@@ -451,11 +454,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         int count = countPages();
         // A card catalog item: that item from the whole library, shown with a glint
         LibraryControllerBlockEntity library = library(level, worldPosition);
-        if (library == null)
-        {
-            selectedItem = null;
-            selectedType = null;
-        }
+        // No library (yet: after loading, the controller may not have found its members again): the selection is kept,
+        // and the lectern shows its page until the library is back
         // A type drawer: the library's total and room of that type (a fluid: of that fluid), its icon glinting
         if (selectedType != null && library != null && selectedType.transportType() != null)
         {
@@ -481,7 +481,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
             return;
         }
         shownCapacity = -1;
-        if (selectedItem != null)
+        if (selectedItem != null && library != null)
         {
             ItemStack glinting = selectedItem.copyWithCount(1);
             // ENCHANTMENT_GLINT_OVERRIDE: true always shimmers like an enchanted item
@@ -660,6 +660,9 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         output.putInt(TAG_BOOK_PAGE, shownBookPage);
         output.putLong("capacity", shownCapacity);
         output.putBoolean("exact", exact);
+        // The open drawer's selection (so a sealed lectern keeps it): only saved when there is one
+        if (selectedItem != null) output.store(TAG_SELECTED_ITEM, ItemStack.CODEC, selectedItem);
+        if (selectedType != null) output.store(TAG_SELECTED_TYPE, DrawerEntry.CODEC, selectedType);
         tints.save(output);
         libraryLink.save(output);
     }
@@ -677,6 +680,9 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         shownBookPage = input.getIntOr(TAG_BOOK_PAGE, -1);
         shownCapacity = input.getLongOr("capacity", -1L);
         exact = input.getBooleanOr("exact", false);
+        // read gives an Optional: orElse(null) when it wasn't saved
+        selectedItem = input.read(TAG_SELECTED_ITEM, ItemStack.CODEC).orElse(null);
+        selectedType = input.read(TAG_SELECTED_TYPE, DrawerEntry.CODEC).orElse(null);
         libraryLink.load(input);
         // Only re-mesh the chunk on clients when the colour really changed (pages change often)
         if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))
