@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookItem;
+import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookBlock;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlock;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlock;
 import com.mowmaster.bibliomania.Blocks.Deposit.StorageDepositBlock;
@@ -72,6 +74,10 @@ public class BlockRegistry
     public static final DeferredBlock<StorageBookBlock> FLUID_BOOK = registerStorageBook("fluid_book", TransportTypes.FLUIDS, ServerConfig::fluidCapacity);
     public static final DeferredBlock<StorageBookBlock> EXPERIENCE_BOOK = registerStorageBook("experience_book", TransportTypes.EXPERIENCE, ServerConfig::experienceCapacity);
     public static final DeferredBlock<StorageBookBlock> ENERGY_BOOK = registerStorageBook("energy_book", TransportTypes.ENERGY, ServerConfig::energyCapacity);
+
+    // The Compacting Book: one item family (nuggets, ingots, blocks) in one pool (see CompactingBookBlock)
+    public static final DeferredBlock<CompactingBookBlock> COMPACTING_BOOK = registerCompactingBook("compacting_book",
+            properties -> new CompactingBookBlock(bookProperties(properties, SoundType.WOOD)));
 
     // The Farmer's Almanac: grows a crop on a soil (see CropBookBlock)
     public static final DeferredBlock<CropBookBlock> CROP_BOOK = registerCropBook("crop_book",
@@ -166,6 +172,14 @@ public class BlockRegistry
     private static <T extends Block> void registerBlockItem(String name, DeferredBlock<T> block)
     {
         ItemRegistry.CBITEMS.registerItem(name, properties -> new BlockItem(block.get(), properties.useBlockDescriptionPrefix()));
+    }
+
+    // The Compacting Book's item (CompactingBookItem): doesn't stack, holds its chain and pool
+    private static <T extends Block> DeferredBlock<T> registerCompactingBook(String name, Function<BlockBehaviour.Properties, T> function)
+    {
+        DeferredBlock<T> toReturn = BCBLOCKS.registerBlock(name, function);
+        ItemRegistry.CBITEMS.registerItem(name, properties -> new CompactingBookItem(toReturn.get(), properties.useBlockDescriptionPrefix().stacksTo(1)));
+        return toReturn;
     }
 
     // Book items don't stack (each carries its own contents), and work like bundles in inventories (BookItem)

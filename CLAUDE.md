@@ -14,6 +14,10 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   - Item (`BookItem`, a MowLib `IPagedStorageItem`): contents in `mowlib:paged_contents`. Bundle-style clicks,
     scroll / page keys to select a page, page-grid tooltip, `mowlib:paged_fullness` item model property.
   - Dyeing in crafting: MowLib's `mowlib:colorable_dye` (wool and leather books are in `#mowlib:dyeable_in_crafting`).
+- **Compacting Book** (`Blocks/CompactingBook/`): one item family in one pool counted in its lowest tier
+  (`CompactingContents`, `bibliomania:compacting_contents`); every tier is a view of the pool (no crafting). Holds
+  `CAPACITY` (1024) of the top tier. Chains come from the `bibliomania:compacting` item data map first, then two-way
+  crafting recipes (`CompactingChains`, server, cached until datapacks reload); the chain is stored on the book.
 - **Death book** (`DeathBookHandler`, Bibliomania-only): on player death, places itself and stores all drops plus the
   player's head.
 - **Crafting chain**: knife parts by knapping (`BibliomaniaKnapping` -> MowLib `KnappingRecipes`) -> `knife_stone`

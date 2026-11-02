@@ -57,6 +57,8 @@ public class BibliomaniaClient {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
         event.registerBlockEntityRenderer(libBlockEntityRegistry.BOOK.get(), SpinningItemRenderer::new);
+        // The Compacting Book's open tier (CompactingBookBlockEntity is an ISpinningItemHolder too)
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.COMPACTING_BOOK.get(), SpinningItemRenderer::new);
         // The Bestiary's spinning mob
         event.registerBlockEntityRenderer(libBlockEntityRegistry.MOB_BOOK.get(), MobBookRenderer::new);
         // The Book of Essence's mob (the same renderer: both block entities are IMobBookDisplay)

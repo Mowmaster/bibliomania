@@ -31,6 +31,7 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.DEATH_BOOK.get());
                 output.accept(BlockRegistry.BREAKFAST_BOOK.get());
                 output.accept(BlockRegistry.BUILDER_BOOK.get());
+                output.accept(BlockRegistry.COMPACTING_BOOK.get());
                 output.accept(BlockRegistry.MOB_BOOK.get());
                 output.accept(BlockRegistry.ESSENCE_BOOK.get());
                 output.accept(BlockRegistry.VILLAGER_BOOK.get());

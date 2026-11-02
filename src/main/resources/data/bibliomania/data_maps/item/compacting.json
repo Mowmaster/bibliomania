@@ -1,0 +1,28 @@
+{
+  "values": {
+    "minecraft:amethyst_shard": {
+      "into": "minecraft:amethyst_block",
+      "count": 4
+    },
+    "minecraft:quartz": {
+      "into": "minecraft:quartz_block",
+      "count": 4
+    },
+    "minecraft:glowstone_dust": {
+      "into": "minecraft:glowstone",
+      "count": 4
+    },
+    "minecraft:clay_ball": {
+      "into": "minecraft:clay",
+      "count": 4
+    },
+    "minecraft:snowball": {
+      "into": "minecraft:snow_block",
+      "count": 4
+    },
+    "minecraft:honeycomb": {
+      "into": "minecraft:honeycomb_block",
+      "count": 4
+    }
+  }
+}

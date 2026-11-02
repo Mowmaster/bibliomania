@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Deposit.StorageDepositBlockEntity;
@@ -48,6 +49,10 @@ public class libBlockEntityRegistry
     public static final Supplier<BlockEntityType<StorageBookBlockEntity>> STORAGE_BOOK = CBBLOCKENTITIES.register("storage_book",
             () -> new BlockEntityType<>(StorageBookBlockEntity::new, BuiltInRegistries.BLOCK.stream()
                     .filter(block -> block instanceof StorageBookBlock).collect(Collectors.toSet())));
+
+    // The Compacting Book
+    public static final Supplier<BlockEntityType<CompactingBookBlockEntity>> COMPACTING_BOOK = CBBLOCKENTITIES.register("compacting_book",
+            () -> new BlockEntityType<>(CompactingBookBlockEntity::new, BlockRegistry.COMPACTING_BOOK.get()));
 
     // The Farmer's Almanac
     public static final Supplier<BlockEntityType<CropBookBlockEntity>> CROP_BOOK = CBBLOCKENTITIES.register("crop_book",

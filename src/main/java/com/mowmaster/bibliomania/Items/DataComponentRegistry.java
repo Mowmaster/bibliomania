@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingContents;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
@@ -61,6 +62,10 @@ public class DataComponentRegistry
     // item. Codec.INT saves a number; VAR_INT sends it in as few bytes as it needs.
     public static final Supplier<DataComponentType<Integer>> PRIORITY = COMPONENTS.registerComponentType(
             "priority", builder -> builder.persistent(Codec.INT).networkSynchronized(ByteBufCodecs.VAR_INT));
+
+    // What a Compacting Book holds (CompactingContents: its chain of tiers and one pool)
+    public static final Supplier<DataComponentType<CompactingContents>> COMPACTING_CONTENTS = COMPONENTS.registerComponentType(
+            "compacting_contents", builder -> builder.persistent(CompactingContents.CODEC).networkSynchronized(CompactingContents.STREAM_CODEC));
 
     // What a Farmer's Almanac holds (CropContents)
     public static final Supplier<DataComponentType<CropContents>> CROP_CONTENTS = COMPONENTS.registerComponentType(
