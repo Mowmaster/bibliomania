@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "bibliomania:bookcase"
+  ],
+  "result": {
+    "id": "bibliomania:half_bookcase",
+    "count": 2
+  }
+}

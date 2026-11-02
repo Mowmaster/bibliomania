@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "H",
+    "H"
+  ],
+  "key": {
+    "H": "bibliomania:half_bookcase"
+  },
+  "result": {
+    "id": "bibliomania:bookcase",
+    "count": 1
+  }
+}
