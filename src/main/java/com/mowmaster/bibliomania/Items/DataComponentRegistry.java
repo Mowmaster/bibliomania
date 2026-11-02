@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
 import net.minecraft.core.UUIDUtil;
@@ -50,10 +51,11 @@ public class DataComponentRegistry
     public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
             "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    // The MowLib filter an item book holds (BookFilter): it only takes what the filter allows. ItemStack.CODEC saves a
-    // whole stack (never an empty one: no filter means no component); STREAM_CODEC sends it to clients.
-    public static final Supplier<DataComponentType<ItemStack>> BOOK_FILTER = COMPONENTS.registerComponentType(
-            "book_filter", builder -> builder.persistent(ItemStack.CODEC).networkSynchronized(ItemStack.STREAM_CODEC));
+    // The MowLib filter an item book holds (BookFilter): it only takes what the filter allows. A component value must
+    // be immutable (with equals/hashCode), which an ItemStack isn't, so it's kept as an ItemStackTemplate: the
+    // immutable form of a stack (item, count, components). BookFilter turns it back into a stack.
+    public static final Supplier<DataComponentType<ItemStackTemplate>> BOOK_FILTER = COMPONENTS.registerComponentType(
+            "book_filter", builder -> builder.persistent(ItemStackTemplate.CODEC).networkSynchronized(ItemStackTemplate.STREAM_CODEC));
 
     // A storage book's library priority (LibraryPriority): set on the placed book with the Priority Scroll, kept on the
     // item. Codec.INT saves a number; VAR_INT sends it in as few bytes as it needs.

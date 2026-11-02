@@ -27,11 +27,18 @@ public final class BookFilter
 {
     private BookFilter() {}
 
-    // The book item's filter, or EMPTY
+    // The book item's filter (a new stack each time: create() makes one from the template), or EMPTY
     public static ItemStack get(ItemStack book)
     {
-        ItemStack filter = book.get(DataComponentRegistry.BOOK_FILTER.get());
-        return filter == null ? ItemStack.EMPTY : filter;
+        ItemStackTemplate filter = book.get(DataComponentRegistry.BOOK_FILTER.get());
+        return filter == null ? ItemStack.EMPTY : filter.create();
+    }
+
+    // Puts a filter on a book item (EMPTY takes it off). fromNonEmptyStack: a stack as an immutable template.
+    public static void set(ItemStack book, ItemStack filter)
+    {
+        if (filter.isEmpty()) book.remove(DataComponentRegistry.BOOK_FILTER.get());
+        else book.set(DataComponentRegistry.BOOK_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
     }
 
     public static boolean isFilter(ItemStack stack)

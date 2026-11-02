@@ -104,7 +104,7 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
             if (!allowsInsert(self) || !BookFilter.get(self).isEmpty()) return InteractionResult.FAIL;
             if (!level.isClientSide())
             {
-                self.set(DataComponentRegistry.BOOK_FILTER.get(), offhand.split(1));
+                BookFilter.set(self, offhand.split(1));
                 level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1.2f);
             }
             return InteractionResult.SUCCESS;
@@ -114,7 +114,7 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
             if (!level.isClientSide())
             {
                 ItemStack filter = BookFilter.get(self);
-                self.remove(DataComponentRegistry.BOOK_FILTER.get());
+                BookFilter.set(self, ItemStack.EMPTY);
                 StorageInteractions.giveToPlayer(player, filter);
                 level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 0.8f);
             }

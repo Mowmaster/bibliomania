@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import net.minecraft.world.item.ItemStackTemplate;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import net.minecraft.world.level.block.Block;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
@@ -178,8 +179,8 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
         super.applyImplicitComponents(components);
         PagedContents contents = components.get(MowLibDataComponents.PAGED_CONTENTS.get());
         if (contents != null) pages.load(contents);
-        ItemStack itemFilter = components.get(DataComponentRegistry.BOOK_FILTER.get());
-        filter = itemFilter == null ? ItemStack.EMPTY : itemFilter.copy();
+        ItemStackTemplate itemFilter = components.get(DataComponentRegistry.BOOK_FILTER.get());
+        filter = itemFilter == null ? ItemStack.EMPTY : itemFilter.create();
         Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
         priority = itemPriority == null ? 0 : itemPriority;
         // The item's dyed_color onto the cover (does nothing for books without a dyeable cover: no regions)
@@ -192,7 +193,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
     {
         super.collectImplicitComponents(components);
         components.set(MowLibDataComponents.PAGED_CONTENTS.get(), pages.toContents());
-        if (!filter.isEmpty()) components.set(DataComponentRegistry.BOOK_FILTER.get(), filter.copy());
+        if (!filter.isEmpty()) components.set(DataComponentRegistry.BOOK_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
         if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
         // The cover colour onto the item as dyed_color (nothing if undyed)
         tints.collectItemColor(components);
