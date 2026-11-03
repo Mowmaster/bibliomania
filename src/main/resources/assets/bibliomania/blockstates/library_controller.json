@@ -1,7 +1,30 @@
 {
   "variants": {
-    "": {
+    "facing=up": {
       "model": "bibliomania:block/library_controller"
+    },
+    "facing=down": {
+      "model": "bibliomania:block/library_controller",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "bibliomania:block/library_controller",
+      "x": 90
+    },
+    "facing=east": {
+      "model": "bibliomania:block/library_controller",
+      "x": 90,
+      "y": 90
+    },
+    "facing=south": {
+      "model": "bibliomania:block/library_controller",
+      "x": 90,
+      "y": 180
+    },
+    "facing=west": {
+      "model": "bibliomania:block/library_controller",
+      "x": 90,
+      "y": 270
     }
   }
 }

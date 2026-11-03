@@ -221,7 +221,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         sync();
     }
 
-    // ---- Looks: an end crystal's turning frames (dyeable, region 0) round one of the mod's books ----
+    // ---- Looks: one of the mod's books standing on a dyeable base ----
     private static final String TAG_DISPLAY_BOOK = "display_book";
     private final CBTintData tints;
     // The book shown in the middle (EMPTY until one is picked: a random book the first time it's loaded on the server)
@@ -230,8 +230,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     public LibraryControllerBlockEntity(BlockPos pos, BlockState state)
     {
         super(libBlockEntityRegistry.LIBRARY_CONTROLLER.get(), pos, state);
-        // Region 0 the base, 1 the crystal (LibraryControllerBlock.BASE / CRYSTAL)
-        this.tints = new CBTintData(this, 2);
+        // One colour: the base
+        this.tints = new CBTintData(this, 1);
     }
 
     public ItemStack getDisplayBook()
@@ -267,7 +267,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         }
     }
 
-    // ---- Colour (ITintHolder): the frames and the base ----
+    // ---- Colour (ITintHolder): the base ----
 
     @Override public int getColor(int region) { return tints.getColor(region); }
     @Override public void setColor(int region, int color) { tints.setColor(region, color); }
