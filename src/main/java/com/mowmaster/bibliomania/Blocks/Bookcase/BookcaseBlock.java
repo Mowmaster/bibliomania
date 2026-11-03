@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLockable;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
@@ -168,7 +169,8 @@ public class BookcaseBlock extends Block implements IColorableBlock
     // Any Bibliomania book (its block is a BookBlock) can stand on a shelf
     public static boolean isShelfBook(ItemStack stack)
     {
-        return stack.getItem() instanceof BlockItem item && item.getBlock() instanceof BookBlock;
+        // The books, and the Atlas (it stands on a shelf like a book, but holds no storage)
+        return stack.getItem() instanceof BlockItem item && item.getBlock() instanceof BookBlock || stack.getItem() instanceof AtlasItem;
     }
 
     // ---- Block entity ----

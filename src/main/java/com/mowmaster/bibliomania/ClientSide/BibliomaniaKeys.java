@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Atlas.AtlasPayloads;
+import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.ActivatableBook;
@@ -90,6 +92,15 @@ public final class BibliomaniaKeys
         {
             Player player = Minecraft.getInstance().player;
             if (player == null) return;
+            // Holding an Atlas and looking at a block: mark it as a point of interest (AtlasItem)
+            if (player.getMainHandItem().getItem() instanceof AtlasItem || player.getOffhandItem().getItem() instanceof AtlasItem)
+            {
+                if (Minecraft.getInstance().hitResult instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK)
+                {
+                    ClientPacketDistributor.sendToServer(new AtlasPayloads.Mark(hit.getBlockPos()));
+                    continue;
+                }
+            }
             if (isToggleable(player.getItemInHand(InteractionHand.MAIN_HAND)))
             {
                 ClientPacketDistributor.sendToServer(new ToggleBookPayload(ToggleBookPayload.MAIN_HAND));

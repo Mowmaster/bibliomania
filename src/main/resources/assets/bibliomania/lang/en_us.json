@@ -198,5 +198,12 @@
   "message.bibliomania.library.no_knowledge": "The library is out of knowledge: put fuel into it",
   "message.bibliomania.deposit.no_knowledge": "The library is out of knowledge: only fuel can go in",
   "hud.bibliomania.library_knowledge": "Knowledge: %s KP",
-  "hud.bibliomania.library_no_knowledge": "Out of knowledge: needs fuel"
+  "hud.bibliomania.library_no_knowledge": "Out of knowledge: needs fuel",
+  "item.bibliomania.atlas": "Atlas",
+  "tooltip.bibliomania.atlas.zoom": "Zoom: %s blocks per pixel (page keys)",
+  "tooltip.bibliomania.atlas.markers": "Markers: %s",
+  "tooltip.bibliomania.atlas.use": "Shows a map of where you've been while carried. Sneak + right-click a block (or the activation key) to mark it; right-click banners and lodestones to mark them",
+  "message.bibliomania.atlas.marked": "Marked on the Atlas",
+  "message.bibliomania.atlas.unmarked": "Taken off the Atlas",
+  "hud.bibliomania.atlas_tracker": "%1$s Lodestone %2$sm"
 }

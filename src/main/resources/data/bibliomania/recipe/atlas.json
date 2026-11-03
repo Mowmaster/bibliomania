@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "minecraft:book",
+    "minecraft:map",
+    "minecraft:compass"
+  ],
+  "result": {
+    "id": "bibliomania:atlas",
+    "count": 1
+  }
+}

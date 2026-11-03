@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import com.mowmaster.bibliomania.Atlas.AtlasData;
 import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingContents;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.ItemStack;
@@ -66,6 +67,10 @@ public class DataComponentRegistry
     // What a Compacting Book holds (CompactingContents: its chain of tiers and one pool)
     public static final Supplier<DataComponentType<CompactingContents>> COMPACTING_CONTENTS = COMPONENTS.registerComponentType(
             "compacting_contents", builder -> builder.persistent(CompactingContents.CODEC).networkSynchronized(CompactingContents.STREAM_CODEC));
+
+    // An Atlas's zoom and markers (AtlasData); its explored map is kept by the world (AtlasSavedData)
+    public static final Supplier<DataComponentType<AtlasData>> ATLAS = COMPONENTS.registerComponentType(
+            "atlas", builder -> builder.persistent(AtlasData.CODEC).networkSynchronized(AtlasData.STREAM_CODEC));
 
     // What a Farmer's Almanac holds (CropContents)
     public static final Supplier<DataComponentType<CropContents>> CROP_CONTENTS = COMPONENTS.registerComponentType(

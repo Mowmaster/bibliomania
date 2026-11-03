@@ -6,6 +6,7 @@
     "bibliomania:crop_book",
     "bibliomania:essence_book",
     "bibliomania:mob_book",
-    "bibliomania:death_book"
+    "bibliomania:death_book",
+    "bibliomania:atlas"
   ]
 }

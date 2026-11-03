@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Network;
 
+import com.mowmaster.bibliomania.Atlas.AtlasPayloads;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -13,7 +14,7 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "6"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority
+    private static final String VERSION = "7"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority; 7: atlas
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)
@@ -23,6 +24,10 @@ public final class BibliomaniaNetwork
         registrar.playToServer(ToggleBookPayload.TYPE, ToggleBookPayload.STREAM_CODEC, ToggleBookPayload::handle);
         // Client -> server: the "place book" key
         registrar.playToServer(PlaceBookPayload.TYPE, PlaceBookPayload.STREAM_CODEC, PlaceBookPayload::handle);
+        // The Atlas: tiles to the client, requests and marks from it
+        registrar.playToClient(AtlasPayloads.Tiles.TYPE, AtlasPayloads.Tiles.STREAM_CODEC, AtlasPayloads::handleTiles);
+        registrar.playToServer(AtlasPayloads.Request.TYPE, AtlasPayloads.Request.STREAM_CODEC, AtlasPayloads::handleRequest);
+        registrar.playToServer(AtlasPayloads.Mark.TYPE, AtlasPayloads.Mark.STREAM_CODEC, AtlasPayloads::handleMark);
         // Client -> server: the page keys while holding a Priority Scroll
         registrar.playToServer(AdjustPriorityPayload.TYPE, AdjustPriorityPayload.STREAM_CODEC, AdjustPriorityPayload::handle);
         // Client -> server: the "pick up book" key

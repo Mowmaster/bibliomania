@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import net.minecraft.core.component.DataComponents;
@@ -172,7 +173,8 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
     // one whole page (-1)
     private static List<Integer> shownPages(ItemStack book)
     {
-        if (book.isEmpty()) return List.of();
+        // An Atlas isn't read on a lectern: skipped
+        if (book.isEmpty() || book.getItem() instanceof AtlasItem) return List.of();
         if (!(book.getItem() instanceof IPagedStorageItem paged)) return List.of(-1);
         PagedContents contents = paged.contents(book);
         List<Integer> pages = new ArrayList<>();
