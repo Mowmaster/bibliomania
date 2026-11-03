@@ -56,6 +56,10 @@ public final class ClientConfig
     public static final ModConfigSpec.BooleanValue BOOK_HELD;
     // [block_label]
     public static final ModConfigSpec.BooleanValue LABEL_ENABLED;
+    public static final ModConfigSpec.EnumValue<Anchor> ATLAS_ANCHOR;
+    public static final ModConfigSpec.IntValue ATLAS_X;
+    public static final ModConfigSpec.IntValue ATLAS_Y;
+    public static final ModConfigSpec.IntValue ATLAS_SIZE;
     public static final ModConfigSpec.EnumValue<Anchor> LABEL_ANCHOR;
     public static final ModConfigSpec.IntValue LABEL_X;
     public static final ModConfigSpec.IntValue LABEL_Y;
@@ -80,6 +84,14 @@ public final class ClientConfig
         LABEL_X = BUILDER.comment("Moved this far right from there (negative: left)").defineInRange("x_offset", 0, -4000, 4000);
         LABEL_Y = BUILDER.comment("Moved this far down from there (negative: up)").defineInRange("y_offset", 0, -4000, 4000);
         LABEL_AMOUNTS = BUILDER.comment("Also show the energy, fluids and experience the block holds").define("show_amounts", true);
+        BUILDER.pop();
+
+        BUILDER.comment("The Atlas's map (and the lodestone tracker under it)").push("atlas_map");
+        ATLAS_ANCHOR = BUILDER.comment("Where on the screen it's pinned").defineEnum("anchor", Anchor.TOP_RIGHT);
+        ATLAS_X = BUILDER.comment("Moved this far right from there (negative: left)").defineInRange("x_offset", 0, -4000, 4000);
+        ATLAS_Y = BUILDER.comment("Moved this far down from there (negative: up)").defineInRange("y_offset", 0, -4000, 4000);
+        ATLAS_SIZE = BUILDER.comment("How big it's drawn, in GUI pixels (it always shows 64 x 64 map pixels of ground; this only scales them)")
+                .defineInRange("size", 80, 32, 512);
         BUILDER.pop();
     }
 

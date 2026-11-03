@@ -5,7 +5,10 @@ import com.mowmaster.bibliomania.Atlas.AtlasData;
 import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.Atlas.AtlasPayloads;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.ClientConfig;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
+import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -27,7 +30,8 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 import java.util.UUID;
 
-// The Atlas's map, in the top right of the screen, while an Atlas is anywhere in the inventory (the first one found):
+// The Atlas's map, while an Atlas is held (or, wearing Reading Goggles, anywhere in the inventory: see shown). Placed
+// and sized by the client config [atlas_map] (by default the top right of the screen, 64 GUI pixels):
 // 64 x 64 pixels, centred on the player (north up), each pixel `scale` blocks (the Atlas's zoom), in vanilla map
 // colours; unexplored ground is plain paper. Its markers on top: points of interest as their item (half size),
 // banners as a little flag in their colour, lodestones as a red X; the player as a white dot. Under it, the nearest
@@ -41,7 +45,6 @@ public final class AtlasHud
 
     private static final Identifier LAYER = Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "atlas_map");
     private static final int MAP = 64;
-    private static final int MARGIN = 4;
     private static final int BORDER = 0xFF6B4E2A;
     private static final int PAPER = 0xFFD8C7A1;
     private static final int TEXT = 0xFFFFFFFF;
@@ -63,7 +66,7 @@ public final class AtlasHud
     {
         LocalPlayer player = Minecraft.getInstance().player;
         if (player == null) return;
-        ItemStack atlas = AtlasItem.carried(player);
+        ItemStack atlas = shown(player);
         UUID id = atlas.isEmpty() ? null : atlas.get(DataComponentRegistry.BOOK_ID.get());
         if (id == null) return;
         if (!id.equals(AtlasClientCache.atlas) || !player.level().dimension().equals(AtlasClientCache.dimension))
@@ -80,17 +83,44 @@ public final class AtlasHud
         }
     }
 
+    // The Atlas the map shows: wearing Reading Goggles (the helmet enchantment, or the Reading Glasses), the first one
+    // anywhere in the inventory; otherwise only one in hand (main hand first). EMPTY: no map.
+    public static ItemStack shown(LocalPlayer player)
+    {
+        if (ReadingGlassesItem.canRead(player)) return AtlasItem.carried(player);
+        for (InteractionHand hand : InteractionHand.values())
+        {
+            ItemStack held = player.getItemInHand(hand);
+            if (held.getItem() instanceof AtlasItem) return held;
+        }
+        return ItemStack.EMPTY;
+    }
+
     private static void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker)
     {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         if (player == null || minecraft.gui.hud.isHidden()) return;
-        ItemStack atlas = AtlasItem.carried(player);
+        ItemStack atlas = shown(player);
         if (atlas.isEmpty()) return;
         AtlasData data = AtlasItem.data(atlas);
         int scale = data.scale();
-        int left = graphics.guiWidth() - MAP - MARGIN, top = MARGIN;
         int centerX = player.getBlockX(), centerZ = player.getBlockZ();
+
+        // Where and how big (client config [atlas_map]): the map is drawn 64 x 64 at the origin, then the GUI's pose
+        // moves it to its place and scales it to `size` (the frame, markers and tracker with it)
+        int size = ClientConfig.ATLAS_SIZE.get();
+        float zoom = size / (float) MAP;
+        // The space it takes: the map with its frame, and the tracker line under it
+        int width = size + 4, height = size + 4 + Math.round(14 * zoom);
+        int x = ClientConfig.ATLAS_ANCHOR.get().x(graphics.guiWidth(), width) + ClientConfig.ATLAS_X.get();
+        int y = ClientConfig.ATLAS_ANCHOR.get().y(graphics.guiHeight(), height) + ClientConfig.ATLAS_Y.get();
+        x = Math.clamp(x, 0, Math.max(0, graphics.guiWidth() - width));
+        y = Math.clamp(y, 0, Math.max(0, graphics.guiHeight() - height));
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x + 2, y + 2);
+        graphics.pose().scale(zoom, zoom);
+        int left = 0, top = 0;
 
         // Frame and paper
         graphics.fill(left - 2, top - 2, left + MAP + 2, top + MAP + 2, BORDER);
@@ -134,6 +164,7 @@ public final class AtlasHud
 
         // The tracker under the map: the nearest lodestone
         if (nearest != null) drawTracker(graphics, minecraft.font, player, nearest, nearestDistance, left, top + MAP + 4);
+        graphics.pose().popMatrix();
     }
 
     private static void drawMarker(GuiGraphicsExtractor graphics, Font font, AtlasData.Marker marker, int x, int z)
