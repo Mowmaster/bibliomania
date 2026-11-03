@@ -13,6 +13,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.MapColor;
@@ -124,7 +125,7 @@ public final class AtlasHud
             int mx = left + MAP / 2 + Math.floorDiv(marker.pos().getX() - centerX, scale);
             int mz = top + MAP / 2 + Math.floorDiv(marker.pos().getZ() - centerZ, scale);
             if (mx < left || mx >= left + MAP || mz < top || mz >= top + MAP) continue;
-            drawMarker(graphics, marker, mx, mz);
+            drawMarker(graphics, minecraft.font, marker, mx, mz);
         }
         // The player: a white dot with a dark edge
         int cx = left + MAP / 2, cz = top + MAP / 2;
@@ -135,7 +136,7 @@ public final class AtlasHud
         if (nearest != null) drawTracker(graphics, minecraft.font, player, nearest, nearestDistance, left, top + MAP + 4);
     }
 
-    private static void drawMarker(GuiGraphicsExtractor graphics, AtlasData.Marker marker, int x, int z)
+    private static void drawMarker(GuiGraphicsExtractor graphics, Font font, AtlasData.Marker marker, int x, int z)
     {
         switch (marker.kind())
         {
@@ -153,6 +154,8 @@ public final class AtlasHud
                 // A little flag: a dark pole and the banner's colour
                 graphics.fill(x - 1, z - 3, x, z + 3, 0xFF3A2A1A);
                 graphics.fill(x, z - 3, x + 3, z + 1, 0xFF000000 | marker.color());
+                // Its custom name under it, like a vanilla map: half size, on a see-through dark backing
+                marker.name().ifPresent(name -> drawName(graphics, font, name, x, z + 4));
             }
             case LODESTONE ->
             {
@@ -166,7 +169,20 @@ public final class AtlasHud
         }
     }
 
-    // "↗ Lodestone 128m": the arrow turns with where the player looks
+    // Text at half size, centred under (x, top), on a see-through dark backing (as a vanilla map labels banners)
+    private static void drawName(GuiGraphicsExtractor graphics, Font font, Component name, int x, int top)
+    {
+        FormattedCharSequence text = name.getVisualOrderText();
+        int width = font.width(text);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(x, top);
+        graphics.pose().scale(0.5f, 0.5f);
+        graphics.fill(-width / 2 - 1, -1, width / 2 + 1, font.lineHeight, 0x80000000);
+        graphics.text(font, text, -width / 2, 0, TEXT, false);
+        graphics.pose().popMatrix();
+    }
+
+    // "↗ 120, 64, -35 (128m)": the lodestone's coordinates; the arrow turns with where the player looks
     private static void drawTracker(GuiGraphicsExtractor graphics, Font font, LocalPlayer player, AtlasData.Marker marker,
                                     double distance, int left, int top)
     {
@@ -175,7 +191,8 @@ public final class AtlasHud
         float toward = (float) Math.toDegrees(Math.atan2(-dx, dz));
         float relative = Mth.wrapDegrees(toward - player.getYRot());
         int arrow = Math.floorMod(Math.round(relative / 45f), 8);
-        Component line = Component.translatable("hud." + BibliomaniaReferences.MODID + ".atlas_tracker", ARROWS[arrow], (int) Math.round(distance));
+        Component line = Component.translatable("hud." + BibliomaniaReferences.MODID + ".atlas_tracker", ARROWS[arrow],
+                marker.pos().getX(), marker.pos().getY(), marker.pos().getZ(), (int) Math.round(distance));
         int width = font.width(line);
         graphics.text(font, line.getVisualOrderText(), left + MAP - width, top, TEXT, true);
     }
