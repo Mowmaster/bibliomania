@@ -78,12 +78,13 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
     {
         LibraryControllerBlockEntity library = library(level, worldPosition);
         ItemStack wanted = pattern.item(0);
-        if (library == null) return false;
+        // Out of knowledge (LibraryCosts): it does nothing until the library is refuelled
+        if (library == null || !library.isFueled()) return false;
         storeExtras(library);
         ItemStack held = getItem(0);
         if (!held.isEmpty() && (wanted.isEmpty() || !ItemStack.isSameItem(held, wanted)))
         {
-            ItemStack left = LibraryDeposit.storeItems(library, held);
+            ItemStack left = LibraryDeposit.storeItems(library, held, worldPosition);
             setItem(0, left);
             if (!left.isEmpty()) return false;
         }
@@ -97,7 +98,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         // BlockSource: the dispenser as the behaviours see it (where it is, its state, its block entity)
         ItemStack result = behaviour.dispense(new BlockSource(level, worldPosition, state, this), loaded);
         if (result.isEmpty() || ItemStack.isSameItem(result, wanted)) setItem(0, result);
-        else setItem(0, LibraryDeposit.storeItems(library, result));
+        else setItem(0, LibraryDeposit.storeItems(library, result, worldPosition));
         storeExtras(library);
         return true;
     }
@@ -141,14 +142,15 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         BlockPos front = worldPosition.relative(facing);
         if (fluid.isEmpty())
         {
-            ResourceHandler<FluidResource> into = new LibraryDeposit.InsertOnly<>(() -> library, TransportTypes.FLUIDS.get());
+            ResourceHandler<FluidResource> into = new LibraryDeposit.InsertOnly<>(() -> library, TransportTypes.FLUIDS.get(), worldPosition);
             return !FluidUtil.tryPickupFluid(into, null, level, front, facing.getOpposite(), null).isEmpty();
         }
         ResourceHandler<FluidResource> fluids = library.typeHandler(TransportTypes.FLUIDS.get());
         if (fluids == null) return false;
         try (Transaction transaction = Transaction.openRoot())
         {
-            if (fluids.extract(fluid, FluidType.BUCKET_VOLUME, transaction) < FluidType.BUCKET_VOLUME) return false;
+            // Paid for, like any extract (LibraryCosts)
+            if (LibraryDeposit.paidExtract(library, TransportTypes.FLUIDS.get(), fluids, -1, fluid, FluidType.BUCKET_VOLUME, worldPosition, transaction) < FluidType.BUCKET_VOLUME) return false;
             // false: like a bucket, it counts as placed even into a block that takes fluid but says no
             if (!FluidUtil.tryPlaceFluid(fluid, null, level, front, false)) return false;
             transaction.commit();
@@ -162,7 +164,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         try (Transaction transaction = Transaction.openRoot())
         {
             // false: a bucket must be stored as a bucket (never filled from the fluid books)
-            List<ItemStack> got = LibraryDeposit.take(library, wanted, 1, pattern.exact(), false, transaction);
+            List<ItemStack> got = LibraryDeposit.take(library, wanted, 1, pattern.exact(), false, worldPosition, transaction);
             if (got.isEmpty()) return false;
             transaction.commit();
             // getFirst (Java 21): the list's first element
@@ -177,7 +179,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
         for (int slot = 1; slot < getContainerSize(); slot++)
         {
             ItemStack extra = getItem(slot);
-            if (!extra.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, extra));
+            if (!extra.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, extra, worldPosition));
         }
     }
 
@@ -205,7 +207,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
             for (int slot = 0; slot < getContainerSize(); slot++)
             {
                 ItemStack stack = getItem(slot);
-                if (!stack.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, stack));
+                if (!stack.isEmpty()) setItem(slot, LibraryDeposit.storeItems(library, stack, worldPosition));
             }
         }
         super.preRemoveSideEffects(pos, state);

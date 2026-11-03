@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania.Blocks.Requestor;
 import com.mowmaster.mowlib.items.tools.FilterToolItem;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -55,6 +56,8 @@ public abstract class PatternDispenserBlock extends DispenserBlock
     {
         PatternHolder holder = holder(level, pos);
         if (stack.isEmpty() || holder == null) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        // A library out of knowledge (LibraryCosts): its blocks can't be used
+        if (holder instanceof LibraryMember member && LibraryCosts.blocked(level, member, pos, player)) return InteractionResult.SUCCESS;
         // MowLib's Filter Tool, anywhere on the block: switches between fuzzy (any damage) and exact matching
         if (stack.getItem() instanceof FilterToolItem)
         {
@@ -84,6 +87,7 @@ public abstract class PatternDispenserBlock extends DispenserBlock
     {
         PatternHolder holder = holder(level, pos);
         if (holder == null || !player.getMainHandItem().isEmpty()) return InteractionResult.PASS;
+        if (holder instanceof LibraryMember member && LibraryCosts.blocked(level, member, pos, player)) return InteractionResult.SUCCESS;
         int cell = cellAt(state, hitResult, holder);
         if (holder.pattern().item(cell).isEmpty()) return InteractionResult.PASS;
         if (holder instanceof LibraryMember member && member.isLocked()) return locked(level, player);

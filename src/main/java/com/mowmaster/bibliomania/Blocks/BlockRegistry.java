@@ -112,7 +112,9 @@ public class BlockRegistry
 
     // The Library Controller: the core of a library (see LibraryControllerBlock)
     public static final DeferredBlock<LibraryControllerBlock> LIBRARY_CONTROLLER = registerBlock("library_controller",
-            properties -> new LibraryControllerBlock(properties.strength(2.5f).sound(SoundType.CHISELED_BOOKSHELF)));
+            properties -> new LibraryControllerBlock(properties.strength(2.5f).sound(SoundType.CHISELED_BOOKSHELF)
+                    // A full light source; see-through (only a base is a block model, the crystal is drawn by its renderer)
+                    .lightLevel(state -> 15).noOcclusion()));
 
     // Card Catalogs: 1 to 16 drawers (card_catalog_1 to _16; only 1 is crafted, the stonecutter turns any into any)
     public static final List<DeferredBlock<CardCatalogBlock>> CARD_CATALOGS = registerCardCatalogs();

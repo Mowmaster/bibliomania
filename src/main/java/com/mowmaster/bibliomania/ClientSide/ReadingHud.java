@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlockEntity;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
@@ -199,6 +201,20 @@ public final class ReadingHud
                     if (ClientConfig.BOOK_ENABLED.get())
                     {
                         shelfLines = readPattern(state, holder, PatternDispenserBlock.cellAt(state, hit, holder), level, player);
+                    }
+                }
+                else if (blockEntity instanceof StorageAccessPointBlockEntity || blockEntity instanceof LibraryControllerBlockEntity)
+                {
+                    // A Storage Access Point (its library's storage by type) or a Library Controller (its blocks):
+                    // asked from the server (BlockInfoPayloads), which knows the library; shown on the left, no label
+                    lookingAtBook = true;
+                    if (ClientConfig.BOOK_ENABLED.get())
+                    {
+                        boolean answered = pos.equals(BlockInfoPayloads.answeredPos) && BlockInfoPayloads.answeredSlot == -1;
+                        if (!answered || ticks % ASK_EVERY == 0) ClientPacketDistributor.sendToServer(new BlockInfoPayloads.Request(pos, -1));
+                        shelfLines = new ArrayList<>();
+                        shelfLines.add(state.getBlock().getName());
+                        if (answered) shelfLines.addAll(BlockInfoPayloads.answeredLines);
                     }
                 }
                 else if (blockEntity instanceof StorageDepositBlockEntity)

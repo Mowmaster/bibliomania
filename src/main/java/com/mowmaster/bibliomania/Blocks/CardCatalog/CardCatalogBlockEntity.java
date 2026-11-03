@@ -90,7 +90,8 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
         for (int drawer = 0; drawer < size(); drawer++)
         {
             DrawerEntry entry = drawers[drawer];
-            if (entry != null && (library == null || !library.has(entry))) newMissing |= 1 << drawer;
+            // Out of knowledge (LibraryCosts): every drawer shows as missing
+            if (entry != null && (library == null || !library.isFueled() || !library.has(entry))) newMissing |= 1 << drawer;
         }
         if (newMissing != missing)
         {

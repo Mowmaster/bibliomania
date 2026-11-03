@@ -1,5 +1,12 @@
 package com.mowmaster.bibliomania.Network;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.Block;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
+import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
 import com.mowmaster.mowlib.transport.TransportType;
@@ -58,7 +65,7 @@ public final class BlockInfoPayloads
     private BlockInfoPayloads() {}
 
     // At most this many lines (a block with many tanks shows its first few)
-    private static final int MAX_LINES = 10;
+    private static final int MAX_LINES = 16;
 
     // slot: the chiseled bookshelf slot looked at (0-5), or -1
     public record Request(BlockPos pos, int slot) implements CustomPacketPayload
@@ -193,6 +200,10 @@ public final class BlockInfoPayloads
 
     public static List<Component> describe(ServerLevel level, BlockPos pos, int slot, Player player)
     {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        // Library blocks with a left-side panel (ReadingHud): their own lines
+        if (blockEntity instanceof StorageAccessPointBlockEntity point) return libraryTotals(point.library(level, pos));
+        if (blockEntity instanceof LibraryControllerBlockEntity controller) return libraryMembers(level, controller);
         List<Component> lines = new ArrayList<>();
         // The looked-at book on a chiseled bookshelf: its tooltip (name, then enchantments, author...)
         if (slot >= 0 && slot < 6 && level.getBlockEntity(pos) instanceof ChiseledBookShelfBlockEntity shelf)
@@ -214,6 +225,51 @@ public final class BlockInfoPayloads
             if (lines.size() >= MAX_LINES) break;
         }
         return lines.size() > MAX_LINES ? lines.subList(0, MAX_LINES) : lines;
+    }
+
+    // A Storage Access Point: its library's storage, one line per transport type with everything of it together:
+    // "Items: 12,345 / 40,960" (typeTotals: what the type's books hold and have room for)
+    private static List<Component> libraryTotals(@Nullable LibraryControllerBlockEntity library)
+    {
+        List<Component> lines = new ArrayList<>();
+        if (library == null)
+        {
+            lines.add(hud("no_library"));
+            return lines;
+        }
+        for (TransportType<?> type : TransportTypes.REGISTRY)
+        {
+            long[] totals = library.typeTotals(type, null);
+            if (totals[1] <= 0 && totals[0] <= 0) continue;
+            lines.add(hud("library_type_total", type.getName(), String.format("%,d", totals[0]), String.format("%,d", totals[1])).withStyle(type.getColor()));
+            if (lines.size() >= MAX_LINES) break;
+        }
+        if (lines.isEmpty()) lines.add(hud("library_no_storage"));
+        return lines;
+    }
+
+    // A Library Controller: every kind of block in the library with how many: "12 Bookcase", most first
+    private static List<Component> libraryMembers(ServerLevel level, LibraryControllerBlockEntity controller)
+    {
+        // LinkedHashMap: keeps the order kinds were first met; merge adds one to a kind already counted
+        Map<Block, Integer> counts = new LinkedHashMap<>();
+        for (BlockPos member : controller.members())
+        {
+            if (level.isLoaded(member)) counts.merge(level.getBlockState(member).getBlock(), 1, Integer::sum);
+        }
+        List<Component> lines = new ArrayList<>();
+        // With costs on (LibraryCosts): the Knowledge Point balance, or that it's run out
+        if (LibraryCosts.enabled())
+        {
+            lines.add(controller.isFueled() ? hud("library_knowledge", String.format("%,d", controller.getKnowledge())).withStyle(ChatFormatting.AQUA)
+                    : hud("library_no_knowledge").withStyle(ChatFormatting.RED));
+        }
+        lines.add(hud("library_members", controller.members().size()));
+        counts.entrySet().stream()
+                .sorted(Map.Entry.<Block, Integer>comparingByValue().reversed())
+                .limit(MAX_LINES - 1)
+                .forEach(entry -> lines.add(hud("library_member", entry.getValue(), entry.getKey().getName())));
+        return lines;
     }
 
     // <R extends Resource>: a generic method, so the handler's resources and the type's describeAmount agree

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import net.minecraft.network.chat.Component;
 import com.mowmaster.mowlib.items.tools.FilterToolItem;
@@ -161,6 +162,8 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
                                                    Player player, InteractionHand hand, BlockHitResult hitResult)
     {
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        // A library out of knowledge (LibraryCosts): its lecterns can't be used
+        if (LibraryCosts.blocked(level, lectern, pos, player)) return InteractionResult.SUCCESS;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
 
         // MowLib's Filter Tool: card catalog items matched fuzzy (at any damage) or exact. A setting: not while sealed.
@@ -212,6 +215,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     protected @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult)
     {
         if (!(level.getBlockEntity(pos) instanceof ReadingLecternBlockEntity lectern)) return InteractionResult.PASS;
+        if (LibraryCosts.blocked(level, lectern, pos, player)) return InteractionResult.SUCCESS;
         if (turnPage(state, level, pos, player, lectern, hitResult)) return InteractionResult.SUCCESS;
         if (insertCard(level, pos, player, lectern)) return InteractionResult.SUCCESS;
         // A whole book open: an empty hand on it (a Book of Experience gives its levels...)

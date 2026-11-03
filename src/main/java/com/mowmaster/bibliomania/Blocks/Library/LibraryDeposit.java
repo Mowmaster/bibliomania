@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
@@ -46,11 +47,39 @@ public final class LibraryDeposit
 
     // Puts as much of `stack` as fits into the library (enchanted and written books onto its Chiseled Bookshelves
     // first, everything else into the item books: LibraryControllerBlockEntity#insertItems). Returns how many went in.
-    // The stack itself isn't changed.
-    public static int insertItems(LibraryControllerBlockEntity library, ItemStack stack, TransactionContext transaction)
+    // The stack itself isn't changed. It's paid for (LibraryCosts; `at`: where it goes in): if the library can't pay,
+    // nothing goes in.
+    public static int insertItems(LibraryControllerBlockEntity library, ItemStack stack, BlockPos at, TransactionContext transaction)
     {
         if (stack.isEmpty()) return 0;
-        return library.insertItems(ItemResource.of(stack), stack.getCount(), transaction);
+        return paidInsert(library, TransportTypes.ITEMS.get(), ItemResource.of(stack), stack.getCount(), at, transaction);
+    }
+
+    // Puts up to `amount` in (LibraryControllerBlockEntity#insert) and pays for what went in, in a nested transaction
+    // that's only kept if both worked. Returns how many went in.
+    public static <R extends Resource> int paidInsert(LibraryControllerBlockEntity library, TransportType<R> type, R resource, int amount,
+                                                      BlockPos at, TransactionContext transaction)
+    {
+        try (Transaction paid = Transaction.open(transaction))
+        {
+            int inserted = library.insert(type, resource, amount, paid);
+            if (inserted <= 0 || !library.payFor(LibraryCosts.Operation.INSERT, type, resource, inserted, at, paid)) return 0;
+            paid.commit();
+            return inserted;
+        }
+    }
+
+    // Takes up to `amount` out of `from` (one of the library's handlers) and pays for it, the same way
+    public static <R extends Resource> int paidExtract(LibraryControllerBlockEntity library, TransportType<R> type, ResourceHandler<R> from,
+                                                       int index, R resource, int amount, BlockPos at, TransactionContext transaction)
+    {
+        try (Transaction paid = Transaction.open(transaction))
+        {
+            int taken = index < 0 ? from.extract(resource, amount, paid) : from.extract(index, resource, amount, paid);
+            if (taken <= 0 || !library.payFor(LibraryCosts.Operation.EXTRACT, type, resource, taken, at, paid)) return 0;
+            paid.commit();
+            return taken;
+        }
     }
 
     // ---- Emptying a held container into the library ----
@@ -61,7 +90,7 @@ public final class LibraryDeposit
     // anything (then it's stored as an item like any other).
     // ItemAccess.forPlayerInteraction: the held stack as the item's own handlers see it; their changes (a book with
     // fewer pages filled, a lighter bundle) are written back into the hand.
-    public static int emptyHeld(LibraryControllerBlockEntity library, Player player, InteractionHand hand)
+    public static int emptyHeld(LibraryControllerBlockEntity library, Player player, InteractionHand hand, BlockPos at)
     {
         ItemStack held = player.getItemInHand(hand);
         if (held.isEmpty() || held.getCount() != 1) return -1;
@@ -71,26 +100,26 @@ public final class LibraryDeposit
             int moved = -1;
             for (TransportType<?> type : TransportTypes.REGISTRY)
             {
-                int each = emptyBook(library, shelved, type, access);
+                int each = emptyBook(library, shelved, type, access, at);
                 if (each >= 0) moved = Math.max(moved, 0) + each;
             }
             if (moved >= 0) return moved;
         }
         ResourceHandler<ItemResource> items = access.getCapability(Capabilities.Item.ITEM);
-        return items == null ? -1 : emptyInto(library, TransportTypes.ITEMS.get(), items);
+        return items == null ? -1 : emptyInto(library, TransportTypes.ITEMS.get(), items, at);
     }
 
     // One type of a book's contents (-1: the book holds nothing of that type). A generic method so the type and the
     // book's handler agree on R (a TransportType<?> from the registry can't be used for that directly).
-    private static <R extends Resource> int emptyBook(LibraryControllerBlockEntity library, ShelvedBook book, TransportType<R> type, ItemAccess access)
+    private static <R extends Resource> int emptyBook(LibraryControllerBlockEntity library, ShelvedBook book, TransportType<R> type, ItemAccess access, BlockPos at)
     {
         ResourceHandler<R> from = book.shelfHandler(type, access);
-        return from == null ? -1 : emptyInto(library, type, from);
+        return from == null ? -1 : emptyInto(library, type, from, at);
     }
 
     // Moves everything it can from `from` into the library, index by index (each one all-or-what-fits, in its own
     // nested transaction). Returns how much moved.
-    private static <R extends Resource> int emptyInto(LibraryControllerBlockEntity library, TransportType<R> type, ResourceHandler<R> from)
+    private static <R extends Resource> int emptyInto(LibraryControllerBlockEntity library, TransportType<R> type, ResourceHandler<R> from, BlockPos at)
     {
         int moved = 0;
         try (Transaction transaction = Transaction.openRoot())
@@ -102,7 +131,7 @@ public final class LibraryDeposit
                 if (resource.isEmpty() || amount <= 0) continue;
                 try (Transaction each = Transaction.open(transaction))
                 {
-                    int inserted = insertInto(library, type, resource, amount, each);
+                    int inserted = paidInsert(library, type, resource, amount, at, each);
                     if (inserted <= 0 || from.extract(index, resource, inserted, each) < inserted) continue;
                     each.commit();
                     moved += inserted;
@@ -111,12 +140,6 @@ public final class LibraryDeposit
             transaction.commit();
         }
         return moved;
-    }
-
-    // Into the library, highest priority shelves first (LibraryControllerBlockEntity#insert)
-    private static <R extends Resource> int insertInto(LibraryControllerBlockEntity library, TransportType<R> type, R resource, int amount, TransactionContext transaction)
-    {
-        return library.insert(type, resource, amount, transaction);
     }
 
     // A bucket of fluid (water, lava, a modded fluid's bucket); not a bucket of fish or axolotl (MobBucketItem extends
@@ -130,7 +153,7 @@ public final class LibraryDeposit
     // Empties the fluid container at `access` (a bucket in a player's hand...) into the library's fluid books: all of
     // its fluid or none (a bucket can't be part emptied). The container's own handler turns it into its empty form (an
     // empty bucket) where it is. Returns whether it was emptied.
-    public static boolean emptyFluid(LibraryControllerBlockEntity library, ItemAccess access, TransactionContext transaction)
+    public static boolean emptyFluid(LibraryControllerBlockEntity library, ItemAccess access, BlockPos at, TransactionContext transaction)
     {
         ResourceHandler<FluidResource> container = access.getCapability(Capabilities.Fluid.ITEM);
         ResourceHandler<FluidResource> fluids = library.typeHandler(TransportTypes.FLUIDS.get());
@@ -144,7 +167,7 @@ public final class LibraryDeposit
                 FluidResource fluid = container.getResource(index);
                 int amount = container.getAmountAsInt(index);
                 if (fluid.isEmpty() || amount <= 0) continue;
-                if (library.insert(TransportTypes.FLUIDS.get(), fluid, amount, inner) < amount) return false;
+                if (paidInsert(library, TransportTypes.FLUIDS.get(), fluid, amount, at, inner) < amount) return false;
                 if (container.extract(index, fluid, amount, inner) < amount) return false;
                 emptied = true;
             }
@@ -155,13 +178,13 @@ public final class LibraryDeposit
 
     // Stores `stack` in the library's item books as it is (a water bucket stays a water bucket), committed. Returns
     // what didn't fit (EMPTY if it all did). The stack itself isn't changed.
-    public static ItemStack storeItems(LibraryControllerBlockEntity library, ItemStack stack)
+    public static ItemStack storeItems(LibraryControllerBlockEntity library, ItemStack stack, BlockPos at)
     {
         ItemStack rest = stack.copy();
         if (rest.isEmpty()) return ItemStack.EMPTY;
         try (Transaction transaction = Transaction.openRoot())
         {
-            int inserted = insertItems(library, rest, transaction);
+            int inserted = insertItems(library, rest, at, transaction);
             transaction.commit();
             rest.shrink(inserted);
         }
@@ -171,7 +194,7 @@ public final class LibraryDeposit
     // Stores `stack` in the library (its own transactions, committed): fluid buckets are emptied into the fluid books
     // one at a time and the empty buckets stored as items; everything else goes to the item books. Returns what didn't
     // fit (EMPTY if it all did). The stack itself isn't changed.
-    public static ItemStack store(LibraryControllerBlockEntity library, ItemStack stack)
+    public static ItemStack store(LibraryControllerBlockEntity library, ItemStack stack, BlockPos at)
     {
         ItemStack rest = stack.copy();
         while (!rest.isEmpty() && isFluidBucket(rest))
@@ -181,9 +204,9 @@ public final class LibraryDeposit
             scratch.set(0, ItemResource.of(rest), 1);
             try (Transaction transaction = Transaction.openRoot())
             {
-                if (!emptyFluid(library, ItemAccess.forHandlerIndexStrict(scratch, 0), transaction)) break;
+                if (!emptyFluid(library, ItemAccess.forHandlerIndexStrict(scratch, 0), at, transaction)) break;
                 ItemStack emptied = ItemUtil.getStack(scratch, 0);
-                if (insertItems(library, emptied, transaction) < emptied.getCount()) break;
+                if (insertItems(library, emptied, at, transaction) < emptied.getCount()) break;
                 transaction.commit();
             }
             rest.shrink(1);
@@ -191,7 +214,7 @@ public final class LibraryDeposit
         if (rest.isEmpty()) return ItemStack.EMPTY;
         try (Transaction transaction = Transaction.openRoot())
         {
-            int inserted = insertItems(library, rest, transaction);
+            int inserted = insertItems(library, rest, at, transaction);
             transaction.commit();
             rest.shrink(inserted);
         }
@@ -216,13 +239,27 @@ public final class LibraryDeposit
     // Takes up to `count` of `wanted` from the library (matches: exact or fuzzy). What it got, as the real stacks
     // (fuzzy: possibly several, each worn differently). A fluid bucket the library doesn't have enough of as items is
     // made from an empty bucket (item books) and a bucket's worth of its fluid (fluid books), one at a time.
-    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, TransactionContext transaction)
+    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, BlockPos at, TransactionContext transaction)
     {
-        return take(library, wanted, count, exact, true, transaction);
+        return take(library, wanted, count, exact, true, at, transaction);
     }
 
-    // The same; fillBuckets false: only bucket items already stored count (the Storage Dispenser)
-    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, boolean fillBuckets, TransactionContext transaction)
+    // The same; fillBuckets false: only bucket items already stored count (the Storage Dispenser). Paid for
+    // (LibraryCosts; `at`: where it comes out): if the library can't pay, nothing is taken (an empty list).
+    public static List<ItemStack> take(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, boolean fillBuckets,
+                                       BlockPos at, TransactionContext transaction)
+    {
+        try (Transaction paid = Transaction.open(transaction))
+        {
+            List<ItemStack> got = takeUnpaid(library, wanted, count, exact, fillBuckets, paid);
+            int taken = total(got);
+            if (taken <= 0 || !library.payFor(LibraryCosts.Operation.EXTRACT, TransportTypes.ITEMS.get(), ItemResource.of(wanted), taken, at, paid)) return List.of();
+            paid.commit();
+            return got;
+        }
+    }
+
+    private static List<ItemStack> takeUnpaid(LibraryControllerBlockEntity library, ItemStack wanted, int count, boolean exact, boolean fillBuckets, TransactionContext transaction)
     {
         List<ItemStack> got = new ArrayList<>();
         ResourceHandler<ItemResource> items = library.typeHandler(TransportTypes.ITEMS.get());
@@ -276,10 +313,14 @@ public final class LibraryDeposit
         // The library's handler for the type (null: no library, or no books of the type)
         private final Supplier<@Nullable ResourceHandler<R>> target;
 
-        public InsertOnly(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type)
+        // Where the transfers happen (for the distance cost)
+        protected final BlockPos at;
+
+        public InsertOnly(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type, BlockPos at)
         {
             this.library = library;
             this.type = type;
+            this.at = at.immutable();
             this.target = () -> {
                 LibraryControllerBlockEntity found = library.get();
                 return found == null ? null : found.typeHandler(type);
@@ -309,15 +350,33 @@ public final class LibraryDeposit
         @Override
         public int insert(int index, R resource, int amount, TransactionContext transaction)
         {
-            return handler().insert(index, resource, amount, transaction);
+            LibraryControllerBlockEntity found = library.get();
+            if (found == null) return 0;
+            try (Transaction paid = Transaction.open(transaction))
+            {
+                int inserted = handler().insert(index, resource, amount, paid);
+                if (inserted <= 0 || !found.payFor(LibraryCosts.Operation.INSERT, type, resource, inserted, at, paid)) return 0;
+                paid.commit();
+                return inserted;
+            }
         }
 
-        // Without an index: the library's own way in (highest priority shelves first)
+        // Without an index: the library's own way in (highest priority shelves first), paid for
         @Override
         public int insert(R resource, int amount, TransactionContext transaction)
         {
             LibraryControllerBlockEntity found = library.get();
-            return found == null ? 0 : found.insert(type, resource, amount, transaction);
+            return found == null ? 0 : paidInsert(found, type, resource, amount, at, transaction);
+        }
+
+        protected @Nullable LibraryControllerBlockEntity library()
+        {
+            return library.get();
+        }
+
+        protected TransportType<R> type()
+        {
+            return type;
         }
 
         @Override
@@ -339,9 +398,9 @@ public final class LibraryDeposit
     {
         private final Supplier<@Nullable ResourceHandler<R>> books;
 
-        public FullAccess(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type)
+        public FullAccess(Supplier<@Nullable LibraryControllerBlockEntity> library, TransportType<R> type, BlockPos at)
         {
-            super(library, type);
+            super(library, type, at);
             this.books = () -> {
                 LibraryControllerBlockEntity found = library.get();
                 return found == null ? null : found.typeHandler(type);
@@ -351,14 +410,16 @@ public final class LibraryDeposit
         @Override
         public int extract(int index, R resource, int amount, TransactionContext transaction)
         {
-            return handler().extract(index, resource, amount, transaction);
+            LibraryControllerBlockEntity found = library();
+            return found == null ? 0 : paidExtract(found, type(), handler(), index, resource, amount, at, transaction);
         }
 
         @Override
         public int extract(R resource, int amount, TransactionContext transaction)
         {
+            LibraryControllerBlockEntity found = library();
             ResourceHandler<R> handler = books.get();
-            return handler == null ? 0 : handler.extract(resource, amount, transaction);
+            return found == null || handler == null ? 0 : paidExtract(found, type(), handler, -1, resource, amount, at, transaction);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CardCatalog;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -199,6 +200,8 @@ public class CardCatalogBlock extends Block implements IColorableBlock
         if (!(level.getBlockEntity(pos) instanceof CardCatalogBlockEntity catalog)) return InteractionResult.TRY_WITH_EMPTY_HAND;
         // Vanilla calls this with an empty hand too: that's useWithoutItem's (open/close, sneak to clear)
         if (stack.isEmpty()) return InteractionResult.TRY_WITH_EMPTY_HAND;
+        // A library out of knowledge (LibraryCosts): its catalogs can't be used
+        if (LibraryCosts.blocked(level, catalog, pos, player)) return InteractionResult.SUCCESS;
         int drawer = drawerAt(state, hitResult);
         DrawerEntry entry = catalog.drawer(drawer);
 
@@ -247,6 +250,7 @@ public class CardCatalogBlock extends Block implements IColorableBlock
     protected @NotNull InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult)
     {
         if (!(level.getBlockEntity(pos) instanceof CardCatalogBlockEntity catalog)) return InteractionResult.PASS;
+        if (LibraryCosts.blocked(level, catalog, pos, player)) return InteractionResult.SUCCESS;
         int drawer = drawerAt(state, hitResult);
         if (catalog.drawer(drawer) == null) return InteractionResult.PASS;
         // Sneak: clear the drawer (closing it if it's open)

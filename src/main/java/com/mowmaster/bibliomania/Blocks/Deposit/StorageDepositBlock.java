@@ -119,11 +119,11 @@ public class StorageDepositBlock extends Block implements EntityBlock
         }
 
         // A storage book, bundle or other container: its contents in (as much as fits), the container kept in hand
-        int emptied = LibraryDeposit.emptyHeld(library, player, hand);
+        int emptied = LibraryDeposit.emptyHeld(library, player, hand, pos);
         if (emptied >= 0)
         {
             if (emptied > 0) level.playSound(null, pos, SoundEvents.BUNDLE_DROP_CONTENTS, SoundSource.BLOCKS, 1f, 1f);
-            else message(player, "full");
+            else message(player, library.isFueled() ? "full" : "no_knowledge");
             return InteractionResult.SUCCESS;
         }
 
@@ -134,7 +134,7 @@ public class StorageDepositBlock extends Block implements EntityBlock
             {
                 // forPlayerInteraction: the held stack, as the bucket's own handler sees it (it swaps the full bucket
                 // for an empty one in the hand; in creative the hand keeps its bucket); oneByOne: one bucket of a stack
-                if (LibraryDeposit.emptyFluid(library, ItemAccess.forPlayerInteraction(player, hand).oneByOne(), transaction))
+                if (LibraryDeposit.emptyFluid(library, ItemAccess.forPlayerInteraction(player, hand).oneByOne(), pos, transaction))
                 {
                     transaction.commit();
                     level.playSound(null, pos, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1f, 1f);
@@ -147,12 +147,13 @@ public class StorageDepositBlock extends Block implements EntityBlock
         int inserted;
         try (Transaction transaction = Transaction.openRoot())
         {
-            inserted = LibraryDeposit.insertItems(library, stack, transaction);
+            inserted = LibraryDeposit.insertItems(library, stack, pos, transaction);
             transaction.commit();
         }
         if (inserted <= 0)
         {
-            message(player, "full");
+            // Out of knowledge: only fuel can go in (LibraryCosts)
+            message(player, library.isFueled() ? "full" : "no_knowledge");
             return InteractionResult.SUCCESS;
         }
         if (!player.hasInfiniteMaterials()) stack.shrink(inserted);

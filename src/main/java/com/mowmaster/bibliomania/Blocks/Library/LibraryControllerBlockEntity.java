@@ -1,5 +1,17 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
+import com.mowmaster.bibliomania.ServerConfig;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.registries.BuiltInRegistries;
+import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.mowlib.tint.ITintHolder;
+import com.mowmaster.mowlib.tint.CBTintBlockEntity;
+import com.mowmaster.mowlib.tint.CBTintData;
 import java.util.Comparator;
 import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import com.mowmaster.bibliomania.BibliomaniaTags;
@@ -55,7 +67,7 @@ import java.util.Set;
 // touching library members (LibraryMember: Bookcases, Reading Lecterns...), one block to the next, and from each block
 // linked with the Librarian's Quill (with whatever touches those). Blocks the Quill removed are skipped (and not walked
 // through). A member already in another working library stays in that one.
-// - The walk runs on the server every SCAN_TICKS (and straight after a Quill change), at most MAX_MEMBERS blocks.
+// - The walk runs on the server every SCAN_TICKS (and straight after a Quill change), at most maxMembers() blocks (server config).
 //   Members are told which library they're in (LibraryMember#setLibrary); ones that left are told they're out.
 // - Everything else asks the controller: its bookcases in walk order (the order a lectern pages through them), its
 //   lecterns. Only member counts go to clients (for the Reading Goggles), never the lists.
@@ -64,11 +76,11 @@ import java.util.Set;
 //   books: enchanted and written books (#bibliomania:library_shelf_books) go onto them first, then into the item books
 //   (insertItems); everything that takes items out (lecterns, requestors, the dispenser) finds books on them too. A
 //   vanilla block can't be told which library it's in, so a chiseled shelf touching two libraries is in both.
-public class LibraryControllerBlockEntity extends BlockEntity implements LibraryLockable
+public class LibraryControllerBlockEntity extends BlockEntity implements LibraryLockable, ITintHolder
 {
-    public static final int MAX_MEMBERS = 1024;
-    // How far a linked block may be (each way)
-    public static final int LINK_RANGE = 64;
+    // Most members, and how far a linked block may be (each way): server config ([library] maxMembers, linkRange)
+    public static int maxMembers() { return ServerConfig.libraryMaxMembers(); }
+    public static int linkRange() { return ServerConfig.libraryLinkRange(); }
     private static final int SCAN_TICKS = 40;
 
     private static final String TAG_LINKED = "linked";
@@ -89,9 +101,189 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     private int bookcaseCount;
     private int lecternCount;
 
+    // ---- Knowledge Points (LibraryCosts): the balance, and whether the library can still pay ----
+    private static final String TAG_KNOWLEDGE = "knowledge";
+    private static final String TAG_FUELED = "fueled";
+    private long knowledge;
+    // Synced: false when costs are on and there's no balance or fuel left ("out of knowledge")
+    private boolean fueled = true;
+
+    // Transactions: the balance changes inside the transfer's transaction; this remembers it before the first change,
+    // so closing the transaction without commit (the transfer failed) puts it back. As MowLib's AmountStorage does.
+    private final SnapshotJournal<Long> knowledgeJournal = new SnapshotJournal<>()
+    {
+        @Override
+        protected Long createSnapshot()
+        {
+            return knowledge;
+        }
+
+        @Override
+        protected void revertToSnapshot(Long snapshot)
+        {
+            knowledge = snapshot;
+        }
+
+        @Override
+        protected void onRootCommit(Long originalState)
+        {
+            // Outer.this: the block entity this anonymous journal belongs to
+            if (knowledge != originalState) LibraryControllerBlockEntity.this.setChanged();
+        }
+    };
+
+    public long getKnowledge()
+    {
+        return knowledge;
+    }
+
+    public boolean isFueled()
+    {
+        return fueled;
+    }
+
+    // Pays for a transfer that has just happened inside `transaction`: false if the library can't (the caller then
+    // undoes the transfer by not committing). Fuel going in is free. `at`: the block the transfer happens at.
+    public boolean payFor(LibraryCosts.Operation operation, TransportType<?> type, Resource resource, int amount, BlockPos at, TransactionContext transaction)
+    {
+        if (operation == LibraryCosts.Operation.INSERT && LibraryCosts.isFuel(type, resource)) return true;
+        long cost = LibraryCosts.cost(operation, type, amount, worldPosition, at);
+        if (cost <= 0) return true;
+        if (knowledge < cost) convert(cost - knowledge, transaction);
+        if (knowledge < cost)
+        {
+            setFueled(false);
+            return false;
+        }
+        knowledgeJournal.updateSnapshots(transaction);
+        knowledge -= cost;
+        return true;
+    }
+
+    // Turns fuel from the library's storage into at least `needed` points (fewer if it runs out), fuel by fuel
+    private void convert(long needed, TransactionContext transaction)
+    {
+        long still = needed;
+        for (LibraryCosts.Fuel fuel : LibraryCosts.fuels())
+        {
+            if (still <= 0) break;
+            long units = (still + fuel.points() - 1) / fuel.points();
+            int made = convertFuel(fuel, fuel.type(), (int) Math.min(Integer.MAX_VALUE / Math.max(1, fuel.amount()), units), transaction);
+            if (made <= 0) continue;
+            knowledgeJournal.updateSnapshots(transaction);
+            knowledge += (long) made * fuel.points();
+            still -= (long) made * fuel.points();
+        }
+    }
+
+    // Up to `units` of one fuel taken from storage (whole units only: a part unit is put back). Returns the units.
+    // A generic method so the type, its handler and its resources agree (the casts are safe: they all come from it).
+    @SuppressWarnings("unchecked")
+    private <R extends Resource> int convertFuel(LibraryCosts.Fuel fuel, TransportType<R> type, int units, TransactionContext transaction)
+    {
+        ResourceHandler<R> handler = typeHandler(type);
+        if (handler == null || units <= 0) return 0;
+        int wanted = units * fuel.amount();
+        int taken = 0;
+        R kind = null;
+        while (taken < wanted)
+        {
+            ResourceStack<R> got = ResourceHandlerUtil.extractFirst(handler, resource -> fuel.matches(type, resource), wanted - taken, transaction);
+            if (got == null || got.amount() <= 0) break;
+            kind = got.resource();
+            taken += got.amount();
+        }
+        int leftover = taken % fuel.amount();
+        if (leftover > 0 && kind != null) insert(type, kind, leftover, transaction);
+        return taken / fuel.amount();
+    }
+
+    // Whether there's a balance, or fuel to make one (or costs are off)
+    private boolean hasFuel()
+    {
+        if (!LibraryCosts.enabled() || knowledge > 0) return true;
+        for (LibraryCosts.Fuel fuel : LibraryCosts.fuels())
+        {
+            ResourceHandler<?> handler = typeHandler(fuel.type());
+            if (handler == null) continue;
+            for (int index = 0; index < handler.size(); index++)
+            {
+                if (fuel.matches(fuel.type(), handler.getResource(index)) && handler.getAmountAsLong(index) >= fuel.amount()) return true;
+            }
+        }
+        return false;
+    }
+
+    private void setFueled(boolean now)
+    {
+        if (fueled == now) return;
+        fueled = now;
+        sync();
+    }
+
+    // ---- Looks: an end crystal's turning frames (dyeable, region 0) round one of the mod's books ----
+    private static final String TAG_DISPLAY_BOOK = "display_book";
+    private final CBTintData tints;
+    // The book shown in the middle (EMPTY until one is picked: a random book the first time it's loaded on the server)
+    private ItemStack displayBook = ItemStack.EMPTY;
+
     public LibraryControllerBlockEntity(BlockPos pos, BlockState state)
     {
         super(libBlockEntityRegistry.LIBRARY_CONTROLLER.get(), pos, state);
+        this.tints = new CBTintData(this, 1);
+    }
+
+    public ItemStack getDisplayBook()
+    {
+        return displayBook;
+    }
+
+    // Shows this book in the middle (its plain item: the look only)
+    public void setDisplayBook(ItemStack book)
+    {
+        displayBook = new ItemStack(book.getItem());
+        sync();
+    }
+
+    // Every Bibliomania book item (the blocks that are books), for the random pick
+    public static List<Item> bookItems()
+    {
+        return BuiltInRegistries.ITEM.stream()
+                .filter(item -> item instanceof BlockItem blockItem && blockItem.getBlock() instanceof BookBlock)
+                .filter(item -> BuiltInRegistries.ITEM.getKey(item).getNamespace().equals(BibliomaniaReferences.MODID))
+                .toList();
+    }
+
+    // First loaded on the server with no book yet: pick one at random
+    @Override
+    public void onLoad()
+    {
+        super.onLoad();
+        if (displayBook.isEmpty() && level instanceof ServerLevel serverLevel)
+        {
+            List<Item> books = bookItems();
+            if (!books.isEmpty()) setDisplayBook(new ItemStack(books.get(serverLevel.getRandom().nextInt(books.size()))));
+        }
+    }
+
+    // ---- Colour (ITintHolder): the frames and the base ----
+
+    @Override public int getColor(int region) { return tints.getColor(region); }
+    @Override public void setColor(int region, int color) { tints.setColor(region, color); }
+    @Override public int getTint(int tintIndex) { return tints.getTint(tintIndex); }
+
+    @Override
+    protected void applyImplicitComponents(DataComponentGetter components)
+    {
+        super.applyImplicitComponents(components);
+        tints.applyItemColor(components, 0);
+    }
+
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.Builder components)
+    {
+        super.collectImplicitComponents(components);
+        tints.collectItemColor(components);
     }
 
     // ---- Members ----
@@ -194,7 +386,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
 
     // Takes up to `amount` of the first stored item that counts as `item` (exact or fuzzy). One kind only, so it's
     // one stack: with fuzzy matching, a worn tool comes out as it is. EMPTY if there's none.
-    public ItemStack extractMatching(ItemStack item, int amount, boolean exact)
+    public ItemStack extractMatching(ItemStack item, int amount, boolean exact, BlockPos at)
     {
         ResourceHandler<ItemResource> items = typeHandler(TransportTypes.ITEMS.get());
         if (items == null || amount <= 0) return ItemStack.EMPTY;
@@ -202,6 +394,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         {
             ResourceStack<ItemResource> got = ResourceHandlerUtil.extractFirst(items, resource -> LibraryDeposit.matches(resource, item, exact), amount, transaction);
             if (got == null || got.amount() <= 0) return ItemStack.EMPTY;
+            // Paid for (LibraryCosts; `at`: the lectern): if the library can't, nothing comes out
+            if (!payFor(LibraryCosts.Operation.EXTRACT, TransportTypes.ITEMS.get(), got.resource(), got.amount(), at, transaction)) return ItemStack.EMPTY;
             transaction.commit();
             return got.resource().toStack(got.amount());
         }
@@ -512,7 +706,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         Deque<BlockPos> queue = new ArrayDeque<>();
         for (Direction direction : Direction.values()) queue.add(worldPosition.relative(direction));
         queue.addAll(linked);
-        while (!queue.isEmpty() && found.size() < MAX_MEMBERS)
+        while (!queue.isEmpty() && found.size() < maxMembers())
         {
             BlockPos pos = queue.poll();
             if (pos.equals(worldPosition) || found.contains(pos) || removed.contains(pos) || !level.isLoaded(pos)) continue;
@@ -542,6 +736,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         }
         members = List.copyOf(found);
         memberSet = Set.copyOf(found);
+        setFueled(hasFuel());
         if (bookcases != bookcaseCount || lecterns != lecternCount)
         {
             bookcaseCount = bookcases;
@@ -563,7 +758,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     public enum LinkChange { LINKED, UNLINKED, REMOVED, RESTORED, TOO_FAR, NOT_A_MEMBER }
 
     // A Quill click on `pos`: a linked block is unlinked; a touching member is removed; a removed block comes back; any
-    // other library block within LINK_RANGE is linked
+    // other library block within linkRange() (server config) is linked
     public LinkChange toggle(ServerLevel level, BlockPos pos)
     {
         BlockPos target = pos.immutable();
@@ -576,8 +771,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
             change = LinkChange.REMOVED;
         }
         else if (!joins(level.getBlockEntity(target))) return LinkChange.NOT_A_MEMBER;
-        else if (Math.abs(target.getX() - worldPosition.getX()) > LINK_RANGE || Math.abs(target.getY() - worldPosition.getY()) > LINK_RANGE
-                || Math.abs(target.getZ() - worldPosition.getZ()) > LINK_RANGE) return LinkChange.TOO_FAR;
+        else if (Math.abs(target.getX() - worldPosition.getX()) > linkRange() || Math.abs(target.getY() - worldPosition.getY()) > linkRange()
+                || Math.abs(target.getZ() - worldPosition.getZ()) > linkRange()) return LinkChange.TOO_FAR;
         else
         {
             linked.add(target);
@@ -636,6 +831,10 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         output.putBoolean(TAG_LOCKED, locked);
         output.putInt(TAG_BOOKCASES, bookcaseCount);
         output.putInt(TAG_LECTERNS, lecternCount);
+        output.store(TAG_DISPLAY_BOOK, ItemStack.OPTIONAL_CODEC, displayBook);
+        output.putLong(TAG_KNOWLEDGE, knowledge);
+        output.putBoolean(TAG_FUELED, fueled);
+        tints.save(output);
     }
 
     @Override
@@ -649,6 +848,14 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         locked = input.getBooleanOr(TAG_LOCKED, false);
         bookcaseCount = input.getIntOr(TAG_BOOKCASES, 0);
         lecternCount = input.getIntOr(TAG_LECTERNS, 0);
+        displayBook = input.read(TAG_DISPLAY_BOOK, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
+        knowledge = input.getLongOr(TAG_KNOWLEDGE, 0L);
+        fueled = input.getBooleanOr(TAG_FUELED, true);
+        // CBTintData#load re-meshes the chunk on clients (the base is tinted): only when the colour really changed
+        if (level == null || !level.isClientSide() || input.getIntOr("color", CBTintBlockEntity.UNDYED) != tints.getColor(0))
+        {
+            tints.load(input);
+        }
     }
 
     @Override

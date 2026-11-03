@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.mowlib.tint.IColorableBlock;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
 import net.minecraft.util.TriState;
@@ -51,6 +52,12 @@ public final class LecternEvents
         // The client knows whether the open page shows something (it's synced); nothing shown: mine it as normal
         if (lectern.getShown().isEmpty()) return;
         Player player = event.getEntity();
+        // A library out of knowledge (LibraryCosts): nothing can be taken (the lectern can still be mined with an axe)
+        if (!player.getMainHandItem().is(ItemTags.AXES) && LibraryCosts.blocked(level, lectern, event.getPos(), player))
+        {
+            event.setCanceled(true);
+            return;
+        }
         // A library-wide type drawer open: its left-click (take experience...); sneak + axe still mines
         if (lectern.showsType())
         {

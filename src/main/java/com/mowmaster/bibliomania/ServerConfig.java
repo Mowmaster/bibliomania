@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania;
 
+import java.util.List;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
@@ -215,6 +216,60 @@ public final class ServerConfig
             .comment("Most yield items one book takes. Default 8.")
             .defineInRange("maxYields", 8, 0, 1000);
 
+    // ---- [library] Library Controllers: size, and Knowledge Point costs ----
+    static
+    {
+        BUILDER.pop().push("library");
+    }
+
+    private static final ModConfigSpec.IntValue LIBRARY_MAX_MEMBERS = BUILDER
+            .comment("Most blocks one library can have (Bookcases, lecterns, catalogs...). Default 1024.")
+            .defineInRange("maxMembers", 1024, 1, 100000);
+
+    private static final ModConfigSpec.IntValue LIBRARY_LINK_RANGE = BUILDER
+            .comment("How far (each way, in blocks) the Librarian's Quill can link a block to a controller. Default 64.")
+            .defineInRange("linkRange", 64, 1, 4096);
+
+    // How a transfer's cost is counted
+    public enum CostMode
+    {
+        // The cost once for every insert or extract, however much moves
+        PER_TRANSFER,
+        // The cost for every unit moved: an item, a bucket (1000 mB) of fluid, 1000 FE, a point of experience
+        PER_UNIT
+    }
+
+    private static final ModConfigSpec.EnumValue<CostMode> LIBRARY_COST_MODE = BUILDER
+            .comment("How insert and extract costs are counted: PER_TRANSFER (once per insert or extract) or PER_UNIT (per item, per",
+                    "bucket of fluid, per 1000 FE, per experience point). Default PER_UNIT.")
+            .defineEnum("costMode", CostMode.PER_UNIT);
+
+    private static final ModConfigSpec.IntValue LIBRARY_INSERT_COST = BUILDER
+            .comment("Knowledge Points (KP) it costs to put something into a library (by a Storage Deposit, an Access Point, a",
+                    "Storage Dispenser, a lectern...). 0 = free. Bookcases storing what their own books make never pay. Default 0.")
+            .defineInRange("insertCost", 0, 0, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue LIBRARY_EXTRACT_COST = BUILDER
+            .comment("Knowledge Points it costs to take something out of a library (Access Point, Requestor, Dispenser, lectern...). 0 = free. Default 0.")
+            .defineInRange("extractCost", 0, 0, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue LIBRARY_DISTANCE_FREE = BUILDER
+            .comment("Blocks (in a straight line from the controller) a transfer can happen from at no extra cost. Default 16.")
+            .defineInRange("distanceFree", 16, 0, Integer.MAX_VALUE);
+
+    private static final ModConfigSpec.IntValue LIBRARY_DISTANCE_PERCENT = BUILDER
+            .comment("Extra cost, in % of the transfer's cost, for every block beyond distanceFree. Default 0 (none).")
+            .defineInRange("distancePercentPerBlock", 0, 0, 100000);
+
+    // defineListAllowEmpty: a list setting that may be left empty; the last argument checks each entry
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> LIBRARY_FUEL = BUILDER
+            .comment("What a library turns into Knowledge Points when it needs them, taken from its own storage (first entry first).",
+                    "Each entry: \"<transport type>[/<fluid>]=<amount>:<KP>\", meaning <amount> of it makes <KP> points.",
+                    "Examples: \"mowlib:experience=1:100\" (1 experience point -> 100 KP), \"mowlib:energy=1000:10\",",
+                    "\"mowlib:fluids/minecraft:lava=100:20\". Items can't be fuel. Putting fuel into a library is always free;",
+                    "with nothing left to turn into points, the library stops all paid transfers (only fuel can go in) until refuelled.")
+            .defineListAllowEmpty("fuel", List.of("mowlib:experience=1:100", "mowlib:energy=1000:10"), () -> "", entry -> entry instanceof String);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -322,6 +377,15 @@ public final class ServerConfig
         Identifier parsed = Identifier.tryParse(id);
         return parsed != null && !stack.isEmpty() && stack.is(BuiltInRegistries.ITEM.getValue(parsed));
     }
+
+    public static int libraryMaxMembers()       { return get(LIBRARY_MAX_MEMBERS); }
+    public static int libraryLinkRange()        { return get(LIBRARY_LINK_RANGE); }
+    public static CostMode libraryCostMode()    { return get(LIBRARY_COST_MODE); }
+    public static int libraryInsertCost()       { return get(LIBRARY_INSERT_COST); }
+    public static int libraryExtractCost()      { return get(LIBRARY_EXTRACT_COST); }
+    public static int libraryDistanceFree()     { return get(LIBRARY_DISTANCE_FREE); }
+    public static int libraryDistancePercent()  { return get(LIBRARY_DISTANCE_PERCENT); }
+    public static List<? extends String> libraryFuel() { return get(LIBRARY_FUEL); }
 
     // ConfigValue<T> is the common type of every config value: one generic method reads them all
     private static <T> T get(ModConfigSpec.ConfigValue<T> value)

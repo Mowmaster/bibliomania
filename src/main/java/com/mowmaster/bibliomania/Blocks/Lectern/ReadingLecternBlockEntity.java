@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
 import net.minecraft.core.component.DataComponents;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
@@ -566,7 +567,12 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
             // try-with-resources: the transaction closes at the end of the block, and only counts if committed
             try (Transaction transaction = Transaction.openRoot())
             {
-                stored += items.insert(ItemResource.of(stack), stack.getCount() - stored, transaction);
+                int inserted = items.insert(ItemResource.of(stack), stack.getCount() - stored, transaction);
+                // In a library it's paid for (LibraryCosts): if the library can't pay, nothing goes in
+                LibraryControllerBlockEntity library = level == null ? null : library(level, worldPosition);
+                if (inserted > 0 && library != null
+                        && !library.payFor(LibraryCosts.Operation.INSERT, TransportTypes.ITEMS.get(), ItemResource.of(stack), inserted, worldPosition, transaction)) break;
+                stored += inserted;
                 transaction.commit();
             }
             if (stored >= stack.getCount()) break;
@@ -584,7 +590,7 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         if (selectedItem != null && library != null)
         {
             // The real item taken (fuzzy: possibly a worn one)
-            ItemStack taken = library.extractMatching(selectedItem, Math.min(amount, selectedItem.getMaxStackSize()), exact);
+            ItemStack taken = library.extractMatching(selectedItem, Math.min(amount, selectedItem.getMaxStackSize()), exact, worldPosition);
             if (level instanceof ServerLevel serverLevel) refresh(serverLevel, false);
             return taken;
         }
@@ -598,7 +604,11 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         try (Transaction transaction = Transaction.openRoot())
         {
             extracted = items.extract(current.bookPage(), resource, Math.min(amount, resource.toStack(1).getMaxStackSize()), transaction);
-            transaction.commit();
+            // In a library it's paid for (LibraryCosts): if the library can't pay, nothing comes out
+            LibraryControllerBlockEntity paying = level == null ? null : library(level, worldPosition);
+            if (extracted > 0 && paying != null
+                    && !paying.payFor(LibraryCosts.Operation.EXTRACT, TransportTypes.ITEMS.get(), resource, extracted, worldPosition, transaction)) extracted = 0;
+            else transaction.commit();
         }
         if (level instanceof ServerLevel serverLevel) refresh(serverLevel, false);
         return extracted > 0 ? resource.toStack(extracted) : ItemStack.EMPTY;

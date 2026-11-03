@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 // The Librarian's Quill: changes which blocks are in a library.
 // - Right-click a Library Controller: the quill remembers it (bibliomania:library_link)
 // - Then right-click a library block (Bookcase, Reading Lectern...):
-//     not touching the library: links it (and whatever touches it), within LibraryControllerBlockEntity.LINK_RANGE
+//     not touching the library: links it (and whatever touches it), within LibraryControllerBlockEntity.linkRange() (server config)
 //     linked: unlinks it
 //     touching the library: takes it out (it stays out until clicked again)
 // - Sneak + right-click the air: forgets the controller

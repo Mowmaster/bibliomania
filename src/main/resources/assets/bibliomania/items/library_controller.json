@@ -1,6 +1,12 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "bibliomania:block/library_controller"
+    "model": "bibliomania:block/library_controller",
+    "tints": [
+      {
+        "type": "minecraft:dye",
+        "default": -3301026
+      }
+    ]
   }
 }

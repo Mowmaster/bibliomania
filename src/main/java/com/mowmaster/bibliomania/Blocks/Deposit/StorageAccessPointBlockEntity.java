@@ -41,7 +41,7 @@ public class StorageAccessPointBlockEntity extends BlockEntity implements Librar
     // What automation gets for `type`: the library's books of that type, in and out (LibraryDeposit.FullAccess)
     public <R extends Resource> ResourceHandler<R> accessHandler(TransportType<R> type)
     {
-        return new LibraryDeposit.FullAccess<>(() -> library(level, worldPosition), type);
+        return new LibraryDeposit.FullAccess<>(() -> library(level, worldPosition), type, worldPosition);
     }
 
     // ---- Library (LibraryMember) ----

@@ -36,7 +36,7 @@ public class StorageDepositBlockEntity extends BlockEntity implements LibraryMem
     public <R extends Resource> ResourceHandler<R> inputHandler(TransportType<R> type)
     {
         // () -> library(...): a Supplier, asked again on every use
-        return new LibraryDeposit.InsertOnly<>(() -> library(level, worldPosition), type);
+        return new LibraryDeposit.InsertOnly<>(() -> library(level, worldPosition), type, worldPosition);
     }
 
     // ---- Library (LibraryMember) ----
