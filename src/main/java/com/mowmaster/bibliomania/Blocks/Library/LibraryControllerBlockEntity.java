@@ -230,7 +230,8 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     public LibraryControllerBlockEntity(BlockPos pos, BlockState state)
     {
         super(libBlockEntityRegistry.LIBRARY_CONTROLLER.get(), pos, state);
-        this.tints = new CBTintData(this, 1);
+        // Region 0 the base, 1 the crystal (LibraryControllerBlock.BASE / CRYSTAL)
+        this.tints = new CBTintData(this, 2);
     }
 
     public ItemStack getDisplayBook()

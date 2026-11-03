@@ -1,5 +1,14 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import java.util.List;
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.ItemStack;
+import com.mowmaster.mowlib.registry.MowLibDataComponents;
+import com.mowmaster.mowlib.paging.PagedContents;
+import com.mowmaster.mowlib.paging.IPagedStorageItem;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlock;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -53,9 +62,12 @@ public class LibraryControllerRenderer implements BlockEntityRenderer<LibraryCon
     {
         BlockEntityRenderer.super.extractRenderState(controller, state, partialTick, cameraPos, crumblingOverlay);
         state.time = controller.getLevel() == null ? 0f : (controller.getLevel().getGameTime() % 24000L) + partialTick;
-        int dyed = controller.getColor(0);
+        // The crystal's own colour (region CRYSTAL; the base is the block model's, region BASE)
+        int dyed = controller.getColor(LibraryControllerBlock.CRYSTAL);
         state.color = dyed == CBTintBlockEntity.UNDYED ? 0xFFFFFF : dyed;
-        itemModelResolver.updateForTopItem(state.book, controller.getDisplayBook(), ItemDisplayContext.GROUND, controller.getLevel(), null, 0);
+        // NONE: the item model as built, which for the mod's books is the book standing upright (as on a Bookcase,
+        // whose thick shelf models it also picks); shown full, so it's at its thickest
+        itemModelResolver.updateForTopItem(state.book, fullBook(controller.getDisplayBook()), ItemDisplayContext.NONE, controller.getLevel(), null, 0);
     }
 
     @Override
@@ -78,17 +90,28 @@ public class LibraryControllerRenderer implements BlockEntityRenderer<LibraryCon
         cube(poseStack, collector, 0.5f, state.color);
         poseStack.popPose();
 
-        // The book, turning slowly in the middle (a GROUND item: its model already sits a little off its origin)
+        // The book, upright, turning slowly in the middle (its model is centred on its origin)
         if (!state.book.isEmpty())
         {
             poseStack.pushPose();
             poseStack.rotate(Axis.YP.rotationDegrees(-spin * 0.5f));
-            poseStack.translate(0, -0.125, 0);
-            poseStack.scale(0.75f, 0.75f, 0.75f);
+            poseStack.scale(0.55f, 0.55f, 0.55f);
             state.book.submit(poseStack, collector, FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();
         }
         poseStack.popPose();
+    }
+
+    // A copy of the book that reads as completely full, so paged books (Grass, Wool, Leather...) pick their thickest
+    // model (their item model goes by MowLib's paged_fullness): one page holding a full page of stone. Only drawn.
+    private static ItemStack fullBook(ItemStack book)
+    {
+        if (!(book.getItem() instanceof IPagedStorageItem paged)) return book;
+        ItemStack full = book.copy();
+        int capacity = Math.max(1, paged.pageCapacity(full));
+        full.set(MowLibDataComponents.PAGED_CONTENTS.get(),
+                new PagedContents(1, 0, List.of(new ResourceStack<>(ItemResource.of(Items.STONE), capacity))));
+        return full;
     }
 
     // A cube `size` blocks across, centred on the pose's origin, every face showing the whole frame texture, tinted

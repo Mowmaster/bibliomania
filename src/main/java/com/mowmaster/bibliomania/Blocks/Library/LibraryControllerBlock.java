@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import com.mowmaster.mowlib.tint.CBTintBlockEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.InteractionHand;
@@ -65,7 +66,25 @@ public class LibraryControllerBlock extends Block implements IColorableBlock
     @Override
     public int getDefaultColor(int region)
     {
-        return StorageAccessPointBlock.DEFAULT_COLOR;
+        return region == BASE ? StorageAccessPointBlock.DEFAULT_COLOR : CBTintBlockEntity.DEFAULT_TINT;
+    }
+
+    // Two colours: region BASE (the block model's tintindex 0) and region CRYSTAL (the turning frames, drawn by
+    // LibraryControllerRenderer). A dye colours the part clicked: the base is the bottom 4 pixels.
+    public static final int BASE = 0;
+    public static final int CRYSTAL = 1;
+
+    @Override
+    public int getTintRegionCount()
+    {
+        return 2;
+    }
+
+    @Override
+    public int getTintRegion(BlockState state, BlockHitResult hit)
+    {
+        double y = hit.getLocation().y - hit.getBlockPos().getY();
+        return y < 4.0 / 16.0 ? BASE : CRYSTAL;
     }
 
     // A dye: colours it (not while sealed). A Bibliomania book: shown in the middle (the book isn't used up).
