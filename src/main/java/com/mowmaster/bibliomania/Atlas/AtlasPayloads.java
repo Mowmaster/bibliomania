@@ -21,10 +21,11 @@ import java.util.Map;
 import java.util.UUID;
 
 // The Atlas's network messages:
-// - Tiles (server -> client): explored map tiles of one Atlas in one dimension (the newly explored ones as the player
-//   walks, or the ones near them when asked)
-// - Request (client -> server): "send me this Atlas's explored tiles near here" (when the Atlas or the dimension
-//   changes, or after walking a long way)
+// - Tiles (server -> client): explored map tiles of one Atlas in one dimension and layer (AtlasLayers): the newly
+//   explored ones as the player walks, or (`replace`: the client drops what it had) all the ones near them, when asked
+//   or when their layer changes
+// - Request (client -> server): "send me this Atlas's explored tiles near me" (when the Atlas or the dimension
+//   changes, or after walking a long way). The server picks the layer: where the player is.
 // - Mark (client -> server): the activation key on a block while holding an Atlas: mark it as a point of interest
 public final class AtlasPayloads
 {
@@ -41,12 +42,15 @@ public final class AtlasPayloads
                 Tile::new);
     }
 
-    public record Tiles(UUID atlas, ResourceKey<Level> dimension, List<Tile> tiles) implements CustomPacketPayload
+    public record Tiles(UUID atlas, ResourceKey<Level> dimension, int layer, boolean replace, List<Tile> tiles) implements CustomPacketPayload
     {
         public static final Type<Tiles> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "atlas_tiles"));
+        // INT, not VAR_INT: the surface layer is Integer.MIN_VALUE, which as a var int would take 5 bytes anyway
         public static final StreamCodec<ByteBuf, Tiles> STREAM_CODEC = StreamCodec.composite(
                 UUIDUtil.STREAM_CODEC, Tiles::atlas,
                 ResourceKey.streamCodec(Registries.DIMENSION), Tiles::dimension,
+                ByteBufCodecs.INT, Tiles::layer,
+                ByteBufCodecs.BOOL, Tiles::replace,
                 Tile.STREAM_CODEC.apply(ByteBufCodecs.list()), Tiles::tiles,
                 Tiles::new);
 
@@ -87,20 +91,26 @@ public final class AtlasPayloads
 
     // ---- Server ----
 
-    // Only an Atlas the player carries; only explored tiles near the asked-for chunk
+    // Only an Atlas the player carries; the server works out their layer and sends what's explored round them
     public static void handleRequest(Request request, IPayloadContext context)
     {
         if (!(context.player() instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return;
         if (!AtlasItem.carries(player, request.atlas())) return;
-        Map<Long, byte[]> tiles = AtlasSavedData.get(level).tiles(request.atlas());
+        AtlasExplorer.layer(level, player, request.atlas(), true);
+    }
+
+    // All an Atlas's explored tiles in a layer within REQUEST_RADIUS chunks of a chunk, replacing what the client has
+    public static Tiles near(ServerLevel level, UUID atlas, int layer, int chunkX, int chunkZ)
+    {
+        Map<Long, byte[]> tiles = AtlasSavedData.get(level).tiles(atlas, layer);
         List<Tile> near = new ArrayList<>();
         for (Map.Entry<Long, byte[]> entry : tiles.entrySet())
         {
-            if (Math.abs(AtlasSavedData.chunkX(entry.getKey()) - request.chunkX()) > REQUEST_RADIUS
-                    || Math.abs(AtlasSavedData.chunkZ(entry.getKey()) - request.chunkZ()) > REQUEST_RADIUS) continue;
+            if (Math.abs(AtlasSavedData.chunkX(entry.getKey()) - chunkX) > REQUEST_RADIUS
+                    || Math.abs(AtlasSavedData.chunkZ(entry.getKey()) - chunkZ) > REQUEST_RADIUS) continue;
             near.add(new Tile(entry.getKey(), entry.getValue().clone()));
         }
-        context.reply(new Tiles(request.atlas(), level.dimension(), near));
+        return new Tiles(atlas, level.dimension(), layer, true, near);
     }
 
     public static void handleMark(Mark mark, IPayloadContext context)

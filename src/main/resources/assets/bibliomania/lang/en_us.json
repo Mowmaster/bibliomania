@@ -205,5 +205,6 @@
   "tooltip.bibliomania.atlas.use": "Shows a map of where you've been while carried. Sneak + right-click a block (or the activation key) to mark it; right-click banners and lodestones to mark them",
   "message.bibliomania.atlas.marked": "Marked on the Atlas",
   "message.bibliomania.atlas.unmarked": "Taken off the Atlas",
-  "hud.bibliomania.atlas_tracker": "%1$s %2$s, %3$s, %4$s (%5$sm)"
+  "hud.bibliomania.atlas_tracker": "%1$s %2$s, %3$s, %4$s (%5$sm)",
+  "hud.bibliomania.atlas_layer": "Y %s to %s"
 }

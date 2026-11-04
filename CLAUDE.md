@@ -19,8 +19,9 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   `CAPACITY` (1024) of the top tier. Chains come from the `bibliomania:compacting` item data map first, then two-way
   crafting recipes (`CompactingChains`, server, cached until datapacks reload); the chain is stored on the book.
 - **Atlas** (`Atlas/`, handheld): while carried, a live map in the top right (`ClientSide/AtlasHud`), uncovered 32
-  blocks round the player as they go (`AtlasExplorer`, server; tiles in `AtlasSavedData` per dimension, by the book's
-  `bibliomania:book_id`, sent with `AtlasPayloads`). Zoom and markers (points of interest, banners, lodestones) in
+  blocks round the player as they go (`AtlasExplorer`, server; tiles in `AtlasSavedData` per dimension and layer, by the
+  book's `bibliomania:book_id`, sent with `AtlasPayloads`). Layers (`AtlasLayers`): the surface, or 32-block slices
+  when more than 4 blocks under the ground (always in the Nether), showing each column's highest floor in the slice. Zoom and markers (points of interest, banners, lodestones) in
   `bibliomania:atlas`. Sits on Bookcases/Chiseled Bookshelves (no storage), skipped by lecterns.
 - **Death book** (`DeathBookHandler`, Bibliomania-only): on player death, places itself and stores all drops plus the
   player's head.

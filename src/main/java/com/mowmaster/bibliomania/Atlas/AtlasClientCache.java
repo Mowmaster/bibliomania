@@ -8,14 +8,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// The client's copy of the carried Atlas's explored tiles, in the dimension the player is in (ClientSide/AtlasHud
-// reads it). No client-only classes, so this class is safe to load on a server too (the payload handler names it). Tiles for another Atlas or dimension than the one being shown are ignored.
+// The client's copy of the shown Atlas's explored tiles, in the dimension and layer the player is in (ClientSide/AtlasHud
+// reads it). No client-only classes, so this class is safe to load on a server too (the payload handler names it).
+// Tiles for another Atlas or dimension than the one being shown are ignored; the layer is the server's to say: a
+// `replace` message sets it (and drops the old tiles), and newly explored tiles of any other layer are ignored.
 public final class AtlasClientCache
 {
     private AtlasClientCache() {}
 
     public static @Nullable UUID atlas;
     public static @Nullable ResourceKey<Level> dimension;
+    // AtlasLayers.SURFACE, or an underground slice
+    public static int layer = AtlasLayers.SURFACE;
     public static final Map<Long, byte[]> TILES = new HashMap<>();
 
     // Starts over for another Atlas or dimension
@@ -23,12 +27,19 @@ public final class AtlasClientCache
     {
         atlas = newAtlas;
         dimension = newDimension;
+        layer = AtlasLayers.SURFACE;
         TILES.clear();
     }
 
     public static void receive(AtlasPayloads.Tiles tiles)
     {
         if (!tiles.atlas().equals(atlas) || !tiles.dimension().equals(dimension)) return;
+        if (tiles.replace())
+        {
+            layer = tiles.layer();
+            TILES.clear();
+        }
+        else if (tiles.layer() != layer) return;
         for (AtlasPayloads.Tile tile : tiles.tiles()) TILES.put(tile.chunk(), tile.colors());
     }
 

@@ -14,7 +14,7 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "7"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority; 7: atlas
+    private static final String VERSION = "8"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority; 7: atlas; 8: atlas layers
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)

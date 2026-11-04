@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania.ClientSide;
 import com.mowmaster.bibliomania.Atlas.AtlasClientCache;
 import com.mowmaster.bibliomania.Atlas.AtlasData;
 import com.mowmaster.bibliomania.Atlas.AtlasItem;
+import com.mowmaster.bibliomania.Atlas.AtlasLayers;
 import com.mowmaster.bibliomania.Atlas.AtlasPayloads;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.ClientConfig;
@@ -37,7 +38,8 @@ import java.util.UUID;
 // banners as a little flag in their colour, lodestones as a red X; the player as a white dot. Under it, the nearest
 // lodestone marker in this dimension: its distance and an arrow pointing to it.
 // The tiles come from the server (AtlasClientCache): asked for when the Atlas or dimension changes, or every 8 chunks
-// walked; newly explored ones arrive by themselves.
+// walked; newly explored ones arrive by themselves, and the server sends a fresh set when the player's layer changes
+// (AtlasLayers: the surface, or a 32-block underground slice, shown as "Y a to b" under the map).
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID, value = Dist.CLIENT)
 public final class AtlasHud
 {
@@ -162,6 +164,13 @@ public final class AtlasHud
         graphics.fill(cx - 2, cz - 2, cx + 2, cz + 2, 0xFF000000);
         graphics.fill(cx - 1, cz - 1, cx + 1, cz + 1, 0xFFFFFFFF);
 
+        // Underground (or in the Nether): which slice the map shows, under the map on the left
+        if (AtlasClientCache.layer != AtlasLayers.SURFACE)
+        {
+            int bottom = AtlasLayers.bottom(AtlasClientCache.layer);
+            Component slice = Component.translatable("hud." + BibliomaniaReferences.MODID + ".atlas_layer", bottom, bottom + AtlasLayers.SLICE - 1);
+            graphics.text(minecraft.font, slice.getVisualOrderText(), left, top + MAP + 4, TEXT, true);
+        }
         // The tracker under the map: the nearest lodestone
         if (nearest != null) drawTracker(graphics, minecraft.font, player, nearest, nearestDistance, left, top + MAP + 4);
         graphics.pose().popMatrix();
