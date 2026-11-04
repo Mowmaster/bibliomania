@@ -51,6 +51,7 @@ public final class AtlasExplorer
         if (player.tickCount % SURFACE_TICKS != 0) return;
         ItemStack atlas = AtlasItem.carried(player);
         if (atlas.isEmpty()) return;
+        AtlasItem.finishCopy(level, atlas);
         UUID id = AtlasItem.id(atlas);
         int layer = layer(level, player, id, false);
         if (layer != AtlasLayers.SURFACE && player.tickCount % SLICE_TICKS != 0) return;

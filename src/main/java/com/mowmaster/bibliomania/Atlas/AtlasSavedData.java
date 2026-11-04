@@ -73,6 +73,22 @@ public class AtlasSavedData extends SavedData
         return level.getDataStorage().computeIfAbsent(TYPE);
     }
 
+    // Copies one Atlas's explored map (every layer) to another id. The copy is its own from then on: the tiles are
+    // cloned, so exploring with either doesn't change the other.
+    public void copy(UUID from, UUID to)
+    {
+        Map<Integer, Map<Long, byte[]>> source = atlases.get(from);
+        if (source == null || source.isEmpty()) return;
+        Map<Integer, Map<Long, byte[]>> copied = new HashMap<>();
+        source.forEach((layer, tiles) -> {
+            Map<Long, byte[]> layerCopy = new HashMap<>();
+            tiles.forEach((chunk, tile) -> layerCopy.put(chunk, tile.clone()));
+            copied.put(layer, layerCopy);
+        });
+        atlases.put(to, copied);
+        setDirty();
+    }
+
     // An Atlas's tiles in one layer (an empty map if it has none yet)
     public Map<Long, byte[]> tiles(UUID atlas, int layer)
     {

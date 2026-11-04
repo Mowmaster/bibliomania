@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Items;
 
 import com.mojang.serialization.MapCodec;
+import com.mowmaster.bibliomania.Atlas.AtlasCopyRecipe;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookRecipe;
 import net.minecraft.core.registries.Registries;
@@ -24,6 +25,10 @@ public final class RecipeRegistry
     // The Trader's Ledger's reset / new villager recipe (data/bibliomania/recipe/villager_book_villager.json)
     public static final Supplier<RecipeSerializer<VillagerBookRecipe>> VILLAGER_BOOK = SERIALIZERS.register("villager_book",
             () -> new RecipeSerializer<>(MapCodec.unit(VillagerBookRecipe.INSTANCE), StreamCodec.unit(VillagerBookRecipe.INSTANCE)));
+
+    // Copying an Atlas onto a blank one (data/bibliomania/recipe/atlas_copy.json)
+    public static final Supplier<RecipeSerializer<AtlasCopyRecipe>> ATLAS_COPY = SERIALIZERS.register("atlas_copy",
+            () -> new RecipeSerializer<>(MapCodec.unit(AtlasCopyRecipe.INSTANCE), StreamCodec.unit(AtlasCopyRecipe.INSTANCE)));
 
     public static void register(IEventBus eventBus)
     {

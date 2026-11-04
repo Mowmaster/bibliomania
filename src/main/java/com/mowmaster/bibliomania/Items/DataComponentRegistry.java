@@ -89,6 +89,11 @@ public class DataComponentRegistry
     public static final Supplier<DataComponentType<UUID>> BOOK_ID = COMPONENTS.registerComponentType(
             "book_id", builder -> builder.persistent(UUIDUtil.CODEC).networkSynchronized(UUIDUtil.STREAM_CODEC));
 
+    // An Atlas copied in the crafting grid (AtlasCopyRecipe), not yet carried: the id of the Atlas whose explored map
+    // it gets. The first time it's carried, the server copies that map to a new id of its own (AtlasItem.finishCopy).
+    public static final Supplier<DataComponentType<UUID>> ATLAS_COPY_OF = COMPONENTS.registerComponentType(
+            "atlas_copy_of", builder -> builder.persistent(UUIDUtil.CODEC).networkSynchronized(UUIDUtil.STREAM_CODEC));
+
     // What a Book of Barter holds (BarterContents)
     public static final Supplier<DataComponentType<BarterContents>> BARTER_CONTENTS = COMPONENTS.registerComponentType(
             "barter_contents", builder -> builder.persistent(BarterContents.CODEC).networkSynchronized(BarterContents.STREAM_CODEC));

@@ -63,6 +63,19 @@ public class AtlasItem extends Item implements IPageable
         return id;
     }
 
+    // A crafted copy (AtlasCopyRecipe) gets its own id and the explored map of the Atlas it was copied from, in every
+    // dimension (each dimension keeps its own AtlasSavedData). Server only; does nothing to an Atlas that isn't a copy.
+    public static void finishCopy(ServerLevel level, ItemStack atlas)
+    {
+        UUID from = atlas.get(DataComponentRegistry.ATLAS_COPY_OF.get());
+        if (from == null) return;
+        UUID to = UUID.randomUUID();
+        // getAllLevels: every loaded dimension
+        for (ServerLevel each : level.getServer().getAllLevels()) AtlasSavedData.get(each).copy(from, to);
+        atlas.remove(DataComponentRegistry.ATLAS_COPY_OF.get());
+        atlas.set(DataComponentRegistry.BOOK_ID.get(), to);
+    }
+
     // The first Atlas in a player's inventory (EMPTY if none): the one the map shows
     public static ItemStack carried(Player player)
     {
