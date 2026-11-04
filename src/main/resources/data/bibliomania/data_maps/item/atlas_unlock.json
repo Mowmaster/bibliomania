@@ -1,0 +1,13 @@
+{
+  "values": {
+    "bibliomania:atlas_unlock_underground": {
+      "unlocks": "bibliomania:underground"
+    },
+    "bibliomania:atlas_unlock_nether": {
+      "unlocks": "minecraft:the_nether"
+    },
+    "bibliomania:atlas_unlock_end": {
+      "unlocks": "minecraft:the_end"
+    }
+  }
+}

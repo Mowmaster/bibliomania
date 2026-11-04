@@ -12,6 +12,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.AbstractBannerBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -24,8 +26,8 @@ import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-// The Atlas's points of interest within RANGE blocks get a white outline of their block's shape in the world, while
-// the Atlas's map is shown (AtlasHud#shown: held, or anywhere with Reading Goggles). Done the 26.x way, like
+// The Atlas's points of interest within RANGE blocks get a white outline of their block's shape in the world (and
+// banner markers whose banner is gone, an outline of the space it was in), while the Atlas's map is shown (AtlasHud#shown: held, or anywhere with Reading Goggles). Done the 26.x way, like
 // NeoForge's own debug outlines: what to draw is gathered while the level's render state is extracted (kept in it
 // under a ContextKey), then drawn when custom geometry is submitted (submitShapeOutline, offset by the camera).
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID, value = Dist.CLIENT)
@@ -54,9 +56,17 @@ public final class AtlasOutlines
         List<Outline> outlines = new ArrayList<>();
         for (AtlasData.Marker marker : AtlasItem.data(atlas).markers())
         {
-            if (marker.kind() != AtlasData.Kind.POINT || !marker.dimension().equals(level.dimension())) continue;
+            if (marker.kind() == AtlasData.Kind.LODESTONE || !marker.dimension().equals(level.dimension())) continue;
             if (marker.pos().distToCenterSqr(player.position()) > RANGE * RANGE) continue;
-            VoxelShape shape = level.getBlockState(marker.pos()).getShape(level, marker.pos());
+            BlockState state = level.getBlockState(marker.pos());
+            // A banner marker only while its banner is gone (broken, or griefed): the space it stood in. The marker
+            // itself stays until it's taken off by hand.
+            if (marker.kind() == AtlasData.Kind.BANNER)
+            {
+                if (!(state.getBlock() instanceof AbstractBannerBlock)) outlines.add(new Outline(marker.pos(), Shapes.block()));
+                continue;
+            }
+            VoxelShape shape = state.getShape(level, marker.pos());
             // A block with no shape (gone, or air now): its whole space
             outlines.add(new Outline(marker.pos(), shape.isEmpty() ? Shapes.block() : shape));
         }

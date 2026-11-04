@@ -2,6 +2,7 @@ package com.mowmaster.bibliomania.Atlas;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.material.MapColor;
@@ -25,6 +26,8 @@ public final class AtlasLayers
 
     // A column with no floor in the slice (solid rock all the way): drawn as dark stone
     private static final byte SOLID = MapColor.DEEPSLATE.getPackedId(MapColor.Brightness.LOW);
+    // Nothing there at all (the void): black
+    private static final byte VOID = MapColor.COLOR_BLACK.getPackedId(MapColor.Brightness.LOW);
 
     // Stepping over a boundary (a slice's top or bottom, or the surface line) and straight back is common in caves and
     // on stairs; MARGIN blocks of slack keep the map from flicking between layers (and the tiles being sent again)
@@ -58,35 +61,47 @@ public final class AtlasLayers
     // ---- Colours (server) ----
 
     // The surface's packed colour (colour id * 4 + shade; never 0, which means "not explored"): the top block's map
-    // colour, lighter or darker by its height against the column to the north (as vanilla maps do)
+    // colour, lighter or darker by its height against the column to the north (as vanilla maps do). A column with
+    // nothing in it at all (the End's void) is black.
     public static byte surfaceColor(Level level, int x, int z, BlockPos.MutableBlockPos pos)
     {
         int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+        if (top < level.getMinY()) return VOID;
         int north = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1) - 1;
         return shaded(level, pos.set(x, top, z), top, north);
     }
 
-    // The highest floor in the slice at a column (its y), or Integer.MIN_VALUE if there's none. Only space inside the
-    // slice counts as "open above", so the slice's top block is never a floor: otherwise the top of the Nether's
-    // bedrock roof (open air above y 127) would cover the whole of the slice under it.
+    // The highest floor in the slice at a column (its y); NO_FLOOR if it's solid all the way down, OPEN if it's open
+    // all the way (a drop into the void, or a cave taller than the slice).
+    // The slice's top block counts if the block above the slice is open (lava lakes, the Nether's lava sea at y 31),
+    // except bedrock: the top of the Nether's roof (y 127, open sky above) would cover the whole slice under it.
+    public static final int NO_FLOOR = Integer.MIN_VALUE, OPEN = Integer.MIN_VALUE + 1;
+
     public static int floor(Level level, int x, int z, int layer, BlockPos.MutableBlockPos pos)
     {
         int bottom = bottom(layer), top = bottom + SLICE - 1;
-        boolean openAbove = false;
+        boolean openAbove = open(level, pos.set(x, top + 1, z));
+        boolean anySolid = false;
         for (int y = top; y >= bottom; y--)
         {
             boolean open = open(level, pos.set(x, y, z));
-            if (!open && openAbove) return y;
+            if (!open)
+            {
+                anySolid = true;
+                if (openAbove && !(y == top && level.getBlockState(pos).is(Blocks.BEDROCK))) return y;
+            }
             openAbove = open;
         }
-        return Integer.MIN_VALUE;
+        return anySolid ? NO_FLOOR : OPEN;
     }
 
-    // A slice column's packed colour: its floor's, shaded against the floor to the north; dark stone if it has none
+    // A slice column's packed colour: its floor's, shaded against the floor to the north; dark stone if it's solid,
+    // black if it's open all the way down
     public static byte sliceColor(Level level, int x, int z, int floor, int northFloor, BlockPos.MutableBlockPos pos)
     {
-        if (floor == Integer.MIN_VALUE) return SOLID;
-        return shaded(level, pos.set(x, floor, z), floor, northFloor == Integer.MIN_VALUE ? floor : northFloor);
+        if (floor == NO_FLOOR) return SOLID;
+        if (floor == OPEN) return VOID;
+        return shaded(level, pos.set(x, floor, z), floor, northFloor == NO_FLOOR || northFloor == OPEN ? floor : northFloor);
     }
 
     private static byte shaded(Level level, BlockPos pos, int height, int northHeight)

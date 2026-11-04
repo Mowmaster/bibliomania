@@ -270,6 +270,17 @@ public final class ServerConfig
                     "with nothing left to turn into points, the library stops all paid transfers (only fuel can go in) until refuelled.")
             .defineListAllowEmpty("fuel", List.of("mowlib:experience=1:100", "mowlib:energy=1000:10"), () -> "", entry -> entry instanceof String);
 
+    // ---- [atlas] The Atlas's map ----
+    static
+    {
+        BUILDER.pop().push("atlas");
+    }
+
+    private static final ModConfigSpec.IntValue ATLAS_EXPLORE_RADIUS = BUILDER
+            .comment("How far round the player (in blocks) a carried Atlas uncovers the map. Bigger costs the server more,",
+                    "underground most (each column is searched up to 32 blocks deep). Default 64.")
+            .defineInRange("exploreRadius", 64, 8, 256);
+
     public static final ModConfigSpec SPEC = BUILDER.pop().build();
 
     // The values. Before a world is loaded (e.g. a tooltip on the main menu) a server config isn't loaded and
@@ -378,6 +389,7 @@ public final class ServerConfig
         return parsed != null && !stack.isEmpty() && stack.is(BuiltInRegistries.ITEM.getValue(parsed));
     }
 
+    public static int atlasExploreRadius()      { return get(ATLAS_EXPLORE_RADIUS); }
     public static int libraryMaxMembers()       { return get(LIBRARY_MAX_MEMBERS); }
     public static int libraryLinkRange()        { return get(LIBRARY_LINK_RANGE); }
     public static CostMode libraryCostMode()    { return get(LIBRARY_COST_MODE); }

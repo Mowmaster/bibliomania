@@ -66,6 +66,12 @@ public class ItemRegistry {
     public static final DeferredItem<AtlasItem> ATLAS = CBITEMS.registerItem("atlas",
             properties -> new AtlasItem(properties.stacksTo(1)));
 
+    // Atlas unlocks: right-clicked while carrying an Atlas, it may map underground, the Nether or the End
+    // (Atlas/AtlasUnlocks; what each unlocks is the bibliomania:atlas_unlock item data map)
+    public static final DeferredItem<Item> ATLAS_UNLOCK_UNDERGROUND = CBITEMS.registerSimpleItem("atlas_unlock_underground");
+    public static final DeferredItem<Item> ATLAS_UNLOCK_NETHER = CBITEMS.registerSimpleItem("atlas_unlock_nether");
+    public static final DeferredItem<Item> ATLAS_UNLOCK_END = CBITEMS.registerSimpleItem("atlas_unlock_end");
+
     // The Card Catalog's icon for an energy drawer (a red lightning bolt): only ever drawn, so not in the creative tab
     public static final DeferredItem<Item> ENERGY_ICON = CBITEMS.registerSimpleItem("energy_icon");
 
@@ -74,7 +80,8 @@ public class ItemRegistry {
             KNIFEPART_BLADE_STONE, KNIFEPART_HANDLE_OAK, KNIFE_STONE,
             FIBERS_GRASS, THREAD_TWISTED_GRASS, WEAVE_GRASS,
             FIBERS_WOOL, THREAD_TWISTED_WOOL, WEAVE_WOOL,
-            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL, BONE_FOLDER, PRIORITY_SCROLL, ATLAS);
+            BOOKBLOCK_STARTER, READING_GLASSES, LIBRARY_QUILL, LIBRARY_SEAL, BONE_FOLDER, PRIORITY_SCROLL, ATLAS,
+            ATLAS_UNLOCK_UNDERGROUND, ATLAS_UNLOCK_NETHER, ATLAS_UNLOCK_END);
 
     public static void register(IEventBus eventBus)
     {

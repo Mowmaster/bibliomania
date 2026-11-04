@@ -6,6 +6,7 @@ import com.mowmaster.mowlib.paging.IPageable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -29,8 +30,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 // The Atlas: a book of maps. While one is anywhere in your inventory, a map of the ground round you shows in the top
-// right of the screen (ClientSide/AtlasHud), uncovered only where you've been (32 blocks round you as you walk:
-// AtlasExplorer), with the Atlas's markers, and the nearest lodestone marker tracked under it.
+// right of the screen (ClientSide/AtlasHud), uncovered only where you've been (ServerConfig atlas exploreRadius
+// round you as you walk: AtlasExplorer; underground, the Nether and the End once unlocked: AtlasUnlocks), with the Atlas's markers, and the nearest lodestone marker tracked under it.
 // - The page keys (or scrolling over it) zoom: 1, 2, 4 or 8 blocks per map pixel (it's MowLib IPageable)
 // - Sneak + right-click a block, or the activation key on one: marks it as a point of interest (its item as the icon);
 //   again to unmark
@@ -181,6 +182,10 @@ public class AtlasItem extends Item implements IPageable
         String key = "tooltip." + BibliomaniaReferences.MODID + ".atlas.";
         tooltip.accept(Component.translatable(key + "zoom", data.scale()).withStyle(ChatFormatting.GRAY));
         tooltip.accept(Component.translatable(key + "markers", data.markers().size()).withStyle(ChatFormatting.GRAY));
+        for (Identifier unlock : data.unlocks())
+        {
+            tooltip.accept(Component.translatable(key + "unlocked", AtlasUnlocks.name(unlock)).withStyle(ChatFormatting.DARK_AQUA));
+        }
         tooltip.accept(Component.translatable(key + "use").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

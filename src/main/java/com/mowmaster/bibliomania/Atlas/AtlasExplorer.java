@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Atlas;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -24,7 +25,9 @@ import java.util.UUID;
 // Maps the ground round every player carrying an Atlas (anywhere in their inventory; the first one found), on the
 // server. Every dimension works the same way: which map is drawn is the player's layer (AtlasLayers), the surface or
 // the 32-block underground slice they're in (the Nether is always sliced: its bedrock roof is "the surface" there).
-// - the surface, twice a second: every column within RADIUS blocks gets the map colour of its top block
+// Only maps the Atlas has unlocked are explored (AtlasUnlocks).
+// - the surface, twice a second: every column within the radius (ServerConfig atlas exploreRadius) gets the map
+//   colour of its top block
 // - a slice, once a second (it reads up to 32 blocks per column): every column gets its highest floor in the slice
 // Each column is shaded by whether it's higher or lower than the column to its north (as vanilla maps do). Changed
 // tiles are saved (AtlasSavedData) and sent to that player (AtlasPayloads.Tiles). When their layer changes (or the
@@ -34,7 +37,6 @@ public final class AtlasExplorer
 {
     private AtlasExplorer() {}
 
-    public static final int RADIUS = 32;
     private static final int SURFACE_TICKS = 10;
     private static final int SLICE_TICKS = 20;
 
@@ -52,6 +54,7 @@ public final class AtlasExplorer
         UUID id = AtlasItem.id(atlas);
         int layer = layer(level, player, id, false);
         if (layer != AtlasLayers.SURFACE && player.tickCount % SLICE_TICKS != 0) return;
+        if (!AtlasUnlocks.unlocked(AtlasItem.data(atlas), level.dimension(), layer)) return;
         explore(level, player, id, layer);
     }
 
@@ -80,34 +83,35 @@ public final class AtlasExplorer
     private static void explore(ServerLevel level, ServerPlayer player, UUID id, int layer)
     {
         AtlasSavedData data = AtlasSavedData.get(level);
+        int radius = ServerConfig.atlasExploreRadius();
         int centerX = player.getBlockX(), centerZ = player.getBlockZ();
-        // A slice's floors, read once each: floors[dx][dz + 1] for dz from -RADIUS - 1 (the row north of the circle,
-        // for shading) to RADIUS
-        int[][] floors = layer == AtlasLayers.SURFACE ? null : new int[RADIUS * 2 + 1][RADIUS * 2 + 2];
+        // A slice's floors, read once each: floors[dx][dz + 1] for dz from -radius - 1 (the row north of the circle,
+        // for shading) to radius
+        int[][] floors = layer == AtlasLayers.SURFACE ? null : new int[radius * 2 + 1][radius * 2 + 2];
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         if (floors != null)
         {
-            for (int dx = -RADIUS; dx <= RADIUS; dx++)
+            for (int dx = -radius; dx <= radius; dx++)
             {
-                for (int dz = -RADIUS - 1; dz <= RADIUS; dz++)
+                for (int dz = -radius - 1; dz <= radius; dz++)
                 {
                     int x = centerX + dx, z = centerZ + dz;
-                    floors[dx + RADIUS][dz + RADIUS + 1] = level.isLoaded(pos.set(x, 0, z))
-                            ? AtlasLayers.floor(level, x, z, layer, pos) : Integer.MIN_VALUE;
+                    floors[dx + radius][dz + radius + 1] = level.isLoaded(pos.set(x, 0, z))
+                            ? AtlasLayers.floor(level, x, z, layer, pos) : AtlasLayers.NO_FLOOR;
                 }
             }
         }
         // LinkedHashSet: each changed chunk once, in the order found
         Set<Long> changed = new LinkedHashSet<>();
-        for (int dx = -RADIUS; dx <= RADIUS; dx++)
+        for (int dx = -radius; dx <= radius; dx++)
         {
-            for (int dz = -RADIUS; dz <= RADIUS; dz++)
+            for (int dz = -radius; dz <= radius; dz++)
             {
-                if (dx * dx + dz * dz > RADIUS * RADIUS) continue;
+                if (dx * dx + dz * dz > radius * radius) continue;
                 int x = centerX + dx, z = centerZ + dz;
                 if (!level.isLoaded(pos.set(x, 0, z))) continue;
                 byte color = floors == null ? AtlasLayers.surfaceColor(level, x, z, pos)
-                        : AtlasLayers.sliceColor(level, x, z, floors[dx + RADIUS][dz + RADIUS + 1], floors[dx + RADIUS][dz + RADIUS], pos);
+                        : AtlasLayers.sliceColor(level, x, z, floors[dx + radius][dz + radius + 1], floors[dx + radius][dz + radius], pos);
                 long chunk = AtlasSavedData.chunkKey(x >> 4, z >> 4);
                 byte[] tile = data.tile(id, layer, chunk);
                 int index = (z & 15) * 16 + (x & 15);

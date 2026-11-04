@@ -206,5 +206,15 @@
   "message.bibliomania.atlas.marked": "Marked on the Atlas",
   "message.bibliomania.atlas.unmarked": "Taken off the Atlas",
   "hud.bibliomania.atlas_tracker": "%1$s %2$s, %3$s, %4$s (%5$sm)",
-  "hud.bibliomania.atlas_layer": "Y %s to %s"
+  "item.bibliomania.atlas_unlock_underground": "Atlas Seal: Underground",
+  "item.bibliomania.atlas_unlock_nether": "Atlas Seal: The Nether",
+  "item.bibliomania.atlas_unlock_end": "Atlas Seal: The End",
+  "tooltip.bibliomania.atlas.unlocked": "Maps %s",
+  "tooltip.bibliomania.atlas_unlock": "Right-click while carrying an Atlas to let it map %s",
+  "message.bibliomania.atlas.unlocked": "The Atlas can now map %s",
+  "message.bibliomania.atlas.already_unlocked": "The Atlas already maps %s",
+  "message.bibliomania.atlas.no_atlas": "Carry an Atlas to unlock it",
+  "atlas_unlock.bibliomania.underground": "underground",
+  "atlas_unlock.minecraft.the_nether": "the Nether",
+  "atlas_unlock.minecraft.the_end": "the End"
 }
