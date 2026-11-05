@@ -1,5 +1,12 @@
 package com.mowmaster.bibliomania.Blocks.Deposit;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
+import java.util.List;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.chat.Component;
+import com.mowmaster.bibliomania.Reading.BibliomaniaReadings;
+import com.mowmaster.mowlib.reading.IServerReadable;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
@@ -27,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 // A Storage Access Point: a library member that keeps nothing itself but its colour, library link and lock.
-public class StorageAccessPointBlockEntity extends BlockEntity implements LibraryMember, ITintHolder
+public class StorageAccessPointBlockEntity extends CBSyncedBlockEntity implements LibraryMember, ITintHolder, IServerReadable
 {
     private final LibraryLink libraryLink = new LibraryLink(this::sync);
     private final CBTintData tints;
@@ -74,12 +81,6 @@ public class StorageAccessPointBlockEntity extends BlockEntity implements Librar
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -100,15 +101,11 @@ public class StorageAccessPointBlockEntity extends BlockEntity implements Librar
         }
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
+    // ---- The reading HUD (MowLib IServerReadable): its library's storage, worked out on the server ----
 
     @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
+    public List<Component> readOnServer(ServerLevel level, BlockPos pos, Player player)
     {
-        return ClientboundBlockEntityDataPacket.create(this);
+        return BibliomaniaReadings.libraryTotals(library(level, pos));
     }
 }

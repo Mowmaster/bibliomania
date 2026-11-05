@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
+import net.minecraft.world.entity.player.Player;
+import com.mowmaster.mowlib.filter.HeldFilters;
 import net.minecraft.world.item.ItemStackTemplate;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import net.minecraft.world.level.block.Block;
@@ -35,13 +38,13 @@ import org.jetbrains.annotations.NotNull;
 // page capacity), the cover colour a MowLib CBTintData. IPageHolder lets MowLib's page keys turn the open page;
 // ISpinningItemHolder makes MowLib's SpinningItemRenderer show the open page's item above the book.
 // Only the open page can be filled or emptied by hand. Saved data is the same as before the switch to MowLib.
-public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHolder, ISpinningItemHolder, PickupableBook, IFilterHolder, LibraryPriority.Holder
+public class BookBlockEntity extends CBSyncedBlockEntity implements ITintHolder, IPageHolder, ISpinningItemHolder, PickupableBook, IFilterHolder, LibraryPriority.Holder
 {
     private final CBTintData tints;
     private final PagedStorage pages;
     // Set while the book is being picked up, so removing the block doesn't also drop it
     private boolean pickedUp = false;
-    // Its filter (BookFilter), or EMPTY
+    // Its filter (MowLib HeldFilters), or EMPTY
     private ItemStack filter = ItemStack.EMPTY;
     private static final String TAG_FILTER = "filter";
     // Where it comes among the books on its Bookcase (LibraryPriority); set while placed, kept on the item
@@ -55,7 +58,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
         this.tints = new CBTintData(this, block.getTintRegionCount());
         // What a page takes: the book's own rules, and its filter (read when asked, so a new filter counts at once)
         this.pages = new PagedStorage(this, block.pageCapacity(), block.defaultPages(),
-                resource -> block.accepts(resource) && BookFilter.allows(filter, resource), this::onItemsChanged);
+                resource -> block.accepts(resource) && HeldFilters.allows(filter, resource), this::onItemsChanged);
     }
 
     private BookBlock block()
@@ -98,7 +101,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
     @Override public void setColor(int region, int color) { tints.setColor(region, color); }
     @Override public int getTint(int tintIndex) { return tints.getTint(tintIndex); }
 
-    // ---- Filter (IFilterHolder): see BookFilter ----
+    // ---- Filter (IFilterHolder): see MowLib HeldFilters ----
 
     @Override
     public ItemStack getFilter()
@@ -110,7 +113,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
     @Override
     public boolean insertFilter(ItemStack stack)
     {
-        if (!filter.isEmpty() || !BookFilter.isFilter(stack) || !block().allowsManualInsert()) return false;
+        if (!filter.isEmpty() || !HeldFilters.isFilter(stack) || !block().allowsManualInsert()) return false;
         filter = stack.split(1);
         filterChanged();
         return true;
@@ -149,6 +152,14 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
     }
 
+    // The storage books' own pickup (BookBlock#pickUp: the Book of Death spills its items first), for MowLib's
+    // pick-up key and the sneak + right-click alike
+    @Override
+    public void pickUp(ServerLevel level, BlockPos pos, BlockState state, Player player)
+    {
+        if (state.getBlock() instanceof BookBlock book) book.pickUp(level, pos, state, this, player);
+    }
+
     @Override
     public int maxPriority()
     {
@@ -179,7 +190,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
         super.applyImplicitComponents(components);
         PagedContents contents = components.get(MowLibDataComponents.PAGED_CONTENTS.get());
         if (contents != null) pages.load(contents);
-        ItemStackTemplate itemFilter = components.get(DataComponentRegistry.BOOK_FILTER.get());
+        ItemStackTemplate itemFilter = components.get(MowLibDataComponents.HELD_FILTER.get());
         filter = itemFilter == null ? ItemStack.EMPTY : itemFilter.create();
         Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
         priority = itemPriority == null ? 0 : itemPriority;
@@ -193,7 +204,7 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
     {
         super.collectImplicitComponents(components);
         components.set(MowLibDataComponents.PAGED_CONTENTS.get(), pages.toContents());
-        if (!filter.isEmpty()) components.set(DataComponentRegistry.BOOK_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
+        if (!filter.isEmpty()) components.set(MowLibDataComponents.HELD_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
         if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
         // The cover colour onto the item as dyed_color (nothing if undyed)
         tints.collectItemColor(components);
@@ -233,15 +244,4 @@ public class BookBlockEntity extends BlockEntity implements ITintHolder, IPageHo
 
     // ---- Syncing to clients: everything, so the renderer knows the open page and the colour ----
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries); // runs saveAdditional into a tag
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this); // uses getUpdateTag
-    }
 }

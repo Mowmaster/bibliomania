@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
-import com.mowmaster.bibliomania.LeftClickCooldown;
+import com.mowmaster.mowlib.util.LeftClickCooldown;
 
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.mowlib.tint.IColorableBlock;

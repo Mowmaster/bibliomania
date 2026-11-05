@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Detector;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
@@ -28,7 +29,7 @@ import java.util.Arrays;
 // A Storage Detector: the item set on each of its six faces (by Direction#get3DDataValue: down, up, north, south,
 // west, east), its library link and lock. Once a second it asks its library how many of each face's item it holds
 // and lights the faces whose item has run out (StorageDetectorBlock#setFaces).
-public class StorageDetectorBlockEntity extends BlockEntity implements LibraryMember
+public class StorageDetectorBlockEntity extends CBSyncedBlockEntity implements LibraryMember
 {
     private static final int CHECK_TICKS = 20;
     private static final String[] TAGS = {"down", "up", "north", "south", "west", "east"};
@@ -94,12 +95,6 @@ public class StorageDetectorBlockEntity extends BlockEntity implements LibraryMe
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -122,15 +117,4 @@ public class StorageDetectorBlockEntity extends BlockEntity implements LibraryMe
         libraryLink.load(input);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

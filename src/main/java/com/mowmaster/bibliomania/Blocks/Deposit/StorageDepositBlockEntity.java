@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Deposit;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 // A Storage Deposit: a library member that keeps nothing itself. Its only data is its library link and lock.
-public class StorageDepositBlockEntity extends BlockEntity implements LibraryMember
+public class StorageDepositBlockEntity extends CBSyncedBlockEntity implements LibraryMember
 {
     private final LibraryLink libraryLink = new LibraryLink(this::sync);
 
@@ -48,12 +49,6 @@ public class StorageDepositBlockEntity extends BlockEntity implements LibraryMem
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -68,15 +63,4 @@ public class StorageDepositBlockEntity extends BlockEntity implements LibraryMem
         libraryLink.load(input);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

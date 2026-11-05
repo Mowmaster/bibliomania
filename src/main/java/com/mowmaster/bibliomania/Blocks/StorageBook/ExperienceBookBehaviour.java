@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.ServerConfig;
@@ -49,7 +50,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     // Ticks between left-click withdrawals (holding left-click swings/clicks every few ticks)
     private static final int CLICK_DELAY = 5;
 
-    private static ResourceHandler<AmountResource> xp(BookStorage storage)
+    private static ResourceHandler<AmountResource> xp(ItemTransportStorage storage)
     {
         return storage.handler(TransportTypes.EXPERIENCE.get());
     }
@@ -166,7 +167,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     {
         if (!level.isClientSide())
         {
-            BookStorage storage = BookStorage.open(player.getItemInHand(hand));
+            ItemTransportStorage storage = ItemTransportStorage.open(player.getItemInHand(hand));
             if (storage != null && storeAll(player, xp(storage)) > 0) orbSound(level, player.blockPosition());
         }
         return InteractionResult.CONSUME;
@@ -180,7 +181,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
         if (rightClick != null && now - rightClick <= 1) return false;
         if (player.getCooldowns().isOnCooldown(book)) return false;
         player.getCooldowns().addCooldown(book, CLICK_DELAY);
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage != null && giveLevels(player, xp(storage), player.isShiftKeyDown() ? 10 : 1) > 0)
         {
             orbSound(player.level(), player.blockPosition());
@@ -193,7 +194,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     @Override
     public boolean clickedWith(ItemStack book, ItemStack cursor, Slot slot, ClickAction action, Player player)
     {
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage == null) return false;
         boolean server = !player.level().isClientSide();
         if (cursor.isEmpty())
@@ -212,7 +213,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     @Override
     public boolean clickedOnto(ItemStack book, Slot slot, ClickAction action, Player player)
     {
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage == null || slot.getItem().isEmpty()) return false;
         boolean handled = useBottles(storage, slot.getItem(), action, player, !player.level().isClientSide());
         if (handled) slot.setChanged();
@@ -221,7 +222,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
 
     // Bottles o' enchanting + left-click are stored (glass bottles back, into the same stack's place);
     // glass bottles + right-click are filled (the filled ones go into the inventory)
-    private static boolean useBottles(BookStorage storage, ItemStack bottles, ClickAction action, Player player, boolean server)
+    private static boolean useBottles(ItemTransportStorage storage, ItemStack bottles, ClickAction action, Player player, boolean server)
     {
         if (action == ClickAction.PRIMARY && bottles.is(Items.EXPERIENCE_BOTTLE))
         {
@@ -311,7 +312,7 @@ public class ExperienceBookBehaviour implements StorageBookBehaviour
     // ---- Tooltip: "Experience: 1395/100000 (level 30)" ----
 
     @Override
-    public void appendTooltip(BookStorage storage, Consumer<Component> tooltip)
+    public void appendTooltip(ItemTransportStorage storage, Consumer<Component> tooltip)
     {
         int points = (int) storage.amount();
         tooltip.accept(Component.translatable("tooltip." + BibliomaniaReferences.MODID + ".experience_book.amount",

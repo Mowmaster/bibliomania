@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Requestor;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
@@ -37,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 // A Patterned Storage Requestor: its 9-slot pattern, its library link and lock. It holds no items.
-public class StorageRequestorBlockEntity extends BlockEntity implements LibraryMember, PatternHolder, IPageHolder
+public class StorageRequestorBlockEntity extends CBSyncedBlockEntity implements LibraryMember, PatternHolder, IPageHolder
 {
     public static final int SLOTS = 9;
     // The page keys change a count by this much, sneaking by SNEAK_STEP
@@ -136,12 +137,6 @@ public class StorageRequestorBlockEntity extends BlockEntity implements LibraryM
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -158,15 +153,4 @@ public class StorageRequestorBlockEntity extends BlockEntity implements LibraryM
         libraryLink.load(input);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

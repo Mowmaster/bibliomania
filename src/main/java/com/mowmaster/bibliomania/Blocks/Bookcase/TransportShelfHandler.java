@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
-import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.mowlib.registry.MowLibDataComponents;
 import com.mowmaster.mowlib.transport.TransportContents;
 import com.mowmaster.mowlib.transport.TransportStorage;
@@ -16,7 +16,7 @@ import net.neoforged.neoforge.transfer.resource.ResourceStack;
 import java.util.List;
 
 // A Book of Fluids, Experience or Energy as a handler of its type while it's in a Bookcase: one index, read from the
-// book's mowlib:transport_contents. What it may hold and how much comes from the book's own storage (BookStorage, the
+// book's mowlib:transport_contents. What it may hold and how much comes from the book's own storage (ItemTransportStorage, the
 // same one the item uses), so its rules are respected. Changes are written back as a changed book through the
 // ItemAccess (see PagedShelfHandler).
 public class TransportShelfHandler<R extends Resource> extends ItemAccessResourceHandler<R>
@@ -36,8 +36,8 @@ public class TransportShelfHandler<R extends Resource> extends ItemAccessResourc
     private TransportStorage<R> storage(ItemResource bookResource)
     {
         // A different book (or none) in the slot now: read as an empty book of the original kind
-        BookStorage storage = bookResource.is(bookItem) ? BookStorage.open(bookResource.toStack(1)) : null;
-        if (storage == null) storage = BookStorage.open(new ItemStack(bookItem));
+        ItemTransportStorage storage = bookResource.is(bookItem) ? ItemTransportStorage.open(bookResource.toStack(1)) : null;
+        if (storage == null) storage = ItemTransportStorage.open(new ItemStack(bookItem));
         if (storage == null) throw new IllegalStateException("Not a storage book: " + bookItem);
         return storage.handler(type);
     }

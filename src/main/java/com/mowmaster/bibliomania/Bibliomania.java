@@ -35,7 +35,7 @@ import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.Items.RecipeRegistry;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
 import com.mowmaster.bibliomania.EventHandlers.BibliomaniaBonusDrops;
-import com.mowmaster.bibliomania.EventHandlers.BibliomaniaKnapping;
+import com.mowmaster.bibliomania.Reading.BibliomaniaReadings;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod(Bibliomania.MODID)
@@ -79,9 +79,10 @@ public class Bibliomania {
         // Some common setup code
         LOGGER.info("HELLO FROM COMMON SETUP");
 
-        // Knapping recipes and bonus drops for MowLib's handlers. enqueueWork runs them on the main thread (setup
+        // Bonus drops for MowLib's handler, and the reading HUD hook. enqueueWork runs them on the main thread (setup
         // events can run on several threads at once).
-        event.enqueueWork(BibliomaniaKnapping::register);
+        // What Bibliomania's blocks show on MowLib's reading HUD
+        event.enqueueWork(BibliomaniaReadings::register);
         event.enqueueWork(BibliomaniaBonusDrops::register);
 
         if (Config.LOG_DIRT_BLOCK.getAsBoolean()) {

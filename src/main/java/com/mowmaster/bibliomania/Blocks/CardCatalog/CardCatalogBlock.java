@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CardCatalog;
 
+import com.mowmaster.mowlib.block.HorizontalFacing;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
@@ -54,7 +55,7 @@ import java.util.Map;
 // Open drawers are the OPEN state (0: none, n: drawer n); the model opens to the north at facing=north.
 public class CardCatalogBlock extends Block implements IColorableBlock
 {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = HorizontalFacing.FACING;
     // One property for every size (a property can't depend on the block); values above the size are never set
     public static final IntegerProperty OPEN = IntegerProperty.create("open", 0, CardCatalogBlockEntity.MAX_DRAWERS);
 
@@ -70,7 +71,7 @@ public class CardCatalogBlock extends Block implements IColorableBlock
         CBPixelBox caseBox = new CBPixelBox(0, 0, 8, 16, 16, 16);
         for (Direction facing : Direction.Plane.HORIZONTAL)
         {
-            int turns = CBPixelBox.quarterTurns(facing);
+            int turns = HorizontalFacing.quarterTurns(facing);
             VoxelShape[] byOpen = new VoxelShape[size + 1];
             VoxelShape closed = caseBox.rotateY(turns).toShape();
             byOpen[0] = closed;
@@ -99,19 +100,19 @@ public class CardCatalogBlock extends Block implements IColorableBlock
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context)
     {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return HorizontalFacing.towardsPlayer(defaultBlockState(), context);
     }
 
     @Override
     protected BlockState rotate(BlockState state, Rotation rotation)
     {
-        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+        return HorizontalFacing.rotate(state, rotation);
     }
 
     @Override
     protected BlockState mirror(BlockState state, Mirror mirror)
     {
-        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+        return HorizontalFacing.mirror(state, mirror);
     }
 
     @Override

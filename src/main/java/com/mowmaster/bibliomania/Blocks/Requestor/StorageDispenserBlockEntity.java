@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Requestor;
 
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import net.neoforged.neoforge.transfer.fluid.FluidUtil;
 import net.neoforged.neoforge.transfer.fluid.FluidResource;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -9,7 +10,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.core.Direction;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
-import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import java.util.List;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
@@ -114,7 +114,7 @@ public class StorageDispenserBlockEntity extends DispenserBlockEntity implements
     // The fluid in a Book of Fluids (EMPTY for an empty one)
     public static FluidResource bookFluid(ItemStack book)
     {
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         return storage != null && storage.storage().getResource(0) instanceof FluidResource fluid ? fluid : FluidResource.EMPTY;
     }
 

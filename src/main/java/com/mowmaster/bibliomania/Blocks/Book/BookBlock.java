@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.mowmaster.mowlib.block.HorizontalFacing;
+import com.mowmaster.mowlib.keys.IPickupableBlock;
+import com.mowmaster.mowlib.filter.HeldFilters;
 import com.mowmaster.mowlib.items.CBColorPickerItem;
 import com.mowmaster.mowlib.paging.PageArrows;
 import com.mowmaster.mowlib.storage.StorageInteractions;
@@ -58,7 +61,7 @@ import java.util.Map;
 // Subclasses: TintableBookBlock (wool, leather: dyeable cover) and DeathBookBlock.
 public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBlock
 {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = HorizontalFacing.FACING;
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
     // How full the book looks, 0-5 (more pages stacked up)
     public static final IntegerProperty THICKNESS = IntegerProperty.create("thickness", 0, 5);
@@ -101,7 +104,7 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
             VoxelShape[] byThickness = new VoxelShape[6];
             for (int thickness = 0; thickness < 6; thickness++)
             {
-                int turns = CBPixelBox.quarterTurns(facing);
+                int turns = HorizontalFacing.quarterTurns(facing);
                 byThickness[thickness] = CBPixelBox.union(northBoxes(thickness).stream().map(box -> box.rotateY(turns)).toList());
             }
             shapes.put(facing, byThickness);
@@ -202,13 +205,13 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
     @Override
     protected @NotNull BlockState rotate(BlockState state, Rotation rotation)
     {
-        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+        return HorizontalFacing.rotate(state, rotation);
     }
 
     @Override
     protected @NotNull BlockState mirror(BlockState state, Mirror mirror)
     {
-        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+        return HorizontalFacing.mirror(state, mirror);
     }
 
     // Called by the block entity whenever the contents change
@@ -245,9 +248,9 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
             return InteractionResult.SUCCESS;
         }
 
-        // A filter in the offhand goes into the book (BookFilter), whatever the main hand holds. Main hand only, so the
+        // A filter in the offhand goes into the book (MowLib HeldFilters), whatever the main hand holds. Main hand only, so the
         // offhand's own turn doesn't store the filter as an item.
-        if (hand == InteractionHand.MAIN_HAND && BookFilter.isFilter(player.getOffhandItem()) && allowsManualInsert())
+        if (hand == InteractionHand.MAIN_HAND && HeldFilters.isFilter(player.getOffhandItem()) && allowsManualInsert())
         {
             if (!level.isClientSide() && book.insertFilter(player.getOffhandItem()))
             {
@@ -299,7 +302,7 @@ public class BookBlock extends Block implements EntityBlock, SimpleWaterloggedBl
         ItemStack item = book.toItem();
         book.markPickedUp();
         level.removeBlock(pos, false);
-        PickupableBook.give(player, item);
+        IPickupableBlock.give(player, item);
 
         SoundType sound = state.getSoundType();
         level.playSound(null, pos, sound.getBreakSound(), SoundSource.BLOCKS, (sound.getVolume() + 1f) / 2f, sound.getPitch() * 0.8f);

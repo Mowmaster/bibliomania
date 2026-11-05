@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Atlas;
 
+import net.minecraft.server.level.ServerPlayer;
+import com.mowmaster.mowlib.keys.IActivatable;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.mowlib.paging.IPageable;
@@ -38,7 +40,7 @@ import java.util.function.Consumer;
 // - Right-click a banner: marks it (its colour and name), like a vanilla map; a lodestone: marks it with an X
 // Each Atlas keeps its own explored map (by its bibliomania:book_id, given the first time it's carried) and markers.
 // It stands on Bookcases and Chiseled Bookshelves like a book, but holds no storage.
-public class AtlasItem extends Item implements IPageable
+public class AtlasItem extends Item implements IPageable, IActivatable
 {
     public AtlasItem(Properties properties)
     {
@@ -74,6 +76,34 @@ public class AtlasItem extends Item implements IPageable
         for (ServerLevel each : level.getServer().getAllLevels()) AtlasSavedData.get(each).copy(from, to);
         atlas.remove(DataComponentRegistry.ATLAS_COPY_OF.get());
         atlas.set(DataComponentRegistry.BOOK_ID.get(), to);
+    }
+
+    // ---- MowLib's activation key (default V) held while looking at a block: marks it, as sneak + right-click does ----
+
+    @Override
+    public boolean canActivate(ItemStack stack)
+    {
+        return true;
+    }
+
+    @Override
+    public void activate(ItemStack stack, ServerPlayer player)
+    {
+        // Not looking at a block: nothing to mark
+    }
+
+    @Override
+    public boolean usesBlockActivation(ItemStack stack)
+    {
+        return true;
+    }
+
+    @Override
+    public boolean activateAtBlock(ItemStack stack, ServerPlayer player, BlockPos pos)
+    {
+        if (!(player.level() instanceof ServerLevel level)) return false;
+        markHeld(level, player, pos);
+        return true;
     }
 
     // The first Atlas in a player's inventory (EMPTY if none): the one the map shows

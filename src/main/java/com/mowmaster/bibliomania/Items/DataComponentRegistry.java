@@ -37,6 +37,11 @@ public class DataComponentRegistry
     {
         COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "book_contents"),
                 Identifier.fromNamespaceAndPath("mowlib", "paged_contents"));
+        // Moved to MowLib in 0.0.4: a book's filter (HeldFilters) and the activated mode (IActivatable)
+        COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "book_filter"),
+                Identifier.fromNamespaceAndPath("mowlib", "held_filter"));
+        COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "activated"),
+                Identifier.fromNamespaceAndPath("mowlib", "activated"));
     }
 
     // What a Bestiary holds (mob type, counts, breeding cooldown). persistent = saved with the item;
@@ -47,17 +52,6 @@ public class DataComponentRegistry
     // What a Book of Essence holds (EssenceContents)
     public static final Supplier<DataComponentType<EssenceContents>> ESSENCE_CONTENTS = COMPONENTS.registerComponentType(
             "essence_contents", builder -> builder.persistent(EssenceContents.CODEC).networkSynchronized(EssenceContents.STREAM_CODEC));
-
-    // Whether a Book of Fluids / Experience is "activated" (its hand and inventory actions are on; see StorageBookItem).
-    // Codec.BOOL saves it as true/false; ByteBufCodecs.BOOL sends it as one byte.
-    public static final Supplier<DataComponentType<Boolean>> ACTIVATED = COMPONENTS.registerComponentType(
-            "activated", builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
-
-    // The MowLib filter an item book holds (BookFilter): it only takes what the filter allows. A component value must
-    // be immutable (with equals/hashCode), which an ItemStack isn't, so it's kept as an ItemStackTemplate: the
-    // immutable form of a stack (item, count, components). BookFilter turns it back into a stack.
-    public static final Supplier<DataComponentType<ItemStackTemplate>> BOOK_FILTER = COMPONENTS.registerComponentType(
-            "book_filter", builder -> builder.persistent(ItemStackTemplate.CODEC).networkSynchronized(ItemStackTemplate.STREAM_CODEC));
 
     // A storage book's library priority (LibraryPriority): set on the placed book with the Priority Scroll, kept on the
     // item. Codec.INT saves a number; VAR_INT sends it in as few bytes as it needs.

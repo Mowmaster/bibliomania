@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import com.mowmaster.mowlib.transport.TransportTypes;
@@ -113,7 +114,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
         {
             if (!level.isClientSide())
             {
-                BookStorage storage = BookStorage.open(held);
+                ItemTransportStorage storage = ItemTransportStorage.open(held);
                 if (storage != null) FluidUtil.tryPickupFluid(storage.handler(TransportTypes.FLUIDS.get()), player, level, fluidHit.getBlockPos(), null);
             }
             return InteractionResult.SUCCESS;
@@ -125,7 +126,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
         if (!level.mayInteract(player, pos)) return InteractionResult.PASS;
         if (!level.isClientSide())
         {
-            BookStorage storage = BookStorage.open(held);
+            ItemTransportStorage storage = ItemTransportStorage.open(held);
             if (storage == null) return InteractionResult.PASS;
             ResourceHandler<FluidResource> fluids = storage.handler(TransportTypes.FLUIDS.get());
             BlockState state = level.getBlockState(pos);
@@ -198,7 +199,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
     public boolean clickedWith(ItemStack book, ItemStack cursor, Slot slot, ClickAction action, Player player)
     {
         if (cursor.isEmpty()) return false;
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage == null) return false;
         ResourceHandler<FluidResource> fluids = storage.handler(TransportTypes.FLUIDS.get());
         boolean store = action == ClickAction.PRIMARY;
@@ -219,7 +220,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
             }
             return true;
         }
-        return moveWithContainer(fluids, StorageBookBehaviours.cursorAccess(player), store, player);
+        return moveWithContainer(fluids, StorageInteractions.cursorAccess(player), store, player);
     }
 
     @Override
@@ -227,7 +228,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
     {
         ItemStack target = slot.getItem();
         if (target.isEmpty()) return false;
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage == null) return false;
         ResourceHandler<FluidResource> fluids = storage.handler(TransportTypes.FLUIDS.get());
         boolean store = action == ClickAction.PRIMARY;
@@ -252,7 +253,7 @@ public class FluidBookBehaviour implements StorageBookBehaviour
         {
             return TransportTypes.FLUIDS.get().getItemHandler(ItemAccess.forStack(target.copy())) != null;
         }
-        return StorageBookBehaviours.withSlotAccess(player, slot, access -> moveWithContainer(fluids, access, store, player));
+        return StorageInteractions.withSlotAccess(player, slot, access -> moveWithContainer(fluids, access, store, player));
     }
 
     // A fluid container (bucket, tank...): store = everything in it into the book; otherwise fill it from the book
@@ -264,8 +265,8 @@ public class FluidBookBehaviour implements StorageBookBehaviour
         if (!player.level().isClientSide())
         {
             int moved = store
-                    ? StorageBookBehaviours.move(TransportTypes.FLUIDS.get(), item, book, Integer.MAX_VALUE)
-                    : StorageBookBehaviours.move(TransportTypes.FLUIDS.get(), book, item, BUCKET);
+                    ? StorageInteractions.move(TransportTypes.FLUIDS.get(), item, book, Integer.MAX_VALUE)
+                    : StorageInteractions.move(TransportTypes.FLUIDS.get(), book, item, BUCKET);
             if (moved > 0)
             {
                 player.level().playSound(null, player.blockPosition(), store ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL,

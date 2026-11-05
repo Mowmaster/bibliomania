@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.TransportItemInteractions;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
@@ -51,44 +53,8 @@ public final class StorageBookBehaviours
         return BEHAVIOURS.getOrDefault(type.getId(), GENERIC);
     }
 
-    // ---- Reaching items in slots ----
-
-    // Runs `action` on the item in `slot` as an ItemAccess (what NeoForge's item capabilities need, so a bucket can
-    // become an empty bucket). For the player's own inventory this is the real slot (anything that doesn't fit goes
-    // to the rest of the inventory). For other containers the item is copied into a 2-slot holder, the action runs
-    // there, and the result goes back into the slot (the second slot catches anything extra, given to the player).
-    public static <T> T withSlotAccess(Player player, Slot slot, Function<ItemAccess, T> action)
-    {
-        if (slot.container == player.getInventory())
-        {
-            return action.apply(ItemAccess.forPlayerSlot(player, slot.getContainerSlot()));
-        }
-        NonNullList<ItemStack> copy = NonNullList.withSize(2, ItemStack.EMPTY);
-        copy.set(0, slot.getItem().copy());
-        ItemStacksResourceHandler holder = new ItemStacksResourceHandler(copy);
-        T result = action.apply(ItemAccess.forHandlerIndex(holder, 0));
-        slot.set(holder.getResource(0).toStack(holder.getAmountAsInt(0)));
-        StorageInteractions.giveToPlayer(player, holder.getResource(1).toStack(holder.getAmountAsInt(1)));
-        return result;
-    }
-
-    // The cursor's item as an ItemAccess
-    public static ItemAccess cursorAccess(Player player)
-    {
-        return ItemAccess.forPlayerCursor(player, player.containerMenu);
-    }
-
-    // Moves up to `amount` between two handlers of one type, committed. Returns how much moved.
-    @SuppressWarnings("unchecked")
-    public static <R extends Resource> int move(TransportType<R> type, ResourceHandler<?> from, ResourceHandler<?> to, int amount)
-    {
-        try (Transaction transaction = Transaction.openRoot())
-        {
-            int moved = type.transfer((ResourceHandler<R>) from, (ResourceHandler<R>) to, amount, transaction);
-            if (moved > 0) transaction.commit();
-            return moved;
-        }
-    }
+    // (Reaching items in slots and moving between handlers: MowLib's StorageInteractions.withSlotAccess / cursorAccess /
+    // move; the generic clicks: MowLib's TransportItemInteractions.)
 
     // ---- The generic behaviour ----
 
@@ -115,33 +81,19 @@ public final class StorageBookBehaviours
         @Override
         public boolean clickedWith(ItemStack book, ItemStack cursor, Slot slot, ClickAction action, Player player)
         {
-            if (cursor.isEmpty()) return false;
-            BookStorage storage = BookStorage.open(book);
-            return storage != null && useWith(storage.type(), storage.storage(), cursorAccess(player),
-                    action == ClickAction.SECONDARY, player.level().isClientSide());
+            return TransportItemInteractions.otherStackedOnMe(book, cursor, slot, action, player);
         }
 
         @Override
         public boolean clickedOnto(ItemStack book, Slot slot, ClickAction action, Player player)
         {
-            BookStorage storage = BookStorage.open(book);
-            if (storage == null || slot.getItem().isEmpty()) return false;
-            if (player.level().isClientSide()) return storage.type().getItemHandler(ItemAccess.forStack(slot.getItem().copy())) != null;
-            return withSlotAccess(player, slot, access -> useWith(storage.type(), storage.storage(), access,
-                    action == ClickAction.SECONDARY, false));
+            return TransportItemInteractions.stackedOnOther(book, slot, action, player);
         }
 
         // Whether the item holds this type; on the server also moves: into the item (toItem) or into the book
         private static boolean useWith(TransportType<?> type, ResourceHandler<?> book, ItemAccess item, boolean toItem, boolean clientSide)
         {
-            ResourceHandler<?> itemHandler = type.getItemHandler(item);
-            if (itemHandler == null) return false;
-            if (!clientSide)
-            {
-                if (toItem) move(type, book, itemHandler, Integer.MAX_VALUE);
-                else move(type, itemHandler, book, Integer.MAX_VALUE);
-            }
-            return true;
+            return TransportItemInteractions.useContainer(type, book, item, toItem, clientSide);
         }
     }
 }

@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import com.mowmaster.mowlib.reading.ReadingPaper;
+import com.mowmaster.mowlib.reading.IReadableItem;
 import com.mowmaster.mowlib.transport.TransportType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -15,8 +19,17 @@ import org.jetbrains.annotations.Nullable;
 //   cancelled (a hopper only simulating) leaves the book as it was.
 // - shelfTick: what its inventoryTick does (growing, restocking, laying eggs...), with the bookcase instead of a player.
 // - shelfFullness: how full it is (0-1), for the Reading Goggles; -1 for books that don't store anything.
-public interface ShelvedBook
+// - read: its reading HUD paper (MowLib IReadableItem), when it has more to say than MowLib's default
+public interface ShelvedBook extends IReadableItem
 {
+    // The reading HUD (MowLib IReadableItem): every Bibliomania book shows its paper while held. null: MowLib's
+    // usual paper (a paged storage book's pages, or else the tooltip); books with more to say override it.
+    @Override
+    default @Nullable ReadingPaper read(ItemStack stack, Level level, Player player)
+    {
+        return null;
+    }
+
     // <R extends Resource>: a generic method, so the handler's resource type matches the type asked for
     default <R extends Resource> @Nullable ResourceHandler<R> shelfHandler(TransportType<R> type, ItemAccess access)
     {

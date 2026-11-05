@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CropBook;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -24,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
 
 // A placed Farmer's Almanac: its CropContents (soil, seed, stage), saved, synced to clients for the renderer, and
 // carried to and from the item like the other books.
-public class CropBookBlockEntity extends BlockEntity implements PickupableBook
+public class CropBookBlockEntity extends CBSyncedBlockEntity implements PickupableBook
 {
     private static final String TAG_CROP = "crop";
 
@@ -114,15 +115,4 @@ public class CropBookBlockEntity extends BlockEntity implements PickupableBook
         contents = input.read(TAG_CROP, CropContents.CODEC).orElse(CropContents.EMPTY);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries); // runs saveAdditional into a tag
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this); // uses getUpdateTag
-    }
 }

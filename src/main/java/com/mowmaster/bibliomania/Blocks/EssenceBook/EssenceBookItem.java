@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.EssenceBook;
 
+import com.mowmaster.mowlib.storage.InventoryClicks;
+import com.mowmaster.mowlib.storage.InventoryClick;
+import com.mowmaster.mowlib.storage.IInventoryUsable;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -53,7 +57,7 @@ import java.util.function.Consumer;
 //     a speed item (nether star) or size item (heavy core), left-click: boosts the spawning
 //     a sword, right-click:  kills one stored mob; the drops go into your inventory and the XP to you
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class EssenceBookItem extends BlockItem implements ShelvedBook
+public class EssenceBookItem extends BlockItem implements ShelvedBook, IKeyPlaceable, IInventoryUsable
 {
     // On a Bookcase (ShelvedBook): its essence ticks on as in an inventory
     @Override
@@ -169,31 +173,35 @@ public class EssenceBookItem extends BlockItem implements ShelvedBook
         if (updated != null) setContents(stack, updated);
     }
 
-    // ---- Inventory clicks (like the Bestiary's) ----
+    // ---- Inventory clicks (MowLib InventoryClicks: the guards; usedWith: what the book does) ----
+    // Either way round: the book on the cursor clicked onto `other` in a slot, or `other` on the cursor clicked onto the
+    // book. A left-click with an empty cursor picks the book up as normal; any other item it can't use is refused.
 
-    // Book on the cursor, clicked onto `other` in a slot
     @Override
     public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
     {
-        if (self.getCount() != 1) return false;
-        ItemStack other = slot.getItem();
-        if (other.isEmpty() || !slot.allowModification(player)) return false;
-        return useOn(self, other, clickAction, player);
+        return InventoryClicks.stackedOnOther(this, self, slot, clickAction, player);
     }
 
-    // `other` on the cursor (or nothing), clicked onto the book in a slot
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
     {
-        if (self.getCount() != 1) return false;
-        if (clickAction == ClickAction.PRIMARY && other.isEmpty()) return false; // picks the book up as normal
-        if (slot.allowModification(player) && useOn(self, other, clickAction, player)) return true;
-        player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+        return InventoryClicks.otherStackedOnMe(this, self, other, slot, clickAction, player, carriedItem);
+    }
+
+    @Override
+    public boolean usedWith(ItemStack self, ItemStack other, ClickAction action, Player player, InventoryClick click)
+    {
+        return useOn(self, other, action, player);
+    }
+
+    @Override
+    public boolean refusesOtherClicks(ItemStack self)
+    {
         return true;
     }
 
-    // The book `self` used with `other` (a boost item or a sword). Returns true if something happened.
     // The Reading Lectern standing in for this book: boost items (left-click) and swords (right-click). Server.
     public static boolean lecternUse(ItemStack book, ItemStack held, Player player)
     {

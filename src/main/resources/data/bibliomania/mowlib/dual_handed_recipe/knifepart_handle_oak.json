@@ -1,0 +1,8 @@
+{
+  "offhand": "minecraft:flint",
+  "mainhand": "minecraft:flint",
+  "block": "#minecraft:logs",
+  "result": {
+    "id": "bibliomania:knifepart_handle_oak"
+  }
+}

@@ -18,8 +18,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   (`CompactingContents`, `bibliomania:compacting_contents`); every tier is a view of the pool (no crafting). Holds
   `CAPACITY` (1024) of the top tier. Chains come from the `bibliomania:compacting` item data map first, then two-way
   crafting recipes (`CompactingChains`, server, cached until datapacks reload); the chain is stored on the book.
-  A MowLib filter in it (`BookFilter`, offhand right-click; Filter Tool takes it out) limits which chains an empty
-  book may start (`BookFilter#allowsChain`).
+  A MowLib filter in it (MowLib `HeldFilters`, offhand right-click; Filter Tool takes it out) limits which chains an
+  empty book may start (`CompactingFilter#allowsChain`).
 - **Atlas** (`Atlas/`, handheld): while carried, a live map in the top right (`ClientSide/AtlasHud`), uncovered
   round the player as they go (`ServerConfig` `[atlas] exploreRadius`, default 64) (`AtlasExplorer`, server; tiles in `AtlasSavedData` per dimension and layer, by the
   book's `bibliomania:book_id`, sent with `AtlasPayloads`). Layers (`AtlasLayers`): the surface, or 32-block slices
@@ -30,7 +30,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   `bibliomania:atlas`. Sits on Bookcases/Chiseled Bookshelves (no storage), skipped by lecterns.
 - **Death book** (`DeathBookHandler`, Bibliomania-only): on player death, places itself and stores all drops plus the
   player's head.
-- **Crafting chain**: knife parts by knapping (`BibliomaniaKnapping` -> MowLib `KnappingRecipes`) -> `knife_stone`
+- **Crafting chain**: knife parts by knapping (flint in both hands on stone / a log: MowLib Dual Handed recipes in
+  `data/bibliomania/mowlib/dual_handed_recipe/`) -> `knife_stone`
   (MowLib `CraftingToolItem`, loses 1 durability per craft) -> fibers (grass: 20% from `#bibliomania:grass_fiber_plants`
   with a knife, `BibliomaniaBonusDrops` -> MowLib `BonusDrops`; wool: string/wool + knife) -> twisted thread -> weave
   -> books. Copper/iron/gold ingot in a book recipe = 12/16/24 pages.
@@ -55,6 +56,21 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   Fill order: `LibraryPriority` (Priority Scroll; Bookcases 0-1000, Chiseled Bookshelves default 100 in their block
   entity's persistent data, storage books 0-100 within their Bookcase, kept on the item as `bibliomania:priority`).
 
+- **Shared with MowLib (0.0.4)**, moved there from this mod:
+  - keys: activation (V, `IActivatable`: `ActivatableBook` books, the Atlas marking a block), place (G,
+    `IKeyPlaceable`: every book item), pick up (H, `IPickupableBlock`: `PickupableBook` block entities), page keys for
+    tools (`IPageKeyTool`: the Priority Scroll)
+  - the reading HUD (`#mowlib:grants_reading`: the Reading Glasses and Reading Goggles); what Bibliomania's blocks show
+    is `Reading/BibliomaniaReadings` (a `ReadingRegistry` block reader; Access Point / Controller are `IServerReadable`);
+    book items are `IReadableItem` through `ShelvedBook`
+  - item filters (`HeldFilters`, `mowlib:held_filter`), the activated mode (`mowlib:activated`); old ids aliased in
+    `DataComponentRegistry`
+  - storage book items are `ITransportStorageItem` (`ItemTransportStorage`, `TransportItemInteractions`); the mob,
+    crop, barter and villager books are `IInventoryUsable` (`InventoryClicks`); the Breakfast Club uses `allowsTakeOut`
+  - most block entities extend `CBSyncedBlockEntity`; four-way blocks use `HorizontalFacing`
+  - not moved: `MobBookRenderer` (keeps each mob's real look and the hurt flash; MowLib's `MobDisplay` is by type),
+    the Requestor / Card Catalog face grids
+
 ## Known issues / to do
 - Crafting a book that holds items into a death book deletes those items (same as 1.20).
 - Idea: keep each book's contents keyed by its `bibliomania:book_id` UUID (Card Catalog book drawers already find
@@ -67,7 +83,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
 
 ## MowLib (shared library)
 - Depends on MowLib (mod id `mowlib`, package `com.mowmaster.mowlib`), bundled with Jar-in-Jar from mavenLocal
-  (`com.mowmaster.mowlib:mowlib`, range `[0.0.2,1.0.0)`, prefer `0.0.2`). Source: `Mowmaster/MowLib`, branch
+  (`com.mowmaster.mowlib:mowlib`, range `[0.0.4,1.0.0)`, prefer `0.0.4`). MowLib's `CHANGELOG.md` lists what each alpha
+  changes for mods. Source: `Mowmaster/MowLib`, branch
   `NeoForge-26x`. To update: publish MowLib (`gradlew publishToMavenLocal`), then raise `prefer` (and the ranges in
   build.gradle and neoforge.mods.toml if the new version is required).
 - Before writing a shared system (tinting, storage, filters, transport, work cards, paging, knapping, bonus drops,
@@ -82,7 +99,7 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
 
 ## 26.x notes (learned porting this mod)
 - Cancelling `LeftClickBlock` makes a held left-click fire START every tick (NeoForge's `MultiPlayerGameMode` patch
-  returns before vanilla records the block being mined): use `LeftClickCooldown.ready` before acting.
+  returns before vanilla records the block being mined): use MowLib's `util/LeftClickCooldown.ready` before acting.
 - No NBT on items: data components. Block entities move them with `applyImplicitComponents` /
   `collectImplicitComponents`; recipe results set them with `"components"`.
 - Block entities save with `ValueInput`/`ValueOutput`; removal side effects go in `preRemoveSideEffects`.

@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 // - Right-click a block: places the selected slot's block there instead of the book (one used from the slot). The
 //   block's own BlockItem places it, so it faces, connects and behaves exactly as if placed by hand.
 // - Activated (sneak + right-click or the activation key): each right-click places from a random slot instead.
-// - The book itself is placed with the "place book" key (ClientSide/BibliomaniaKeys).
+// - The book itself is placed with MowLib's place key (IKeyPlaceable, default G).
 public class BuilderBookItem extends BookItem implements ActivatableBook
 {
     public BuilderBookItem(Block block, Properties properties)
@@ -146,6 +146,6 @@ public class BuilderBookItem extends BookItem implements ActivatableBook
                 Component.keybind(ActivatableBook.TOGGLE_KEY), Component.keybind(PLACE_BOOK_KEY)).withStyle(ChatFormatting.DARK_GRAY));
     }
 
-    // The "place book" key's name (its KeyMapping is client-only, in BibliomaniaKeys)
-    public static final String PLACE_BOOK_KEY = "key." + BibliomaniaReferences.MODID + ".place_book";
+    // MowLib's place key (IKeyPlaceable, default G): its name, for the tooltip
+    public static final String PLACE_BOOK_KEY = com.mowmaster.mowlib.client.MowLibKeyMappings.PLACE_NAME;
 }

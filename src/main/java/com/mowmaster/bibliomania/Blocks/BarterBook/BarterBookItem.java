@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.BarterBook;
 
+import com.mowmaster.mowlib.storage.InventoryClicks;
+import com.mowmaster.mowlib.storage.InventoryClick;
+import com.mowmaster.mowlib.storage.IInventoryUsable;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -42,7 +46,7 @@ import java.util.function.Consumer;
 // - In a player's inventory it barters too: the items go into the inventory, and drop at the player's feet once
 //   it's full.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class BarterBookItem extends BlockItem implements ShelvedBook
+public class BarterBookItem extends BlockItem implements ShelvedBook, IKeyPlaceable, IInventoryUsable
 {
     // On a Bookcase (ShelvedBook): bartering goes on as in an inventory, the goods into the library's (or bookcase's)
     // item books. If they don't all fit, the barter doesn't happen (no gold used): the book waits and tries again.
@@ -124,25 +128,30 @@ public class BarterBookItem extends BlockItem implements ShelvedBook
         for (ItemStack item : result.items()) StorageInteractions.giveToPlayer(player, item);
     }
 
-    // ---- Inventory clicks: gold and upgrades ----
+    // ---- Inventory clicks (MowLib InventoryClicks does the guards; usedWith is what the book does) ----
+    // Either way round: the book on the cursor clicked onto `other` in a slot, or `other` on the cursor clicked onto the
+    // book. A left-click with an empty cursor picks the book up as normal.
+
+    @Override
+    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    {
+        return InventoryClicks.stackedOnOther(this, self, slot, clickAction, player);
+    }
 
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
     {
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || other.isEmpty()) return false;
-        return give(self, other, player);
+        return InventoryClicks.otherStackedOnMe(this, self, other, slot, clickAction, player, carriedItem);
     }
 
+    // Left-click: gold (as much of the stack as fits) or an upgrade (one) into the book
     @Override
-    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    public boolean usedWith(ItemStack self, ItemStack other, ClickAction action, Player player, InventoryClick click)
     {
-        ItemStack target = slot.getItem();
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || target.isEmpty() || !slot.allowModification(player)) return false;
-        boolean handled = give(self, target, player);
-        if (handled) slot.setChanged();
-        return handled;
+        return action == ClickAction.PRIMARY && !other.isEmpty() && give(self, other, player);
     }
+
 
     // Gold (as much of the stack as fits) or an upgrade (one) from `item` into the book. false if it's neither.
     // The Reading Lectern standing in for this book: gold for the piglin (as much as fits), or an upgrade. Server.

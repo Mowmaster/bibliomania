@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import java.util.stream.IntStream;
 import java.util.Comparator;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
@@ -50,7 +51,7 @@ import java.util.List;
 //   the slot inside the transaction, so a hopper's simulated insert changes nothing.
 // - Ticking: each book's ShelvedBook#shelfTick; what they make goes into the item books (store), or out of the front.
 // - Clients get the books (to draw them, and for the Reading Goggles) at most every 4 ticks.
-public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, LibraryMember, LibraryPriority.Holder
+public class BookcaseBlockEntity extends CBSyncedBlockEntity implements ITintHolder, LibraryMember, LibraryPriority.Holder
 {
     public static final int SLOTS = 6;
     private static final String TAG_BOOKS = "books";
@@ -348,15 +349,4 @@ public class BookcaseBlockEntity extends BlockEntity implements ITintHolder, Lib
         }
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries); // runs saveAdditional into a tag: the books and the colour
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

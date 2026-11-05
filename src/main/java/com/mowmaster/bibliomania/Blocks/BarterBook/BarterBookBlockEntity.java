@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.BarterBook;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookActions;
@@ -36,7 +37,7 @@ import org.jetbrains.annotations.Nullable;
 
 // A placed Book of Barter: its BarterContents, saved and synced, carried to and from the item. Barters on the server
 // tick; the client keeps a display piglin (holding gold while there's gold stored) for the renderer.
-public class BarterBookBlockEntity extends BlockEntity implements PickupableBook
+public class BarterBookBlockEntity extends CBSyncedBlockEntity implements PickupableBook
 {
     private static final String TAG_BARTER = "barter";
 
@@ -150,15 +151,4 @@ public class BarterBookBlockEntity extends BlockEntity implements PickupableBook
         contents = input.read(TAG_BARTER, BarterContents.CODEC).orElse(BarterContents.EMPTY);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

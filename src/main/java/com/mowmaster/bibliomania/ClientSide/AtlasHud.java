@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.ClientSide;
 
+import com.mowmaster.mowlib.client.HudAnchor;
+import com.mowmaster.mowlib.reading.ReadingSight;
 import com.mowmaster.bibliomania.Atlas.AtlasClientCache;
 import com.mowmaster.bibliomania.Atlas.AtlasData;
 import com.mowmaster.bibliomania.Atlas.AtlasItem;
@@ -9,7 +11,6 @@ import com.mowmaster.bibliomania.Atlas.AtlasUnlocks;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.ClientConfig;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
-import com.mowmaster.bibliomania.Items.ReadingGlassesItem;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
@@ -106,7 +107,7 @@ public final class AtlasHud
     // anywhere in the inventory; otherwise only one in hand (main hand first). EMPTY: no map.
     public static ItemStack shown(LocalPlayer player)
     {
-        if (ReadingGlassesItem.canRead(player)) return AtlasItem.carried(player);
+        if (ReadingSight.canRead(player)) return AtlasItem.carried(player);
         for (InteractionHand hand : InteractionHand.values())
         {
             ItemStack held = player.getItemInHand(hand);
@@ -134,8 +135,8 @@ public final class AtlasHud
         int width = size + 4, height = size + 4 + Math.round(10 * zoom);
         int x = ClientConfig.ATLAS_ANCHOR.get().x(graphics.guiWidth(), width) + ClientConfig.ATLAS_X.get();
         int y = ClientConfig.ATLAS_ANCHOR.get().y(graphics.guiHeight(), height) + ClientConfig.ATLAS_Y.get();
-        x = Math.clamp(x, 0, Math.max(0, graphics.guiWidth() - width));
-        y = Math.clamp(y, 0, Math.max(0, graphics.guiHeight() - height));
+        x = HudAnchor.keepOnScreen(x, width, graphics.guiWidth());
+        y = HudAnchor.keepOnScreen(y, height, graphics.guiHeight());
         graphics.pose().pushMatrix();
         graphics.pose().translate(x + 2, y + 2);
         graphics.pose().scale(zoom, zoom);

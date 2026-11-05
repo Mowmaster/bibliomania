@@ -1,7 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
+import com.mowmaster.mowlib.filter.HeldFilters;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
-import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.mowlib.paging.PageArrows;
 import com.mowmaster.mowlib.storage.StorageInteractions;
@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 // - left-click: takes 1 of the open tier, sneak + left-click a stack (made from the pool, whatever went in)
 // - sneak + right-click with an empty hand: picks it up, contents and all
 // - a MowLib filter in the offhand + right-click: the filter goes in; the Filter Tool in the offhand + left-click
-//   takes it out. Once emptied, the book only starts chains the filter allows (BookFilter#allowsChain), so a
+//   takes it out. Once emptied, the book only starts chains the filter allows (CompactingFilter#allowsChain), so a
 //   Bookcase can't fill it with some other family.
 // It shares BookBlock's shape, thickness, waterlogging and placement; its block entity is its own.
 public class CompactingBookBlock extends BookBlock
@@ -78,9 +78,9 @@ public class CompactingBookBlock extends BookBlock
             }
             return InteractionResult.SUCCESS;
         }
-        // A filter in the offhand goes into the book (BookFilter#allowsChain: which chains it may start). Main hand
+        // A filter in the offhand goes into the book (CompactingFilter#allowsChain: which chains it may start). Main hand
         // only, so the offhand's own turn doesn't try to store the filter.
-        if (hand == InteractionHand.MAIN_HAND && BookFilter.isFilter(player.getOffhandItem()))
+        if (hand == InteractionHand.MAIN_HAND && HeldFilters.isFilter(player.getOffhandItem()))
         {
             if (!level.isClientSide() && book.insertFilter(player.getOffhandItem()))
             {

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.mowlib.block.HorizontalFacing;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import net.minecraft.network.chat.Component;
@@ -56,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
 // - Dyes tint it, like the Bookcase (the first dye swaps to grey textures).
 public class ReadingLecternBlock extends Block implements IColorableBlock
 {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = HorizontalFacing.FACING;
     public static final BooleanProperty DYED = BooleanProperty.create("dyed");
     // Sealed (Librarian's Seal): it stays on its page, card catalogs don't move it, and the model has no arrows
     public static final BooleanProperty LOCKED = BooleanProperty.create("locked");
@@ -78,7 +79,7 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     {
         for (Direction facing : Direction.Plane.HORIZONTAL)
         {
-            int turns = CBPixelBox.quarterTurns(facing);
+            int turns = HorizontalFacing.quarterTurns(facing);
             SHAPES.put(facing, CBPixelBox.union(BOXES.stream().map(box -> box.rotateY(turns)).toList()));
         }
     }
@@ -113,13 +114,13 @@ public class ReadingLecternBlock extends Block implements IColorableBlock
     @Override
     protected BlockState rotate(BlockState state, Rotation rotation)
     {
-        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+        return HorizontalFacing.rotate(state, rotation);
     }
 
     @Override
     protected BlockState mirror(BlockState state, Mirror mirror)
     {
-        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+        return HorizontalFacing.mirror(state, mirror);
     }
 
     @Override

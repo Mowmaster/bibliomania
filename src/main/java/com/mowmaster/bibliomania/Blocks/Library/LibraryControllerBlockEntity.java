@@ -1,5 +1,11 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.chat.Component;
+import com.mowmaster.bibliomania.Reading.BibliomaniaReadings;
+import com.mowmaster.mowlib.reading.IServerReadable;
 import net.neoforged.neoforge.transfer.transaction.SnapshotJournal;
 import com.mowmaster.bibliomania.ServerConfig;
 import net.minecraft.world.item.Item;
@@ -20,7 +26,6 @@ import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
 import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
 import net.minecraft.world.level.block.entity.ChiseledBookShelfBlockEntity;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
-import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import net.neoforged.neoforge.transfer.CombinedResourceHandler;
 import net.neoforged.neoforge.transfer.resource.Resource;
 import com.mowmaster.mowlib.transport.TransportType;
@@ -78,7 +83,7 @@ import java.util.Set;
 //   books: enchanted and written books (#bibliomania:library_shelf_books) go onto them first, then into the item books
 //   (insertItems); everything that takes items out (lecterns, requestors, the dispenser) finds books on them too. A
 //   vanilla block can't be told which library it's in, so a chiseled shelf touching two libraries is in both.
-public class LibraryControllerBlockEntity extends BlockEntity implements LibraryLockable, ITintHolder
+public class LibraryControllerBlockEntity extends CBSyncedBlockEntity implements LibraryLockable, ITintHolder, IServerReadable
 {
     // Most members, and how far a linked block may be (each way): server config ([library] maxMembers, linkRange)
     public static int maxMembers() { return ServerConfig.libraryMaxMembers(); }
@@ -584,7 +589,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
             {
                 ItemStack book = shelf.getBook(slot);
                 if (!(book.getItem() instanceof StorageBookItem item) || item.book().type() != type) continue;
-                BookStorage storage = BookStorage.open(book);
+                ItemTransportStorage storage = ItemTransportStorage.open(book);
                 Resource resource = storage == null ? null : storage.storage().getResource(0);
                 BookPlace place = new BookPlace(shelf, slot);
                 if (resource == null || resource.isEmpty()) empty.add(place);
@@ -604,7 +609,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         List<BookPlace> books = typeBooks(type, filter);
         if (books.isEmpty()) return ItemStack.EMPTY;
         ItemStack display = new ItemStack(books.getFirst().shelf().getBook(books.getFirst().slot()).getItem());
-        BookStorage storage = BookStorage.open(display);
+        ItemTransportStorage storage = ItemTransportStorage.open(display);
         ResourceHandler<?> handler = typeHandler(type);
         if (storage == null || handler == null || totals[1] <= 0 || totals[0] <= 0) return display;
         Resource resource = null;
@@ -622,7 +627,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     // Puts `amount` of `resource` into a book's storage (which writes it onto the book). The cast is safe: the
     // resource came from a handler of this type.
     @SuppressWarnings("unchecked")
-    private static <R extends Resource> void fill(BookStorage storage, TransportType<R> type, Resource resource, int amount)
+    private static <R extends Resource> void fill(ItemTransportStorage storage, TransportType<R> type, Resource resource, int amount)
     {
         try (Transaction transaction = Transaction.openRoot())
         {
@@ -824,12 +829,6 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -867,15 +866,11 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         }
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
+    // ---- The reading HUD (MowLib IServerReadable): knowledge, storage and members, worked out on the server ----
 
     @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
+    public List<Component> readOnServer(ServerLevel level, BlockPos pos, Player player)
     {
-        return ClientboundBlockEntityDataPacket.create(this);
+        return BibliomaniaReadings.libraryMembers(level, this);
     }
 }

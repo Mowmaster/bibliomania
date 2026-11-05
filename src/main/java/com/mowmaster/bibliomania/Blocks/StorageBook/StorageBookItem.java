@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.ITransportStorageItem;
+import com.mowmaster.mowlib.transport.TransportItemInteractions;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import net.neoforged.neoforge.transfer.resource.Resource;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
 import net.neoforged.neoforge.transfer.ResourceHandler;
@@ -36,10 +40,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 // A storage book as an item. Everything it does is its type's StorageBookBehaviour; this class only passes the
-// item's hooks on. The contents are in "mowlib:transport_contents" (opened with BookStorage).
+// item's hooks on. The contents are in "mowlib:transport_contents" (opened with ItemTransportStorage).
 // The durability-style bar under the item shows how full it is, in the type's colour.
 // Books with activation (fluids, experience) are placed like any book until activated (see "Activation" below).
-public class StorageBookItem extends BlockItem implements ActivatableBook, ShelvedBook
+public class StorageBookItem extends BlockItem implements ActivatableBook, ShelvedBook, IKeyPlaceable, ITransportStorageItem
 {
     // ---- On a Bookcase (ShelvedBook): its fluid, experience or energy is the bookcase's ----
 
@@ -52,7 +56,7 @@ public class StorageBookItem extends BlockItem implements ActivatableBook, Shelv
     @Override
     public float shelfFullness(ItemStack book)
     {
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         return storage == null || storage.capacity() <= 0 ? -1f : Math.min(1f, (float) storage.amount() / storage.capacity());
     }
 
@@ -79,7 +83,7 @@ public class StorageBookItem extends BlockItem implements ActivatableBook, Shelv
 
     // ---- Activation ----
     // Books whose behaviour usesActivation (fluids, experience) only do their hand and inventory actions while
-    // activated. Sneak + right-click (in the air or on a block) or the activation key (BibliomaniaKeys, also over the
+    // activated. Sneak + right-click (in the air or on a block) or the activation key (MowLib IActivatable, also over the
     // book in an inventory) turns it on and off. Active books shimmer like enchanted items.
 
     // The shared parts live in Items/ActivatableBook (the Builder's Book has the mode too); these forward to it
@@ -192,7 +196,7 @@ public class StorageBookItem extends BlockItem implements ActivatableBook, Shelv
                                 Consumer<Component> tooltip, TooltipFlag flag)
     {
         super.appendHoverText(stack, context, display, tooltip, flag);
-        BookStorage storage = BookStorage.open(stack);
+        ItemTransportStorage storage = ItemTransportStorage.open(stack);
         if (storage != null) behaviour().appendTooltip(storage, tooltip);
         if (behaviour().usesActivation())
         {
@@ -204,25 +208,36 @@ public class StorageBookItem extends BlockItem implements ActivatableBook, Shelv
         }
     }
 
+    // The fill bar, in the type's colour (MowLib's TransportItemInteractions)
     @Override
     public boolean isBarVisible(ItemStack stack)
     {
-        BookStorage storage = BookStorage.open(stack);
-        return storage != null && storage.amount() > 0;
+        return TransportItemInteractions.barVisible(stack);
     }
 
-    // 0 to 13 pixels wide, like a durability bar
     @Override
     public int getBarWidth(ItemStack stack)
     {
-        BookStorage storage = BookStorage.open(stack);
-        if (storage == null) return 0;
-        return Mth.clamp(Math.round(13f * storage.amount() / storage.capacity()), 0, 13);
+        return TransportItemInteractions.barWidth(stack);
     }
 
     @Override
     public int getBarColor(ItemStack stack)
     {
-        return book().type().getRgb();
+        return TransportItemInteractions.barColor(stack);
+    }
+
+    // ---- MowLib ITransportStorageItem: what ItemTransportStorage.open needs ----
+
+    @Override
+    public TransportType<?> storageType(ItemStack stack)
+    {
+        return book().type();
+    }
+
+    @Override
+    public int storageCapacity(ItemStack stack)
+    {
+        return book().capacity();
     }
 }

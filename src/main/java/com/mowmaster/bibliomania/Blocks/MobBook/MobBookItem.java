@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
+import com.mowmaster.mowlib.storage.InventoryClicks;
+import com.mowmaster.mowlib.storage.InventoryClick;
+import com.mowmaster.mowlib.storage.IInventoryUsable;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -49,7 +53,7 @@ import java.util.function.Consumer;
 //   cursor) onto anything else just swaps them as normal.
 // - Egg layers (chickens...) lay into your inventory every ServerConfig.dropInterval() ticks while the book is in it (MobBookDrops).
 // - Tooltip: text lines (appendHoverText) for the mob, count, babies and breeding; the mob's spawn egg as a picture.
-public class MobBookItem extends BlockItem implements ShelvedBook
+public class MobBookItem extends BlockItem implements ShelvedBook, IKeyPlaceable, IInventoryUsable
 {
     // On a Bookcase (ShelvedBook): eggs, scutes and the rest as in an inventory, into the library's (or bookcase's)
     // item books. If they don't all fit, nothing happens: the book waits (BookcaseBlockEntity#pause) and tries again.
@@ -147,29 +151,32 @@ public class MobBookItem extends BlockItem implements ShelvedBook
     // Changes are made on the server (it does the click too, and sends the result to the client);
     // the client only plays the sound, so it isn't heard twice.
 
-    // Book on the cursor, clicked onto `other` in a slot
+    // ---- Inventory clicks (MowLib InventoryClicks: the guards; usedWith: what the book does) ----
+    // Either way round: the book on the cursor clicked onto `other` in a slot, or `other` on the cursor clicked onto the
+    // book. A left-click with an empty cursor picks the book up as normal; any other item it can't use is refused.
+
     @Override
     public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
     {
-        if (self.getCount() != 1) return false;
-        ItemStack other = slot.getItem();
-        // Onto an empty slot, or an item it can't use: the book is placed/swapped as normal
-        if (other.isEmpty() || !slot.allowModification(player)) return false;
-        return useOn(self, other, clickAction, player);
+        return InventoryClicks.stackedOnOther(this, self, slot, clickAction, player);
     }
 
-    // `other` on the cursor (or nothing), clicked onto the book in a slot
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
     {
-        if (self.getCount() != 1) return false;
-        // Left-click with an empty hand picks the book up as normal
-        if (clickAction == ClickAction.PRIMARY && other.isEmpty()) return false;
-        if (slot.allowModification(player) && useOn(self, other, clickAction, player)) return true;
+        return InventoryClicks.otherStackedOnMe(this, self, other, slot, clickAction, player, carriedItem);
+    }
 
-        // Anything else isn't allowed
-        player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+    @Override
+    public boolean usedWith(ItemStack self, ItemStack other, ClickAction action, Player player, InventoryClick click)
+    {
+        return useOn(self, other, action, player);
+    }
+
+    @Override
+    public boolean refusesOtherClicks(ItemStack self)
+    {
         return true;
     }
 

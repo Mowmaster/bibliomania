@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.CropBook;
 
+import com.mowmaster.mowlib.storage.InventoryClicks;
+import com.mowmaster.mowlib.storage.InventoryClick;
+import com.mowmaster.mowlib.storage.IInventoryUsable;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -34,7 +38,7 @@ import java.util.function.Consumer;
 //     right-click with an empty cursor on the book: takes the seed out (its growth is lost), or with no seed the soil
 // - In a player's inventory it has a growth chance every ServerConfig.cropInventoryInterval() ticks (1 minute);
 //   once fully grown it's harvested straight into the inventory and starts again.
-public class CropBookItem extends BlockItem implements ShelvedBook
+public class CropBookItem extends BlockItem implements ShelvedBook, IKeyPlaceable, IInventoryUsable
 {
     // ---- On a Bookcase (ShelvedBook): grows on the same timer as in an inventory; the harvest goes into the
     // bookcase's item books, and if they can't take all of it the crop stays ripe and tries again next time ----
@@ -113,114 +117,75 @@ public class CropBookItem extends BlockItem implements ShelvedBook
         setContents(stack, next);
     }
 
-    // ---- Inventory clicks ----
+    // ---- Inventory clicks (MowLib InventoryClicks does the guards; usedWith is what the book does) ----
+    // Either way round: the book on the cursor clicked onto `other` in a slot, or `other` on the cursor clicked onto the
+    // book. A left-click with an empty cursor picks the book up as normal.
 
-    // The book on the cursor, clicked onto an item: left-click puts one of it in
     @Override
     public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
     {
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !slot.allowModification(player)) return false;
-        ItemStack target = slot.getItem();
-        // A bucket in the slot: it's swapped for the other bucket in place
-        CropContents watered = CropBookActions.useBucket(contents(self), target);
+        return InventoryClicks.stackedOnOther(this, self, slot, clickAction, player);
+    }
+
+    @Override
+    public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
+                                            Player player, SlotAccess carriedItem)
+    {
+        return InventoryClicks.otherStackedOnMe(this, self, other, slot, clickAction, player, carriedItem);
+    }
+
+    // - right-click with an empty cursor: the top thing (crop, then soil) comes out onto the cursor
+    // - left-click with a bucket: water in or out; the bucket becomes the other one (in place, or one of a stack's
+    //   into the inventory)
+    // - left-click with bone meal: like on the placed book (a ripe crop is harvested straight into the inventory)
+    // - left-click with soil or a seed: one goes in (the cursor's seed refused with the fail sound if it can't)
+    @Override
+    public boolean usedWith(ItemStack self, ItemStack other, ClickAction action, Player player, InventoryClick click)
+    {
+        CropContents contents = contents(self);
+        boolean server = !player.level().isClientSide();
+        if (action == ClickAction.SECONDARY && other.isEmpty())
+        {
+            ItemStack top = CropBookActions.topItem(contents);
+            if (top.isEmpty()) return false;
+            if (server)
+            {
+                setContents(self, contents.withoutTop());
+                click.giveTaken(top, player);
+            }
+            player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8f, 1f);
+            return true;
+        }
+        if (action != ClickAction.PRIMARY || other.isEmpty()) return false;
+        CropContents watered = CropBookActions.useBucket(contents, other);
         if (watered != null)
         {
-            if (!player.level().isClientSide())
+            if (server)
             {
                 setContents(self, watered);
-                ItemStack after = CropBookActions.bucketAfter(target);
-                if (target.getCount() == 1) slot.set(after);
-                else
-                {
-                    // One of a stack of empty buckets: the water bucket goes into the inventory
-                    target.shrink(1);
-                    slot.setChanged();
-                    StorageInteractions.giveToPlayer(player, after);
-                }
+                click.exchangeOne(other, CropBookActions.bucketAfter(other), player);
             }
             player.playSound(watered.water() ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL, 0.8f, 1f);
             return true;
         }
-        if (CropBookActions.isBoneMeal(target))
+        if (CropBookActions.isBoneMeal(other)) return boneMeal(self, other, player);
+        CropContents planted = CropBookActions.insert(contents, other);
+        if (planted == null)
         {
-            boolean handled = boneMeal(self, target, player);
-            if (handled) slot.setChanged();
-            return handled;
+            // The cursor's item onto the book: refused; the book onto an item it can't plant: a normal click
+            if (click.kind() != InventoryClick.Kind.CURSOR) return false;
+            player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
+            return true;
         }
-        CropContents planted = CropBookActions.insert(contents(self), target);
-        if (planted == null) return false;
-        if (!player.level().isClientSide())
+        if (server)
         {
             setContents(self, planted);
-            target.shrink(1);
-            slot.setChanged();
+            other.shrink(1);
         }
         player.playSound(SoundEvents.CROP_PLANTED, 0.8f, 1f);
         return true;
     }
 
-    // Something (or nothing) on the cursor, clicked onto the book
-    @Override
-    public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
-                                            Player player, SlotAccess carriedItem)
-    {
-        if (self.getCount() != 1 || !slot.allowModification(player)) return false;
-        CropContents contents = contents(self);
-        // Right-click with an empty cursor: take the top thing out onto the cursor
-        if (clickAction == ClickAction.SECONDARY && other.isEmpty())
-        {
-            ItemStack top = CropBookActions.topItem(contents);
-            if (top.isEmpty()) return false;
-            if (!player.level().isClientSide())
-            {
-                setContents(self, contents.withoutTop());
-                carriedItem.set(top);
-            }
-            player.playSound(SoundEvents.BUNDLE_REMOVE_ONE, 0.8f, 1f);
-            return true;
-        }
-        // Left-click with a bucket: water in or out; the cursor's bucket becomes the other one
-        if (clickAction == ClickAction.PRIMARY)
-        {
-            CropContents watered = CropBookActions.useBucket(contents, other);
-            if (watered != null)
-            {
-                if (!player.level().isClientSide())
-                {
-                    setContents(self, watered);
-                    ItemStack after = CropBookActions.bucketAfter(other);
-                    if (other.getCount() == 1) carriedItem.set(after);
-                    else
-                    {
-                        other.shrink(1);
-                        StorageInteractions.giveToPlayer(player, after);
-                    }
-                }
-                player.playSound(watered.water() ? SoundEvents.BUCKET_EMPTY : SoundEvents.BUCKET_FILL, 0.8f, 1f);
-                return true;
-            }
-        }
-        // Left-click with bone meal: like on the placed book (a ripe crop is harvested straight into the inventory)
-        if (clickAction == ClickAction.PRIMARY && CropBookActions.isBoneMeal(other)) return boneMeal(self, other, player);
-        // Left-click with soil or a seed: put one in
-        if (clickAction == ClickAction.PRIMARY && !other.isEmpty())
-        {
-            CropContents planted = CropBookActions.insert(contents, other);
-            if (planted == null)
-            {
-                player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
-                return true;
-            }
-            if (!player.level().isClientSide())
-            {
-                setContents(self, planted);
-                other.shrink(1);
-            }
-            player.playSound(SoundEvents.CROP_PLANTED, 0.8f, 1f);
-            return true;
-        }
-        return false;
-    }
 
     // One bone meal from `boneMeal` on the book (true = handled, even if it did nothing): the next stage, or a
     // flower's flower into the inventory. If that ripens it, it's harvested into the inventory and starts again, the

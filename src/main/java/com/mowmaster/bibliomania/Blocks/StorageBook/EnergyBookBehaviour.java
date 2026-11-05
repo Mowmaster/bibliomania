@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.storage.StorageInteractions;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.ServerConfig;
 import com.mowmaster.mowlib.transport.AmountResource;
@@ -53,7 +55,7 @@ public class EnergyBookBehaviour implements StorageBookBehaviour
     @Override
     public void inventoryTick(ItemStack book, ServerLevel level, Player player)
     {
-        BookStorage storage = BookStorage.open(book);
+        ItemTransportStorage storage = ItemTransportStorage.open(book);
         if (storage == null || storage.amount() <= 0) return;
         ResourceHandler<AmountResource> energy = storage.handler(TransportTypes.ENERGY.get());
         int budget = ServerConfig.energyChargeRate();
@@ -65,7 +67,7 @@ public class EnergyBookBehaviour implements StorageBookBehaviour
             // The item's energy storage, if it has one (null for everything else)
             ResourceHandler<AmountResource> target = TransportTypes.ENERGY.get().getItemHandler(ItemAccess.forPlayerSlot(player, slot));
             if (target == null) continue;
-            budget -= StorageBookBehaviours.move(TransportTypes.ENERGY.get(), energy, target, budget);
+            budget -= StorageInteractions.move(TransportTypes.ENERGY.get(), energy, target, budget);
         }
     }
 }

@@ -1,5 +1,13 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import java.util.List;
+import net.minecraft.network.chat.Component;
+import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
+import com.mowmaster.mowlib.reading.ReadingPapers;
+import com.mowmaster.mowlib.reading.ReadingPaper;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
+import com.mowmaster.mowlib.filter.HeldFilters;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
@@ -35,7 +43,7 @@ import java.util.Optional;
 // - In inventories it works like a bundle (PagedStorageInteractions): click items in and out, the page grid tooltip.
 // - Scrolling over it, or the page keys (MowLib's, default Page Down / Page Up), select a page.
 // - The death book can be emptied this way but not filled. In the world the book is placed and used as a block.
-public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBook
+public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBook, IKeyPlaceable
 {
     // ---- On a Bookcase (ShelvedBook): its pages are the bookcase's item storage ----
 
@@ -77,11 +85,11 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
         return book().defaultPages();
     }
 
-    // The book's own rules, and its filter if it has one (BookFilter)
+    // The book's own rules, and its filter if it has one (MowLib HeldFilters)
     @Override
     public boolean accepts(ItemStack self, ItemResource resource)
     {
-        return book().accepts(resource) && BookFilter.allows(BookFilter.get(self), resource);
+        return book().accepts(resource) && HeldFilters.holderAllows(self, resource);
     }
 
     @Override
@@ -97,30 +105,22 @@ public class BookItem extends BlockItem implements IPagedStorageItem, ShelvedBoo
     public InteractionResult use(Level level, Player player, InteractionHand hand)
     {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
-        ItemStack self = player.getMainHandItem();
-        ItemStack offhand = player.getOffhandItem();
-        if (BookFilter.isFilter(offhand))
-        {
-            if (!allowsInsert(self) || !BookFilter.get(self).isEmpty()) return InteractionResult.FAIL;
-            if (!level.isClientSide())
-            {
-                BookFilter.set(self, offhand.split(1));
-                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1.2f);
-            }
-            return InteractionResult.SUCCESS;
-        }
-        if (offhand.getItem() instanceof FilterToolItem && !BookFilter.get(self).isEmpty())
-        {
-            if (!level.isClientSide())
-            {
-                ItemStack filter = BookFilter.get(self);
-                BookFilter.set(self, ItemStack.EMPTY);
-                StorageInteractions.giveToPlayer(player, filter);
-                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 0.8f);
-            }
-            return InteractionResult.SUCCESS;
-        }
+        // MowLib's filter clicks: a filter in the offhand goes in (not into a take-out-only book); its Filter Tool takes
+        // it out again
+        InteractionResult result = HeldFilters.useOnHeld(level, player, hand, allowsInsert(player.getMainHandItem()));
+        if (result != null) return result;
         return InteractionResult.PASS;
+    }
+
+    // ---- The reading HUD (MowLib IReadableItem): MowLib's paged paper, with the book's library priority under its name ----
+
+    @Override
+    public @Nullable ReadingPaper read(ItemStack stack, Level level, Player player)
+    {
+        int priority = LibraryPriority.ofBook(stack);
+        List<Component> afterName = priority > 0
+                ? List.of(Component.translatable("hud." + BibliomaniaReferences.MODID + ".priority", priority)) : List.of();
+        return ReadingPapers.pagedItem(stack, level, player, afterName, List.of());
     }
 
     // ---- Bundle-style clicks and the tooltip (an interface can't override Item methods, so these forward) ----

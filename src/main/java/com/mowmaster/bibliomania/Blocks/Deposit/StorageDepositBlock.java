@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Deposit;
 
+import com.mowmaster.mowlib.block.HorizontalFacing;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryDeposit;
@@ -50,7 +51,7 @@ import java.util.Map;
 // The model's front (the slot) is its north face at facing=north.
 public class StorageDepositBlock extends Block implements EntityBlock
 {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = HorizontalFacing.FACING;
 
     private final Map<Direction, VoxelShape> shapes = new EnumMap<>(Direction.class);
 
@@ -62,7 +63,7 @@ public class StorageDepositBlock extends Block implements EntityBlock
         CBPixelBox box = full ? new CBPixelBox(0, 0, 0, 16, 16, 16) : new CBPixelBox(0, 0, 4, 16, 15, 16);
         for (Direction facing : Direction.Plane.HORIZONTAL)
         {
-            shapes.put(facing, box.rotateY(CBPixelBox.quarterTurns(facing)).toShape());
+            shapes.put(facing, box.rotateY(HorizontalFacing.quarterTurns(facing)).toShape());
         }
     }
 
@@ -76,19 +77,19 @@ public class StorageDepositBlock extends Block implements EntityBlock
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context)
     {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return HorizontalFacing.towardsPlayer(defaultBlockState(), context);
     }
 
     @Override
     protected BlockState rotate(BlockState state, Rotation rotation)
     {
-        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+        return HorizontalFacing.rotate(state, rotation);
     }
 
     @Override
     protected BlockState mirror(BlockState state, Mirror mirror)
     {
-        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+        return HorizontalFacing.mirror(state, mirror);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CardCatalog;
 
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -8,7 +9,6 @@ import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.CropBook.CropBookItem;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookItem;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookItem;
-import com.mowmaster.bibliomania.Blocks.StorageBook.BookStorage;
 import com.mowmaster.bibliomania.Blocks.StorageBook.StorageBookItem;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerBookItem;
 import com.mowmaster.bibliomania.Blocks.VillagerBook.VillagerContents;
@@ -163,7 +163,7 @@ public record DrawerEntry(Kind kind, ItemStack icon, ItemStack badge, Optional<U
         if (type == TransportTypes.FLUIDS.get())
         {
             // The fluid in it: its bucket as the icon, and only that fluid's amount shown
-            BookStorage storage = BookStorage.open(held);
+            ItemTransportStorage storage = ItemTransportStorage.open(held);
             Resource resource = storage == null ? null : storage.storage().getResource(0);
             if (!(resource instanceof FluidResource fluidResource) || fluidResource.isEmpty()) return null;
             Fluid fluid = fluidResource.getFluid();

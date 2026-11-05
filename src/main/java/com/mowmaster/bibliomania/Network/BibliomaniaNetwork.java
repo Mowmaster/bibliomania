@@ -14,29 +14,14 @@ public final class BibliomaniaNetwork
 {
     private BibliomaniaNetwork() {}
 
-    private static final String VERSION = "8"; // 2: added place_book; 3: added pickup_book; 4: block_info; 5: entity_info; 6: adjust_priority; 7: atlas; 8: atlas layers
+    private static final String VERSION = "9"; // ... 7: atlas; 8: atlas layers; 9: keys and the reading HUD moved to MowLib
 
     @SubscribeEvent
     public static void register(RegisterPayloadHandlersEvent event)
     {
         PayloadRegistrar registrar = event.registrar(VERSION);
-        // Client -> server: the storage book activation key
-        registrar.playToServer(ToggleBookPayload.TYPE, ToggleBookPayload.STREAM_CODEC, ToggleBookPayload::handle);
-        // Client -> server: the "place book" key
-        registrar.playToServer(PlaceBookPayload.TYPE, PlaceBookPayload.STREAM_CODEC, PlaceBookPayload::handle);
         // The Atlas: tiles to the client, requests and marks from it
         registrar.playToClient(AtlasPayloads.Tiles.TYPE, AtlasPayloads.Tiles.STREAM_CODEC, AtlasPayloads::handleTiles);
         registrar.playToServer(AtlasPayloads.Request.TYPE, AtlasPayloads.Request.STREAM_CODEC, AtlasPayloads::handleRequest);
-        registrar.playToServer(AtlasPayloads.Mark.TYPE, AtlasPayloads.Mark.STREAM_CODEC, AtlasPayloads::handleMark);
-        // Client -> server: the page keys while holding a Priority Scroll
-        registrar.playToServer(AdjustPriorityPayload.TYPE, AdjustPriorityPayload.STREAM_CODEC, AdjustPriorityPayload::handle);
-        // Client -> server: the "pick up book" key
-        registrar.playToServer(PickupBookPayload.TYPE, PickupBookPayload.STREAM_CODEC, PickupBookPayload::handle);
-        // Reading Goggles' block label: client asks what a block holds, the server answers
-        registrar.playToServer(BlockInfoPayloads.Request.TYPE, BlockInfoPayloads.Request.STREAM_CODEC, BlockInfoPayloads::handleRequest);
-        registrar.playToClient(BlockInfoPayloads.Answer.TYPE, BlockInfoPayloads.Answer.STREAM_CODEC, BlockInfoPayloads::handleAnswer);
-        // ... and the same for a looked-at mob
-        registrar.playToServer(BlockInfoPayloads.EntityRequest.TYPE, BlockInfoPayloads.EntityRequest.STREAM_CODEC, BlockInfoPayloads::handleEntityRequest);
-        registrar.playToClient(BlockInfoPayloads.EntityAnswer.TYPE, BlockInfoPayloads.EntityAnswer.STREAM_CODEC, BlockInfoPayloads::handleEntityAnswer);
     }
 }

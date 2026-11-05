@@ -1,6 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
-import com.mowmaster.bibliomania.LeftClickCooldown;
+import com.mowmaster.mowlib.util.LeftClickCooldown;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;

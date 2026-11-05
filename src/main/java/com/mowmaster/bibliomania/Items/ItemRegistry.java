@@ -31,7 +31,7 @@ public class ItemRegistry {
     public static final DeferredItem<Item> BOOKBLOCK_STARTER = CBITEMS.registerSimpleItem("bookblock_starter");
 
     // ---- Knife ----
-    // Parts are knapped with flint in both hands (MowLib's KnappingHandler; recipes in BibliomaniaKnapping), then crafted together
+    // Parts are knapped with flint in both hands on stone or a log (MowLib Dual Handed recipes: data/bibliomania/mowlib/dual_handed_recipe/), then crafted together
 
     public static final DeferredItem<Item> KNIFEPART_BLADE_STONE = CBITEMS.registerSimpleItem("knifepart_blade_stone");
     public static final DeferredItem<Item> KNIFEPART_HANDLE_OAK = CBITEMS.registerSimpleItem("knifepart_handle_oak");

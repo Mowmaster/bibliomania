@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CardCatalog;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryControllerBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLink;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryMember;
@@ -31,7 +32,7 @@ import java.util.List;
 // library doesn't have (drawn "cancelled", and won't open), the colours (region 0 the case, 1-16 each drawer), and its
 // library link and lock. Which drawer is open is the block state (CardCatalogBlock.OPEN).
 // Every CHECK_TICKS the server checks each set drawer against the library and tells clients if that changed.
-public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, LibraryMember
+public class CardCatalogBlockEntity extends CBSyncedBlockEntity implements ITintHolder, LibraryMember
 {
     public static final int MAX_DRAWERS = 16;
     private static final int CHECK_TICKS = 40;
@@ -137,12 +138,6 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
 
     // ---- Saving and syncing ----
 
-    private void sync()
-    {
-        setChanged();
-        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
-    }
-
     @Override
     protected void saveAdditional(ValueOutput output)
     {
@@ -189,15 +184,4 @@ public class CardCatalogBlockEntity extends BlockEntity implements ITintHolder, 
         return fixed;
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

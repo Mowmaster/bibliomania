@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Bookcase;
 
+import com.mowmaster.mowlib.block.HorizontalFacing;
 import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLockable;
@@ -54,7 +55,7 @@ import org.jetbrains.annotations.Nullable;
 // The model opens to the north at facing=north; the blockstate turns it to face the player who placed it.
 public class BookcaseBlock extends Block implements IColorableBlock
 {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<Direction> FACING = HorizontalFacing.FACING;
     public static final BooleanProperty DYED = BooleanProperty.create("dyed");
 
     // The shelf spaces, in model pixels (facing north): 14 wide (x 1-15) split three ways; two shelves
@@ -84,13 +85,13 @@ public class BookcaseBlock extends Block implements IColorableBlock
     @Override
     protected BlockState rotate(BlockState state, Rotation rotation)
     {
-        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+        return HorizontalFacing.rotate(state, rotation);
     }
 
     @Override
     protected BlockState mirror(BlockState state, Mirror mirror)
     {
-        return state.rotate(mirror.getRotation(state.getValue(FACING)));
+        return HorizontalFacing.mirror(state, mirror);
     }
 
     // ---- Shelf geometry (also used by the renderer and the Reading Goggles) ----

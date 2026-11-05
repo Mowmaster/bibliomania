@@ -1,7 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
+import com.mowmaster.mowlib.filter.HeldFilters;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.mowlib.items.tools.FilterToolItem;
 import com.mowmaster.mowlib.storage.StorageInteractions;
 import net.minecraft.sounds.SoundEvents;
@@ -32,7 +33,7 @@ import java.util.function.Consumer;
 // The Compacting Book as an item: its contents in bibliomania:compacting_contents. On a Bookcase its tiers are the
 // bookcase's (and the library's) item storage (CompactingShelfHandler); its tiers are pages for the page keys and
 // scrolling (MowLib IPageable). The tooltip lists every tier with how many of it the book makes.
-public class CompactingBookItem extends BlockItem implements ShelvedBook, IPageable
+public class CompactingBookItem extends BlockItem implements ShelvedBook, IPageable, IKeyPlaceable
 {
     public CompactingBookItem(Block block, Properties properties)
     {
@@ -47,34 +48,14 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
 
     // ---- Filters: right-click the air with the book in the main hand (as other item books, BookItem#use) ----
     // A filter in the offhand goes in (one at a time); MowLib's Filter Tool in the offhand takes it out again.
-    // The filter decides which chains an empty book may start (BookFilter#allowsChain).
+    // The filter decides which chains an empty book may start (CompactingFilter#allowsChain).
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand)
     {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
-        ItemStack self = player.getMainHandItem();
-        ItemStack offhand = player.getOffhandItem();
-        if (BookFilter.isFilter(offhand))
-        {
-            if (!BookFilter.get(self).isEmpty()) return InteractionResult.FAIL;
-            if (!level.isClientSide())
-            {
-                BookFilter.set(self, offhand.split(1));
-                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1.2f);
-            }
-            return InteractionResult.SUCCESS;
-        }
-        if (offhand.getItem() instanceof FilterToolItem && !BookFilter.get(self).isEmpty())
-        {
-            if (!level.isClientSide())
-            {
-                ItemStack filter = BookFilter.get(self);
-                BookFilter.set(self, ItemStack.EMPTY);
-                StorageInteractions.giveToPlayer(player, filter);
-                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 0.8f);
-            }
-            return InteractionResult.SUCCESS;
-        }
+        // MowLib's filter clicks: a filter in the offhand goes in; its Filter Tool takes it out again
+        InteractionResult result = HeldFilters.useOnHeld(level, player, hand, true);
+        if (result != null) return result;
         return super.use(level, player, hand);
     }
 
@@ -123,7 +104,7 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
         super.appendHoverText(stack, context, display, tooltip, flag);
         CompactingContents contents = contents(stack);
         String key = "tooltip." + BibliomaniaReferences.MODID + ".compacting.";
-        ItemStack filter = BookFilter.get(stack);
+        ItemStack filter = HeldFilters.get(stack);
         if (!filter.isEmpty()) tooltip.accept(Component.translatable("hud." + BibliomaniaReferences.MODID + ".book_filter", filter.getHoverName()).withStyle(ChatFormatting.GRAY));
         if (!contents.isSet())
         {

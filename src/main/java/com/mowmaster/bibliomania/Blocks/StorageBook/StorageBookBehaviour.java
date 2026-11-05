@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -25,7 +26,7 @@ import java.util.function.Consumer;
 //
 // Every method has a default that does nothing, so a behaviour only overrides what it uses.
 // Clicks are called on BOTH sides (client and server) and must return the same answer on both; only the server
-// changes anything. Book contents are opened with BookStorage (items) or StorageBookBlockEntity#storage (placed).
+// changes anything. Book contents are opened with ItemTransportStorage (items) or StorageBookBlockEntity#storage (placed).
 public interface StorageBookBehaviour
 {
     // true: the book has an "activated" mode (StorageBookItem): sneak + right-click or the activation key turns it
@@ -124,7 +125,7 @@ public interface StorageBookBehaviour
     // ---- Tooltip ----
 
     // The text lines (the contents and capacity by default: "Water: 1000/64000")
-    default void appendTooltip(BookStorage storage, Consumer<Component> tooltip)
+    default void appendTooltip(ItemTransportStorage storage, Consumer<Component> tooltip)
     {
         Component line = storage.storage().describe();
         tooltip.accept(line != null ? line : Component.translatable("tooltip." + BibliomaniaReferences.MODID + ".storage_book.empty"));

@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
+import com.mowmaster.mowlib.transport.ItemTransportStorage;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
@@ -36,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
 // capacity). This block entity is its TransportStorageHost. The storage is also offered to pipes and cables as the
 // type's capability (StorageBookEvents).
 // Clients get the contents (for the sphere) and when something last flowed in or out (for the flow animation).
-public class StorageBookBlockEntity extends BlockEntity implements TransportStorageHost, PickupableBook, LibraryPriority.Holder
+public class StorageBookBlockEntity extends CBSyncedBlockEntity implements TransportStorageHost, PickupableBook, LibraryPriority.Holder
 {
     private static final String TAG_STORAGE = "storage";
     private static final String TAG_FLOW_TICK = "flow_tick";
@@ -216,7 +218,7 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
     {
         super.applyImplicitComponents(components);
         TransportContents<?> saved = components.get(MowLibDataComponents.TRANSPORT_CONTENTS.get());
-        if (saved != null && saved.type() == type()) BookStorage.fill(saved, storage);
+        if (saved != null && saved.type() == type()) ItemTransportStorage.fill(saved, storage);
         lastAmount = amount();
         Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
         priority = itemPriority == null ? 0 : itemPriority;
@@ -226,7 +228,7 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
     protected void collectImplicitComponents(DataComponentMap.Builder components)
     {
         super.collectImplicitComponents(components);
-        if (!storage.isEmpty()) components.set(MowLibDataComponents.TRANSPORT_CONTENTS.get(), BookStorage.snapshot(type(), storage));
+        if (!storage.isEmpty()) components.set(MowLibDataComponents.TRANSPORT_CONTENTS.get(), ItemTransportStorage.snapshot(type(), storage));
         if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
     }
 
@@ -281,15 +283,4 @@ public class StorageBookBlockEntity extends BlockEntity implements TransportStor
         }
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries); // runs saveAdditional into a tag
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this); // uses getUpdateTag
-    }
 }

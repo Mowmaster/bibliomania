@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
@@ -33,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 // A placed Bestiary: the mobs (MobBookContents) and when one was last killed (for the red flash on the display).
 // On the client it also keeps the two display mobs MobBookRenderer draws: fake copies that are never added to the
 // world and never tick, made once and reused every frame (like a mob spawner's spinning mob).
-public class MobBookBlockEntity extends BlockEntity implements IMobBookDisplay, PickupableBook
+public class MobBookBlockEntity extends CBSyncedBlockEntity implements IMobBookDisplay, PickupableBook
 {
     private static final String TAG_MOBS = "mobs";
     private static final String TAG_LAST_KILL = "last_kill";
@@ -223,15 +224,4 @@ public class MobBookBlockEntity extends BlockEntity implements IMobBookDisplay, 
         lastKill = input.getLongOr(TAG_LAST_KILL, -100);
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries); // runs saveAdditional into a tag
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this); // uses getUpdateTag
-    }
 }

@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.bibliomania.Blocks.CardCatalog.DrawerEntry;
@@ -62,7 +63,7 @@ import java.util.Set;
 //   No sorting and no merging: the n-th page is simply the n-th slot. The open page number is saved.
 // - Only the server walks the cases. Clients get the open page's item, its amount and its book, and the page count:
 //   enough to draw it (MowLib's spinning item) and for the Reading Goggles, whatever the size of the library.
-public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolder, IWorkCardHolder, IPageHolder, ISpinningItemHolder, LibraryMember
+public class ReadingLecternBlockEntity extends CBSyncedBlockEntity implements ITintHolder, IWorkCardHolder, IPageHolder, ISpinningItemHolder, LibraryMember
 {
     // How far (each way) the work card's positions may be
     public static final int RANGE = 16;
@@ -715,15 +716,4 @@ public class ReadingLecternBlockEntity extends BlockEntity implements ITintHolde
         }
     }
 
-    @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider registries)
-    {
-        return saveCustomOnly(registries);
-    }
-
-    @Override
-    public Packet<ClientGamePacketListener> getUpdatePacket()
-    {
-        return ClientboundBlockEntityDataPacket.create(this);
-    }
 }

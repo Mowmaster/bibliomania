@@ -26,7 +26,6 @@ import java.util.UUID;
 //   or when their layer changes
 // - Request (client -> server): "send me this Atlas's explored tiles near me" (when the Atlas or the dimension
 //   changes, or after walking a long way). The server picks the layer: where the player is.
-// - Mark (client -> server): the activation key on a block while holding an Atlas: mark it as a point of interest
 public final class AtlasPayloads
 {
     private AtlasPayloads() {}
@@ -77,18 +76,6 @@ public final class AtlasPayloads
         }
     }
 
-    public record Mark(BlockPos pos) implements CustomPacketPayload
-    {
-        public static final Type<Mark> TYPE = new Type<>(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "atlas_mark"));
-        public static final StreamCodec<ByteBuf, Mark> STREAM_CODEC = BlockPos.STREAM_CODEC.map(Mark::new, Mark::pos);
-
-        @Override
-        public Type<? extends CustomPacketPayload> type()
-        {
-            return TYPE;
-        }
-    }
-
     // ---- Server ----
 
     // Only an Atlas the player carries; the server works out their layer and sends what's explored round them
@@ -111,13 +98,6 @@ public final class AtlasPayloads
             near.add(new Tile(entry.getKey(), entry.getValue().clone()));
         }
         return new Tiles(atlas, level.dimension(), layer, true, near);
-    }
-
-    public static void handleMark(Mark mark, IPayloadContext context)
-    {
-        if (!(context.player() instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return;
-        if (!player.isWithinBlockInteractionRange(mark.pos(), 1.0)) return;
-        AtlasItem.markHeld(level, player, mark.pos());
     }
 
     // ---- Client ----

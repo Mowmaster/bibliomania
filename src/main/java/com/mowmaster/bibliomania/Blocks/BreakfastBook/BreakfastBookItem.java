@@ -202,30 +202,12 @@ public class BreakfastBookItem extends BookItem
     }
 
     // ---- Inventory: no taking out a half-eaten cake ----
-    // MowLib's bundle-style clicks take the selected slot out on a right-click (empty cursor on the book, or the book
-    // onto an empty slot); while that slot's cake is half eaten, those clicks are refused here first.
-
-    private static boolean takeOutBlocked(ItemStack book, ClickAction action, boolean emptyTarget, Player player)
-    {
-        if (action != ClickAction.SECONDARY || !emptyTarget) return false;
-        if (!(book.getItem() instanceof BreakfastBookItem item) || usesLeft(book, item.contents(book).selectedPage()) <= 0) return false;
-        player.playSound(SoundEvents.BUNDLE_INSERT_FAIL, 1f, 1f);
-        return true;
-    }
-
+    // MowLib's bundle-style clicks take the selected page out on a right-click; while that page's cake is half eaten,
+    // MowLib refuses them (IPagedStorageItem#allowsTakeOut, with the bundle's fail sound).
     @Override
-    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    public boolean allowsTakeOut(ItemStack self, int page)
     {
-        if (takeOutBlocked(self, clickAction, slot.getItem().isEmpty(), player)) return true;
-        return super.overrideStackedOnOther(self, slot, clickAction, player);
-    }
-
-    @Override
-    public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
-                                            Player player, SlotAccess carriedItem)
-    {
-        if (takeOutBlocked(self, clickAction, other.isEmpty(), player)) return true;
-        return super.overrideOtherStackedOnMe(self, other, slot, clickAction, player, carriedItem);
+        return usesLeft(self, page) <= 0;
     }
 
     // ---- Tooltip: "Slot 2, Cake: 5/7 uses left" for every slot holding a cake ----

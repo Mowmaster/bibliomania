@@ -1,5 +1,13 @@
 package com.mowmaster.bibliomania.Blocks.VillagerBook;
 
+import com.mowmaster.mowlib.storage.InventoryClicks;
+import com.mowmaster.mowlib.storage.InventoryClick;
+import com.mowmaster.mowlib.storage.IInventoryUsable;
+import java.util.ArrayList;
+import java.util.List;
+import com.mowmaster.mowlib.reading.ReadingPapers;
+import com.mowmaster.mowlib.reading.ReadingPaper;
+import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -62,7 +70,7 @@ import java.util.function.Consumer;
 // Both right-clicks are NeoForge events, which come before the villager's trading screen or the block's own screen.
 // IPageable (MowLib): the trades are its pages; MowLib does the scrolling, the keys and telling the server.
 @EventBusSubscriber(modid = BibliomaniaReferences.MODID)
-public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBook
+public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBook, IKeyPlaceable, IInventoryUsable
 {
     // On a Bookcase (ShelvedBook): restocks on its timer, as in an inventory
     @Override
@@ -193,34 +201,47 @@ public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBoo
         level.playSound(null, entity.blockPosition(), SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 0.6f, 1f);
     }
 
-    // ---- Inventory clicks: upgrades ----
-    // Left-click an enchanted golden apple (cheaper) or a nether star (restocks sooner) onto the book, or the book
-    // onto one: one is used. (Like the other books, either way round.)
+    // ---- Inventory clicks (MowLib InventoryClicks does the guards; usedWith is what the book does) ----
+    // Either way round: the book on the cursor clicked onto `other` in a slot, or `other` on the cursor clicked onto the
+    // book. A left-click with an empty cursor picks the book up as normal.
+
+    @Override
+    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
+    {
+        return InventoryClicks.stackedOnOther(this, self, slot, clickAction, player);
+    }
 
     @Override
     public boolean overrideOtherStackedOnMe(ItemStack self, ItemStack other, Slot slot, ClickAction clickAction,
                                             Player player, SlotAccess carriedItem)
     {
-        if (self.getCount() != 1 || !slot.allowModification(player)) return false;
+        return InventoryClicks.otherStackedOnMe(this, self, other, slot, clickAction, player, carriedItem);
+    }
+
+    // - right-click with an empty cursor: buy the picked trade onto the cursor
+    // - left-click with an enchanted golden apple (cheaper) or a nether star (restocks sooner): one is used
+    // - left-click with one of the prices: buy the trade into the inventory (the cursor's stack pays first; from a
+    //   slot, the prices come out of the inventory, that slot included)
+    @Override
+    public boolean usedWith(ItemStack self, ItemStack other, ClickAction action, Player player, InventoryClick click)
+    {
         VillagerContents contents = contents(self);
-        // Right-click with an empty cursor: buy the picked trade onto the cursor
-        if (clickAction == ClickAction.SECONDARY && other.isEmpty() && contents.hasVillager())
+        if (action == ClickAction.SECONDARY && other.isEmpty() && contents.hasVillager())
         {
             if (player.level() instanceof ServerLevel level)
             {
                 ItemStack bought = buy(self, player, level, ItemStack.EMPTY);
-                if (!bought.isEmpty()) carriedItem.set(bought);
+                if (!bought.isEmpty()) click.giveTaken(bought, player);
             }
             return true;
         }
-        if (clickAction != ClickAction.PRIMARY) return false;
+        if (action != ClickAction.PRIMARY || other.isEmpty()) return false;
         if (VillagerBookActions.isUpgrade(other)) return upgrade(self, other, player);
-        // Left-click with one of the prices: buy it into the inventory (the cursor's stack pays first)
         if (VillagerBookActions.isPrice(contents, other))
         {
             if (player.level() instanceof ServerLevel level)
             {
-                ItemStack bought = buy(self, player, level, other);
+                ItemStack bought = buy(self, player, level, click.kind() == InventoryClick.Kind.CURSOR ? other : ItemStack.EMPTY);
                 if (!bought.isEmpty()) StorageInteractions.giveToPlayer(player, bought);
             }
             return true;
@@ -228,31 +249,6 @@ public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBoo
         return false;
     }
 
-    @Override
-    public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player)
-    {
-        ItemStack target = slot.getItem();
-        if (self.getCount() != 1 || clickAction != ClickAction.PRIMARY || !slot.allowModification(player)) return false;
-        if (VillagerBookActions.isUpgrade(target))
-        {
-            boolean handled = upgrade(self, target, player);
-            slot.setChanged();
-            return handled;
-        }
-        // The book onto one of the prices: buy it into the inventory (the prices come out of the inventory, that
-        // slot included)
-        if (VillagerBookActions.isPrice(contents(self), target))
-        {
-            if (player.level() instanceof ServerLevel level)
-            {
-                ItemStack bought = buy(self, player, level, ItemStack.EMPTY);
-                if (!bought.isEmpty()) StorageInteractions.giveToPlayer(player, bought);
-                slot.setChanged();
-            }
-            return true;
-        }
-        return false;
-    }
 
     // Server: makes the picked trade (VillagerBookActions#trade), with a yes or no sound. Returns what was bought, or
     // EMPTY if it couldn't be (sold out, or not enough to pay).
@@ -347,5 +343,17 @@ public class VillagerBookItem extends BlockItem implements IPageable, ShelvedBoo
     private static MutableComponent line(String name, Object... args)
     {
         return Component.translatable("tooltip." + BibliomaniaReferences.MODID + ".villager_book." + name, args);
+    }
+
+    // ---- The reading HUD (MowLib IReadableItem): its tooltip, then the open trade's items spelled out if they have
+    // more to say (enchanted books, potions) ----
+
+    @Override
+    public @Nullable ReadingPaper read(ItemStack stack, Level level, Player player)
+    {
+        List<Component> lines = new ArrayList<>(ReadingPapers.tooltip(stack, level, player));
+        MerchantOffer offer = contents(stack).currentOffer();
+        if (offer != null) ReadingPapers.addWorthReading(lines, List.of(offer.getResult(), offer.getCostA(), offer.getCostB()), level, player);
+        return ReadingPaper.of(lines);
     }
 }

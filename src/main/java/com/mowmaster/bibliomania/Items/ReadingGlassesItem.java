@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
+import com.mowmaster.mowlib.reading.ReadingSight;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
@@ -29,10 +30,10 @@ import java.util.function.Consumer;
 
 // Reading Glasses: a gold-framed helmet that always counts as having the Reading Goggles enchantment.
 // - Reading Goggles (data/bibliomania/enchantment/reading_goggles.json) is an ordinary data-driven enchantment for any
-//   helmet. Enchantments are data (a datapack registry), loaded after items are made, so an item can't be given one
-//   when it's registered: the glasses count as enchanted in canRead below instead.
-// - Wearing either: looking at a placed Bibliomania book shows its tooltip on a piece of paper on screen; looking at any
-//   other block shows a small label with its name (ClientSide/ReadingHud).
+//   helmet.
+// - Wearing either shows MowLib's reading HUD (client/reading/ReadingHud): the glasses are in the item tag and the
+//   enchantment in the enchantment tag #mowlib:grants_reading. What Bibliomania's blocks show on it: Reading/
+//   BibliomaniaReadings.
 // - Worn, the glasses are drawn from assets/bibliomania/equipment/reading_glasses.json, whose texture is
 //   textures/entity/equipment/humanoid/reading_glasses.png (the same layout as a player skin's head).
 public class ReadingGlassesItem extends Item
@@ -63,22 +64,11 @@ public class ReadingGlassesItem extends Item
         super(properties);
     }
 
-    // Whether this helmet lets its wearer read: the glasses themselves, or any helmet with Reading Goggles
-    public static boolean grantsReading(ItemStack helmet)
-    {
-        if (helmet.getItem() instanceof ReadingGlassesItem) return true;
-        ItemEnchantments enchantments = helmet.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
-        // keySet: the enchantments on it, as registry entries; Holder#is(key) compares their ids
-        for (Holder<Enchantment> enchantment : enchantments.keySet())
-        {
-            if (enchantment.is(READING_GOGGLES)) return true;
-        }
-        return false;
-    }
-
+    // Whether a player can read (MowLib's ReadingSight: the glasses and Reading Goggles helmets are in its
+    // #mowlib:grants_reading item and enchantment tags, data/mowlib/tags/...)
     public static boolean canRead(Player player)
     {
-        return grantsReading(player.getItemBySlot(EquipmentSlot.HEAD));
+        return ReadingSight.canRead(player);
     }
 
     // "Reading Goggles (always)" in the enchantment grey, and how it works
