@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:shulker_shell",
+    "minecraft:shulker_shell",
+    "minecraft:string",
+    "bibliomania:bookblock_starter"
+  ],
+  "result": {
+    "id": "bibliomania:shulker_book",
+    "components": {
+      "mowlib:paged_contents": {
+        "pages": 8
+      }
+    }
+  }
+}

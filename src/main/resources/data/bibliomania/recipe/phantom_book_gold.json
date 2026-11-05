@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:phantom_membrane",
+    "minecraft:phantom_membrane",
+    "minecraft:string",
+    "bibliomania:bookblock_starter",
+    "minecraft:gold_ingot"
+  ],
+  "result": {
+    "id": "bibliomania:phantom_book",
+    "components": {
+      "mowlib:paged_contents": {
+        "pages": 24
+      }
+    }
+  }
+}

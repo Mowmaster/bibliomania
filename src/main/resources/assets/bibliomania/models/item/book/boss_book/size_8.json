@@ -1,0 +1,8 @@
+{
+  "parent": "bibliomania:item/book/grass_book/size_8",
+  "textures": {
+    "texture_one": "bibliomania:block/book/cover_boss",
+    "texture_two": "bibliomania:block/book/pages",
+    "particle": "bibliomania:block/book/cover_boss"
+  }
+}

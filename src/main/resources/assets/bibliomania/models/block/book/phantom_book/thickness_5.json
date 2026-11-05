@@ -1,0 +1,9 @@
+{
+  "parent": "bibliomania:block/book/grass_book/thickness_5",
+  "textures": {
+    "texture_one": "bibliomania:block/book/cover_phantom",
+    "texture_two": "bibliomania:block/book/pages",
+    "particle": "bibliomania:block/book/cover_phantom",
+    "texture_three": "bibliomania:block/book/arrows"
+  }
+}

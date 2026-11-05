@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:sponge",
+    "minecraft:sponge",
+    "minecraft:echo_shard",
+    "bibliomania:bookblock_starter"
+  ],
+  "result": {
+    "id": "bibliomania:boss_book",
+    "components": {
+      "mowlib:paged_contents": {
+        "pages": 8
+      }
+    }
+  }
+}

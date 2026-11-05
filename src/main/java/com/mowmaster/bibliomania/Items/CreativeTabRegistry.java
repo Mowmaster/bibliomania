@@ -20,7 +20,7 @@ public class CreativeTabRegistry
     public static final DeferredRegister<CreativeModeTab> TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, BibliomaniaReferences.MODID);
 
     // Every book in each size its recipes make, then the crafting materials.
-    // Books: (8 pages plain; copper 12, iron 16, gold 24, as in 1.20)
+    // Books: (8 pages plain; copper 12, iron 16, gold 24, as in 1.20; diamond 32, netherite 48, nether star 64)
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BIBLIOMANIA_TAB = TABS.register("bibliomania", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.bibliomania"))
             .icon(() -> new ItemStack(BlockRegistry.LEATHER_BOOK.get()))
@@ -28,6 +28,9 @@ public class CreativeTabRegistry
                 for (int pages : List.of(8, 12)) output.accept(book(BlockRegistry.GRASS_BOOK.get(), pages));
                 for (int pages : List.of(8, 12, 16)) output.accept(book(BlockRegistry.WOOL_BOOK.get(), pages));
                 for (int pages : List.of(8, 12, 16, 24)) output.accept(book(BlockRegistry.LEATHER_BOOK.get(), pages));
+                for (int pages : List.of(8, 12, 16, 24, 32)) output.accept(book(BlockRegistry.PHANTOM_BOOK.get(), pages));
+                for (int pages : List.of(8, 12, 16, 24, 32, 48)) output.accept(book(BlockRegistry.SHULKER_BOOK.get(), pages));
+                for (int pages : List.of(8, 12, 16, 24, 32, 48, 64)) output.accept(book(BlockRegistry.BOSS_BOOK.get(), pages));
                 output.accept(BlockRegistry.DEATH_BOOK.get());
                 output.accept(BlockRegistry.BREAKFAST_BOOK.get());
                 output.accept(BlockRegistry.BUILDER_BOOK.get());

@@ -65,6 +65,14 @@ public class BlockRegistry
             properties -> new TintableBookBlock(bookProperties(properties, SoundType.WOOL), 16, 8));
     public static final DeferredBlock<TintableBookBlock> LEATHER_BOOK = registerBook("leather_book",
             properties -> new TintableBookBlock(bookProperties(properties, SoundType.WOOD), 32, 8));
+    // Big books from mob drops: 8 pages, more from the recipe's material (copper 12, iron 16, gold 24, diamond 32,
+    // netherite 48, nether star 64), each up to its own tier
+    public static final DeferredBlock<BookBlock> PHANTOM_BOOK = registerBook("phantom_book",
+            properties -> new BookBlock(bookProperties(properties, SoundType.WOOL), 64, 8));
+    public static final DeferredBlock<BookBlock> SHULKER_BOOK = registerBook("shulker_book",
+            properties -> new BookBlock(bookProperties(properties, SoundType.BONE_BLOCK), 128, 8));
+    public static final DeferredBlock<BookBlock> BOSS_BOOK = registerBook("boss_book",
+            properties -> new BookBlock(bookProperties(properties, SoundType.SCULK), 256, 8));
     public static final DeferredBlock<DeathBookBlock> DEATH_BOOK = registerBook("death_book",
             properties -> new DeathBookBlock(bookProperties(properties, SoundType.SOUL_SAND)));
 
@@ -160,7 +168,7 @@ public class BlockRegistry
     }
 
     // Every item book, for the creative tab and the block entity type
-    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, DEATH_BOOK, BREAKFAST_BOOK, BUILDER_BOOK);
+    public static final List<DeferredBlock<? extends BookBlock>> BOOKS = List.of(GRASS_BOOK, WOOL_BOOK, LEATHER_BOOK, PHANTOM_BOOK, SHULKER_BOOK, BOSS_BOOK, DEATH_BOOK, BREAKFAST_BOOK, BUILDER_BOOK);
 
     // Books can't be mined (strength -1, like bedrock; left-click takes items out instead) or blown up,
     // aren't pushed by pistons, and don't hide the faces of blocks next to them (noOcclusion)

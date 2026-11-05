@@ -2,6 +2,9 @@
   "values": [
     "bibliomania:grass_book",
     "bibliomania:wool_book",
-    "bibliomania:leather_book"
+    "bibliomania:leather_book",
+    "bibliomania:phantom_book",
+    "bibliomania:shulker_book",
+    "bibliomania:boss_book"
   ]
 }
