@@ -6,7 +6,7 @@
     "minecraft:leather",
     "bibliomania:thread_twisted_wool",
     "bibliomania:bookblock_starter",
-    "minecraft:gold_ingot"
+    "minecraft:gold_nugget"
   ],
   "result": {
     "id": "bibliomania:barter_book"

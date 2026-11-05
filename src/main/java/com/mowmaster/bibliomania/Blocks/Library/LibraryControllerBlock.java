@@ -1,7 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.Library;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
-import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlock;
 import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.tint.IColorableBlock;
@@ -15,7 +15,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -143,7 +142,8 @@ public class LibraryControllerBlock extends Block implements IColorableBlock
             if (controller.isLocked()) return InteractionResult.SUCCESS;
             return tryDyeBlock(stack, state, level, pos, player, hitResult);
         }
-        if (stack.getItem() instanceof BlockItem blockItem && blockItem.getBlock() instanceof BookBlock
+        // Anything that stands on a Bookcase (the books and the Atlas)
+        if (BookcaseBlock.isShelfBook(stack)
                 && BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals(BibliomaniaReferences.MODID))
         {
             if (!level.isClientSide())

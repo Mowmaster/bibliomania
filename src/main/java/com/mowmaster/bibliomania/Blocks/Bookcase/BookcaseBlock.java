@@ -4,6 +4,13 @@ import com.mowmaster.bibliomania.Atlas.AtlasItem;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryLockable;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
+import com.mowmaster.mowlib.paging.PagedContents;
+import com.mowmaster.mowlib.registry.MowLibDataComponents;
+import net.minecraft.world.item.Items;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.resource.ResourceStack;
+import java.util.ArrayList;
+import java.util.List;
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.tint.IColorableBlock;
@@ -114,14 +121,42 @@ public class BookcaseBlock extends Block implements IColorableBlock
     // A full book's thickness (size_9)
     private static final float MAX_THICKNESS = 10f;
 
-    // How thick a book's item model is, in model pixels: item books grow with their fullness the way their item models
-    // pick a size (mowlib:paged_fullness, one size per tenth: 1.5 px empty, then 2 to 10 px); the rest are 5 px
+    // How thick a book is on a shelf, in model pixels. Item books go by how many of their pages hold something
+    // (shelfFullness), so the shelf shows how many more different items each can take; the size follows their item
+    // models (mowlib:paged_fullness, one size per tenth: 1.5 px empty, then 2 to 10 px). The rest are 5 px, or 10 px
+    // for books in #bibliomania:thick_on_shelf.
     public static float bookThickness(ItemStack book)
     {
         if (book.is(BibliomaniaTags.THICK_ON_SHELF)) return MAX_THICKNESS;
-        if (!(book.getItem() instanceof IPagedStorageItem paged)) return FIXED_THICKNESS;
-        int size = Math.clamp((int) Math.floor(paged.fullness(book) * 10 + 1e-4), 0, 9);
+        if (!(book.getItem() instanceof IPagedStorageItem)) return FIXED_THICKNESS;
+        int size = Math.clamp((int) Math.floor(shelfFullness(book) * 10 + 1e-4), 0, 9);
         return size == 0 ? 1.5f : size + 1;
+    }
+
+    // The share of an item book's pages that hold something, 0 to 1 (how full it is by kinds of item, not amount)
+    public static float shelfFullness(ItemStack book)
+    {
+        if (!(book.getItem() instanceof IPagedStorageItem paged)) return 0f;
+        PagedContents contents = paged.contents(book);
+        int used = 0;
+        for (int page = 0; page < contents.pages(); page++) if (contents.stack(page).amount() > 0) used++;
+        return contents.pages() <= 0 ? 0f : (float) used / contents.pages();
+    }
+
+    // What the renderer draws for a book on a shelf: an item book's item model picks its size by amount
+    // (mowlib:paged_fullness), so it's drawn from a copy whose amount matches its pages used: that many full pages
+    // (of stone; only the size shows). Anything else as it is.
+    public static ItemStack shelfLook(ItemStack book)
+    {
+        if (!(book.getItem() instanceof IPagedStorageItem paged)) return book;
+        PagedContents contents = paged.contents(book);
+        int used = Math.round(shelfFullness(book) * contents.pages());
+        int capacity = Math.max(1, paged.pageCapacity(book));
+        List<ResourceStack<ItemResource>> pages = new ArrayList<>();
+        for (int page = 0; page < used; page++) pages.add(new ResourceStack<>(ItemResource.of(Items.STONE), capacity));
+        ItemStack look = book.copy();
+        look.set(MowLibDataComponents.PAGED_CONTENTS.get(), new PagedContents(contents.pages(), contents.page(), pages));
+        return look;
     }
 
     // The room a book takes on the shelf (with its gap), in model pixels

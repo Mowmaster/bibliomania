@@ -1,6 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
+import com.mowmaster.mowlib.filter.IFilterHolder;
+import net.minecraft.world.item.ItemStackTemplate;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.bibliomania.Blocks.Library.LibraryPriority;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
@@ -30,14 +33,17 @@ import java.util.List;
 
 // A placed Compacting Book: its CompactingContents (chain, pool, open tier). The open tier's item spins above it
 // (MowLib's SpinningItemRenderer); the page keys and the corner arrows turn through the tiers.
-public class CompactingBookBlockEntity extends BlockEntity implements PickupableBook, IPageHolder, ISpinningItemHolder, LibraryPriority.Holder
+public class CompactingBookBlockEntity extends BlockEntity implements PickupableBook, IPageHolder, ISpinningItemHolder, LibraryPriority.Holder, IFilterHolder
 {
     private static final String TAG_CONTENTS = "compacting";
     private static final String TAG_PRIORITY = "priority";
+    private static final String TAG_FILTER = "filter";
 
     private CompactingContents contents = CompactingContents.EMPTY;
     private boolean pickedUp;
     private int priority;
+    // A MowLib filter (BookFilter): which chains an empty book may start; EMPTY for any
+    private ItemStack filter = ItemStack.EMPTY;
 
     public CompactingBookBlockEntity(BlockPos pos, BlockState state)
     {
@@ -59,7 +65,7 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
         if (!working.isSet())
         {
             List<CompactingContents.Tier> chain = CompactingChains.find(stack.getItem());
-            if (chain == null) return 0;
+            if (chain == null || !BookFilter.allowsChain(filter, chain)) return 0;
             working = CompactingContents.of(chain, contents.page());
         }
         int tier = working.tierOf(ItemResource.of(stack));
@@ -109,6 +115,39 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
     @Override public double getDisplayHeight() { return (getBlockState().getValue(BookBlock.THICKNESS) + 4) / 16.0; }
     @Override public float getDisplayScale() { return 1.5f; }
 
+    // ---- Filter (IFilterHolder): see BookFilter#allowsChain ----
+
+    @Override
+    public ItemStack getFilter()
+    {
+        return filter;
+    }
+
+    // One filter from the stack, if it's a filter and there isn't one yet
+    @Override
+    public boolean insertFilter(ItemStack stack)
+    {
+        if (!filter.isEmpty() || !BookFilter.isFilter(stack)) return false;
+        filter = stack.split(1);
+        filterChanged();
+        return true;
+    }
+
+    @Override
+    public ItemStack removeFilter()
+    {
+        ItemStack removed = filter;
+        filter = ItemStack.EMPTY;
+        if (!removed.isEmpty()) filterChanged();
+        return removed;
+    }
+
+    private void filterChanged()
+    {
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), Block.UPDATE_CLIENTS);
+    }
+
     // ---- Library priority (LibraryPriority) ----
 
     @Override public int getPriority() { return priority; }
@@ -147,6 +186,8 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
         contents = saved == null ? CompactingContents.EMPTY : saved;
         Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
         priority = itemPriority == null ? 0 : itemPriority;
+        ItemStackTemplate itemFilter = components.get(DataComponentRegistry.BOOK_FILTER.get());
+        filter = itemFilter == null ? ItemStack.EMPTY : itemFilter.create();
     }
 
     @Override
@@ -155,6 +196,7 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
         super.collectImplicitComponents(components);
         if (contents.isSet()) components.set(DataComponentRegistry.COMPACTING_CONTENTS.get(), contents);
         if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
+        if (!filter.isEmpty()) components.set(DataComponentRegistry.BOOK_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
     }
 
     // Removed by anything other than a pickup: drop the book with its contents
@@ -173,6 +215,8 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
         super.saveAdditional(output);
         if (contents.isSet()) output.store(TAG_CONTENTS, CompactingContents.CODEC, contents);
         output.putInt(TAG_PRIORITY, priority);
+        // OPTIONAL_CODEC: an ItemStack codec that also allows EMPTY
+        if (!filter.isEmpty()) output.store(TAG_FILTER, ItemStack.OPTIONAL_CODEC, filter);
     }
 
     @Override
@@ -181,6 +225,7 @@ public class CompactingBookBlockEntity extends BlockEntity implements Pickupable
         super.loadAdditional(input);
         contents = input.read(TAG_CONTENTS, CompactingContents.CODEC).orElse(CompactingContents.EMPTY);
         priority = input.getIntOr(TAG_PRIORITY, 0);
+        filter = input.read(TAG_FILTER, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY);
     }
 
     @Override

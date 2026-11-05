@@ -18,6 +18,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   (`CompactingContents`, `bibliomania:compacting_contents`); every tier is a view of the pool (no crafting). Holds
   `CAPACITY` (1024) of the top tier. Chains come from the `bibliomania:compacting` item data map first, then two-way
   crafting recipes (`CompactingChains`, server, cached until datapacks reload); the chain is stored on the book.
+  A MowLib filter in it (`BookFilter`, offhand right-click; Filter Tool takes it out) limits which chains an empty
+  book may start (`BookFilter#allowsChain`).
 - **Atlas** (`Atlas/`, handheld): while carried, a live map in the top right (`ClientSide/AtlasHud`), uncovered
   round the player as they go (`ServerConfig` `[atlas] exploreRadius`, default 64) (`AtlasExplorer`, server; tiles in `AtlasSavedData` per dimension and layer, by the
   book's `bibliomania:book_id`, sent with `AtlasPayloads`). Layers (`AtlasLayers`): the surface, or 32-block slices
@@ -79,6 +81,8 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   Keep it (and its `register` call) as long as pre-MowLib worlds matter.
 
 ## 26.x notes (learned porting this mod)
+- Cancelling `LeftClickBlock` makes a held left-click fire START every tick (NeoForge's `MultiPlayerGameMode` patch
+  returns before vanilla records the block being mined): use `LeftClickCooldown.ready` before acting.
 - No NBT on items: data components. Block entities move them with `applyImplicitComponents` /
   `collectImplicitComponents`; recipe results set them with `"components"`.
 - Block entities save with `ValueInput`/`ValueOutput`; removal side effects go in `preRemoveSideEffects`.

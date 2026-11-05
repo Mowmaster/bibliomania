@@ -48,10 +48,6 @@ public final class ServerConfig
             .comment("Essence (in %) added by right-clicking a spawner of the book's mob. Default 100.")
             .defineInRange("spawnerPercent", 100, 0, 100);
 
-    private static final ModConfigSpec.BooleanValue ESSENCE_SPAWNER_CONSUMED = BUILDER
-            .comment("Whether the spawner is used up (removed) when it gives essence. Default false.")
-            .define("spawnerConsumed", false);
-
     private static final ModConfigSpec.IntValue ESSENCE_SPAWN_INTERVAL = BUILDER
             .comment("Ticks between spawns once a book has 100% essence. Default 800 = 40 seconds.")
             .defineInRange("spawnInterval", 800, 20, Integer.MAX_VALUE);
@@ -307,7 +303,6 @@ public final class ServerConfig
 
     public static int essenceKills()           { return get(ESSENCE_KILLS); }
     public static int essenceSpawnerPercent()  { return get(ESSENCE_SPAWNER_PERCENT); }
-    public static boolean essenceSpawnerConsumed() { return get(ESSENCE_SPAWNER_CONSUMED); }
     public static int essenceSpawnInterval()   { return get(ESSENCE_SPAWN_INTERVAL); }
     public static int essenceSpawnMin()        { return get(ESSENCE_SPAWN_MIN); }
     public static int essenceSpawnMax()        { return get(ESSENCE_SPAWN_MAX); }

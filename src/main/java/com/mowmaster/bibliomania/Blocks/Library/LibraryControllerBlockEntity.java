@@ -42,6 +42,8 @@ import com.mowmaster.bibliomania.Blocks.Bookcase.BookcaseBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Lectern.ReadingLecternBlockEntity;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -239,10 +241,13 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
         return displayBook;
     }
 
-    // Shows this book in the middle (its plain item: the look only)
+    // Shows this book in the middle: its plain item (the look only, not its contents), keeping a dyed cover's colour
+    // (minecraft:dyed_color, which the books' item models tint the cover with)
     public void setDisplayBook(ItemStack book)
     {
         displayBook = new ItemStack(book.getItem());
+        DyedItemColor dyed = book.get(DataComponents.DYED_COLOR);
+        if (dyed != null) displayBook.set(DataComponents.DYED_COLOR, dyed);
         sync();
     }
 
@@ -544,7 +549,7 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
     public long[] typeTotals(TransportType<?> type, @Nullable Resource filter)
     {
         ResourceHandler<?> handler = typeHandler(type);
-        long amount = 0, capacity = 0;
+        long amount = 0, capacity = 0, slots = 0, freeSlots = 0;
         if (handler != null)
         {
             for (int index = 0; index < handler.size(); index++)
@@ -553,9 +558,12 @@ public class LibraryControllerBlockEntity extends BlockEntity implements Library
                 if (filter != null && !resource.isEmpty() && !resource.equals(filter)) continue;
                 amount += handler.getAmountAsLong(index);
                 capacity += capacityOf(handler, index, filter != null ? filter : resource);
+                slots++;
+                if (resource.isEmpty()) freeSlots++;
             }
         }
-        return new long[]{amount, capacity};
+        // [2], [3]: the slots (book pages; one per fluid/energy/experience book) and how many hold nothing
+        return new long[]{amount, capacity, slots, freeSlots};
     }
 
     // getCapacityAsLong wants the handler's own resource type: the cast is safe, every resource here came from it

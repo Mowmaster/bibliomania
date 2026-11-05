@@ -10,7 +10,8 @@ import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 // Two crafting-grid uses of the Trader's Ledger (serializer bibliomania:villager_book, one recipe file):
-// - One Ledger holding a villager, alone: the same book with the villager reset (no profession, level 1, no trades)
+// - One Ledger holding a villager, alone: the same book with the villager reset (no profession, level 1, no trades);
+//   holding a wandering trader: the same book, emptied (VillagerBookActions#reset)
 // - Two Ledgers holding level 5 villagers plus one empty Ledger: the empty one gets a new villager (the first
 //   parent's type, no profession). The two parents stay in the grid.
 // (Like MowLib's ColorableItemDyeRecipe: a CustomRecipe works out its result from the grid in code.)
@@ -69,12 +70,11 @@ public class VillagerBookRecipe extends CustomRecipe
             if (stack.isEmpty()) continue;
             if (!(stack.getItem() instanceof VillagerBookItem)) return null;
             VillagerContents contents = VillagerBookItem.contents(stack);
-            // Wandering traders have no level to reach and nothing to reset
-            if (contents.wandering()) return null;
             if (contents.hasVillager())
             {
                 full++;
-                if (contents.level() >= VillagerBookActions.MAX_LEVEL) maxed++;
+                // A wandering trader is never a parent (it has no levels); alone, it's cleared out
+                if (!contents.wandering() && contents.level() >= VillagerBookActions.MAX_LEVEL) maxed++;
                 if (firstFull < 0) firstFull = slot; else secondFull = slot;
             }
             else

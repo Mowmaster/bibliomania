@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.StorageBook;
 
+import com.mowmaster.bibliomania.LeftClickCooldown;
+
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.mowlib.transport.TransportType;
@@ -45,6 +47,12 @@ public final class StorageBookEvents
         Block block = level.getBlockState(event.getPos()).getBlock();
         if (!(block instanceof StorageBookBlock book)) return;
         if (!(level.getBlockEntity(event.getPos()) instanceof StorageBookBlockEntity blockEntity)) return;
+        // Held down, a click comes every tick: only act at right-click's pace (still cancelled: books aren't mined)
+        if (!LeftClickCooldown.ready(event.getEntity(), level))
+        {
+            event.setCanceled(true);
+            return;
+        }
         if (book.behaviour().leftClickPlaced(blockEntity, level, event.getPos(), event.getEntity())) event.setCanceled(true);
     }
 

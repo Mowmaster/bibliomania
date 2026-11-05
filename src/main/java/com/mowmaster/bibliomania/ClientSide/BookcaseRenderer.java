@@ -67,7 +67,8 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
         {
             ItemStack book = shelf.getBook(slot);
             // NONE: the model as built (no hand, ground or GUI transform); the last number varies each book's seed
-            itemModelResolver.updateForTopItem(state.books[slot], book, ItemDisplayContext.NONE, level, null, slot);
+            // shelfLook: item books drawn as thick as their pages used (BookcaseBlock#bookThickness)
+            itemModelResolver.updateForTopItem(state.books[slot], BookcaseBlock.shelfLook(book), ItemDisplayContext.NONE, level, null, slot);
             state.thickness[slot] = book.isEmpty() ? 0f : BookcaseBlock.bookThickness(book);
         }
     }
@@ -92,15 +93,19 @@ public class BookcaseRenderer implements BlockEntityRenderer<BookcaseBlockEntity
             float gap = BookcaseBlock.BOOK_GAP;
             float floor = slot < 3 ? state.floorTop : state.floorBottom;
             poseStack.pushPose();
-            // The point where the book's standing-up model (centred at its origin, see the class comment) lands: it
-            // spans x from (that point - 8 px x scale) for its thickness, so that span ends at the cursor; its bottom
-            // (-7 px) on the floor; its spine (z = -6 px) half a pixel in from the front
-            poseStack.translate((cursor - gap - width) * PX + 8 * PX * BOOK_SCALE,
+            // The point where the book's standing-up model (centred at its origin, see the class comment) lands: once
+            // turned the right way up it spans x from (that point + 8 px x scale - its thickness) to (that point + 8 px
+            // x scale), which ends at the cursor; its bottom (-7 px) on the floor; its spine (z = -6 px) half a pixel
+            // in from the front
+            poseStack.translate((cursor - gap) * PX - 8 * PX * BOOK_SCALE,
                     floor * PX + 7 * PX * BOOK_SCALE,
                     (state.front + 0.5f) * PX + 6 * PX * BOOK_SCALE);
             poseStack.scale(BOOK_SCALE, BOOK_SCALE, BOOK_SCALE);
-            // Stand it up (thickness along x), after turning the spine to the front: the last rotate applies first
-            poseStack.rotate(Axis.ZP.rotationDegrees(-90));
+            // Stand it up (thickness along x), after turning the spine to the front: the last rotate applies first.
+            // Standing up leaves the cover's top edge at the bottom: half a turn round the spine-out axis (z) puts it
+            // the right way up (its thickness then runs the other way along x: see the translate above)
+            // (that half turn and the quarter turn to stand it up together: +90)
+            poseStack.rotate(Axis.ZP.rotationDegrees(90));
             poseStack.rotate(Axis.YP.rotationDegrees(-90));
             book.submit(poseStack, collector, state.lightCoords, OverlayTexture.NO_OVERLAY, 0);
             poseStack.popPose();

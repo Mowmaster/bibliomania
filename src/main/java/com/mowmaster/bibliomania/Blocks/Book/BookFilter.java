@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.Book;
 
+import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingContents;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.mowlib.filter.ITransportFilter;
 import com.mowmaster.mowlib.paging.PagedContents;
@@ -39,6 +40,29 @@ public final class BookFilter
     {
         if (filter.isEmpty()) book.remove(DataComponentRegistry.BOOK_FILTER.get());
         else book.set(DataComponentRegistry.BOOK_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
+    }
+
+    // The filter on a book as a resource (a shelf handler's view of it), or EMPTY
+    public static ItemStack get(ItemResource book)
+    {
+        ItemStackTemplate filter = book.get(DataComponentRegistry.BOOK_FILTER.get());
+        return filter == null ? ItemStack.EMPTY : filter.create();
+    }
+
+    // A Compacting Book's filter: whether an empty book may start this chain (a set book only ever takes its own
+    // chain). A whitelist lets it start if any tier is listed (whitelist iron ingots: iron nuggets start it too); a
+    // blacklist stops it if any tier is listed. No filter: anything.
+    public static boolean allowsChain(ItemStack filter, List<CompactingContents.Tier> chain)
+    {
+        if (!(filter.getItem() instanceof ITransportFilter transportFilter)) return true;
+        boolean blacklist = transportFilter.isBlacklist(filter);
+        for (CompactingContents.Tier tier : chain)
+        {
+            boolean allowed = allows(filter, ItemResource.of(tier.item()));
+            if (blacklist && !allowed) return false;
+            if (!blacklist && allowed) return true;
+        }
+        return blacklist;
     }
 
     public static boolean isFilter(ItemStack stack)

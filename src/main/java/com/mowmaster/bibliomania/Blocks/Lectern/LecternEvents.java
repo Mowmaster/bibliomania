@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.Lectern;
 
+import com.mowmaster.bibliomania.LeftClickCooldown;
+
 import com.mowmaster.bibliomania.Blocks.Library.LibraryCosts;
 import com.mowmaster.mowlib.tint.IColorableBlock;
 import com.mowmaster.mowlib.paging.IPagedStorageItem;
@@ -63,6 +65,7 @@ public final class LecternEvents
         {
             if (player.getMainHandItem().is(ItemTags.AXES) && player.isShiftKeyDown()) return;
             event.setCanceled(true);
+            if (!LeftClickCooldown.ready(player, level)) return;
             if (level instanceof ServerLevel serverLevel) LecternActions.attackType(serverLevel, player, lectern);
             return;
         }
@@ -71,6 +74,8 @@ public final class LecternEvents
         // click: an Almanac's tree is cut with it)
         if (player.getMainHandItem().is(ItemTags.AXES) && (player.isShiftKeyDown() || !book)) return;
         event.setCanceled(true);
+        // Held down, a click comes every tick: only act at right-click's pace (LeftClickCooldown)
+        if (!LeftClickCooldown.ready(player, level)) return;
         if (!(level instanceof ServerLevel serverLevel)) return;
         // A whole book: only its own left-click (harvest, kill, take experience...)
         if (book)

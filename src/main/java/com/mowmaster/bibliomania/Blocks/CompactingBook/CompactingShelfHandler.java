@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
+import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.transfer.ItemAccessResourceHandler;
@@ -56,7 +57,10 @@ public class CompactingShelfHandler extends ItemAccessResourceHandler<ItemResour
         if (!itemAccess.getResource().is(bookItem)) return false;
         CompactingContents contents = current(itemAccess.getResource());
         if (contents.isSet()) return resource.equals(contents.resource(index));
-        return index == 0 && resource.getComponentsPatch().isEmpty() && CompactingChains.find(resource.getItem()) != null;
+        if (index != 0 || !resource.getComponentsPatch().isEmpty()) return false;
+        List<CompactingContents.Tier> chain = CompactingChains.find(resource.getItem());
+        // An empty book only starts a chain its filter allows (BookFilter#allowsChain)
+        return chain != null && BookFilter.allowsChain(BookFilter.get(itemAccess.getResource()), chain);
     }
 
     // What the index can hold: what it has plus the room left (an empty book: a full book of that item)

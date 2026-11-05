@@ -133,11 +133,16 @@ public final class VillagerBookActions
         return contents.withVillager(data, offers, 0, Optional.of(block));
     }
 
-    // A fresh villager of the same type: no profession, level 1, no trades (crafting resets it). The book's upgrades
-    // stay.
+    // A fresh villager of the same type: no profession, level 1, no trades (crafting resets it). A wandering trader
+    // has nothing to reset to, so it's let go: the book is emptied. The book's upgrades stay either way.
     public static VillagerContents reset(VillagerContents contents)
     {
-        if (contents.villager().isEmpty() || contents.wandering()) return contents;
+        if (contents.wandering())
+        {
+            return new VillagerContents(Optional.empty(), new MerchantOffers(), 0, Optional.empty(), 0, 0L,
+                    contents.discounts(), contents.speedUps(), false);
+        }
+        if (contents.villager().isEmpty()) return contents;
         Holder<VillagerProfession> none = BuiltInRegistries.VILLAGER_PROFESSION.getOrThrow(VillagerProfession.NONE);
         VillagerData data = contents.villager().get().withProfession(none).withLevel(1);
         return contents.withVillager(data, new MerchantOffers(), 0, Optional.empty());

@@ -1,6 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
 import com.mowmaster.bibliomania.Blocks.Book.BookBlock;
+import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
 import com.mowmaster.bibliomania.Blocks.Book.PickupableBook;
 import com.mowmaster.mowlib.paging.PageArrows;
 import com.mowmaster.mowlib.storage.StorageInteractions;
@@ -26,6 +27,9 @@ import org.jetbrains.annotations.NotNull;
 // - right-click with a tier of its family (or, empty, with anything that has a chain): stores it
 // - left-click: takes 1 of the open tier, sneak + left-click a stack (made from the pool, whatever went in)
 // - sneak + right-click with an empty hand: picks it up, contents and all
+// - a MowLib filter in the offhand + right-click: the filter goes in; the Filter Tool in the offhand + left-click
+//   takes it out. Once emptied, the book only starts chains the filter allows (BookFilter#allowsChain), so a
+//   Bookcase can't fill it with some other family.
 // It shares BookBlock's shape, thickness, waterlogging and placement; its block entity is its own.
 public class CompactingBookBlock extends BookBlock
 {
@@ -74,6 +78,16 @@ public class CompactingBookBlock extends BookBlock
             }
             return InteractionResult.SUCCESS;
         }
+        // A filter in the offhand goes into the book (BookFilter#allowsChain: which chains it may start). Main hand
+        // only, so the offhand's own turn doesn't try to store the filter.
+        if (hand == InteractionHand.MAIN_HAND && BookFilter.isFilter(player.getOffhandItem()))
+        {
+            if (!level.isClientSide() && book.insertFilter(player.getOffhandItem()))
+            {
+                level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, 1f, 1.2f);
+            }
+            return InteractionResult.SUCCESS;
+        }
         if (stack.isEmpty()) return InteractionResult.TRY_WITH_EMPTY_HAND;
         if (level instanceof ServerLevel)
         {
@@ -115,6 +129,8 @@ public class CompactingBookBlock extends BookBlock
     private void extract(ServerLevel level, BlockPos pos, Player player)
     {
         if (!(level.getBlockEntity(pos) instanceof CompactingBookBlockEntity book)) return;
+        // MowLib's Filter Tool in the offhand: takes the filter out instead (or says there isn't one)
+        if (StorageInteractions.removeFilter(player, book)) return;
         ItemStack taken = book.extractOpenTier(player.isShiftKeyDown() ? SHIFT_EXTRACT : 1);
         if (taken.isEmpty()) return;
         StorageInteractions.giveToPlayer(player, taken);

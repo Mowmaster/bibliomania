@@ -1,6 +1,15 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
 import com.mowmaster.bibliomania.BibliomaniaReferences;
+import com.mowmaster.bibliomania.Blocks.Book.BookFilter;
+import com.mowmaster.mowlib.items.tools.FilterToolItem;
+import com.mowmaster.mowlib.storage.StorageInteractions;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import com.mowmaster.bibliomania.Items.DataComponentRegistry;
 import com.mowmaster.mowlib.paging.IPageable;
@@ -34,6 +43,39 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
     {
         CompactingContents contents = stack.get(DataComponentRegistry.COMPACTING_CONTENTS.get());
         return contents == null ? CompactingContents.EMPTY : contents;
+    }
+
+    // ---- Filters: right-click the air with the book in the main hand (as other item books, BookItem#use) ----
+    // A filter in the offhand goes in (one at a time); MowLib's Filter Tool in the offhand takes it out again.
+    // The filter decides which chains an empty book may start (BookFilter#allowsChain).
+    @Override
+    public InteractionResult use(Level level, Player player, InteractionHand hand)
+    {
+        if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
+        ItemStack self = player.getMainHandItem();
+        ItemStack offhand = player.getOffhandItem();
+        if (BookFilter.isFilter(offhand))
+        {
+            if (!BookFilter.get(self).isEmpty()) return InteractionResult.FAIL;
+            if (!level.isClientSide())
+            {
+                BookFilter.set(self, offhand.split(1));
+                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 1.2f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (offhand.getItem() instanceof FilterToolItem && !BookFilter.get(self).isEmpty())
+        {
+            if (!level.isClientSide())
+            {
+                ItemStack filter = BookFilter.get(self);
+                BookFilter.set(self, ItemStack.EMPTY);
+                StorageInteractions.giveToPlayer(player, filter);
+                level.playSound(null, player.blockPosition(), SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 1f, 0.8f);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        return super.use(level, player, hand);
     }
 
     // ---- On a Bookcase ----
@@ -81,6 +123,8 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
         super.appendHoverText(stack, context, display, tooltip, flag);
         CompactingContents contents = contents(stack);
         String key = "tooltip." + BibliomaniaReferences.MODID + ".compacting.";
+        ItemStack filter = BookFilter.get(stack);
+        if (!filter.isEmpty()) tooltip.accept(Component.translatable("hud." + BibliomaniaReferences.MODID + ".book_filter", filter.getHoverName()).withStyle(ChatFormatting.GRAY));
         if (!contents.isSet())
         {
             tooltip.accept(Component.translatable(key + "empty", CompactingContents.CAPACITY).withStyle(ChatFormatting.GRAY));

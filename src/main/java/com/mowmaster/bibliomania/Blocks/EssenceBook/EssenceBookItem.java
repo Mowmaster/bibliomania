@@ -46,7 +46,7 @@ import java.util.function.Consumer;
 // The Book of Essence as an item. For the mobs a Bestiary can't hold (monsters, villagers, golems...).
 // - Right-click a mob with an empty book: sets the book to that mob (the mob isn't harmed or taken)
 // - Right-click a spawner: an empty book is set to the spawner's mob; a book set to that mob gets
-//   ServerConfig.essenceSpawnerPercent() essence (100% by default)
+//   ServerConfig.essenceSpawnerPercent() essence (100% by default); the spawner is used up (broken, no drops)
 // - Kill the book's mob with the book in your inventory: +1/killsRequired essence (100 kills by default)
 // - At 100%, mobs "spawn" into the book over time (EssenceContents#tick), in the inventory or placed
 // - In inventories, either way round (the book on the cursor onto an item, or the item onto the book):
@@ -152,7 +152,8 @@ public class EssenceBookItem extends BlockItem implements ShelvedBook
             serverLevel.sendParticles(ParticleTypes.ENCHANT, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
                     40, 0.5, 0.5, 0.5, 0.5);
             level.playSound(null, pos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1f, 1f);
-            if (ServerConfig.essenceSpawnerConsumed()) level.destroyBlock(pos, false);
+            // The spawner is used up: broken with its particles and sound, but no drops (false) and no experience
+            level.destroyBlock(pos, false);
         }
         return InteractionResult.SUCCESS;
     }

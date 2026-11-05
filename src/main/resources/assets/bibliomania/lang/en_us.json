@@ -193,6 +193,7 @@
   "hud.bibliomania.no_library": "Not part of a library",
   "hud.bibliomania.library_no_storage": "The library has no storage books",
   "hud.bibliomania.library_type_total": "%1$s: %2$s / %3$s",
+  "hud.bibliomania.library_type_free": "  %1$s / %2$s slots free, %3$s%% space left",
   "hud.bibliomania.library_members": "%s blocks in this library",
   "hud.bibliomania.library_member": "%1$s %2$s",
   "message.bibliomania.library.no_knowledge": "The library is out of knowledge: put fuel into it",

@@ -227,8 +227,9 @@ public final class BlockInfoPayloads
         return lines.size() > MAX_LINES ? lines.subList(0, MAX_LINES) : lines;
     }
 
-    // A Storage Access Point: its library's storage, one line per transport type with everything of it together:
-    // "Items: 12,345 / 40,960" (typeTotals: what the type's books hold and have room for)
+    // A Storage Access Point or Library Controller: its library's storage, per transport type with everything of it
+    // together: "Items: 12,345 / 40,960" (typeTotals: what the type's books hold and have room for), and under it
+    // "  12 / 40 slots free, 69% space left"
     private static List<Component> libraryTotals(@Nullable LibraryControllerBlockEntity library)
     {
         List<Component> lines = new ArrayList<>();
@@ -242,13 +243,17 @@ public final class BlockInfoPayloads
             long[] totals = library.typeTotals(type, null);
             if (totals[1] <= 0 && totals[0] <= 0) continue;
             lines.add(hud("library_type_total", type.getName(), String.format("%,d", totals[0]), String.format("%,d", totals[1])).withStyle(type.getColor()));
+            // Under it: free slots (room for that many more kinds) and how much room is left
+            int left = totals[1] <= 0 ? 0 : (int) Math.floor(100.0 * Math.max(0, totals[1] - totals[0]) / totals[1]);
+            lines.add(hud("library_type_free", String.format("%,d", totals[3]), String.format("%,d", totals[2]), left).withStyle(ChatFormatting.GRAY));
             if (lines.size() >= MAX_LINES) break;
         }
         if (lines.isEmpty()) lines.add(hud("library_no_storage"));
         return lines;
     }
 
-    // A Library Controller: every kind of block in the library with how many: "12 Bookcase", most first
+    // A Library Controller: its Knowledge Points (with costs on), its storage (libraryTotals), then every kind of block
+    // in the library with how many: "12 Bookcase", most first
     private static List<Component> libraryMembers(ServerLevel level, LibraryControllerBlockEntity controller)
     {
         // LinkedHashMap: keeps the order kinds were first met; merge adds one to a kind already counted
@@ -264,12 +269,14 @@ public final class BlockInfoPayloads
             lines.add(controller.isFueled() ? hud("library_knowledge", String.format("%,d", controller.getKnowledge())).withStyle(ChatFormatting.AQUA)
                     : hud("library_no_knowledge").withStyle(ChatFormatting.RED));
         }
+        // The storage (as an Access Point shows it: totals, free slots, space left), then the blocks
+        List<Component> storage = libraryTotals(controller);
+        lines.addAll(storage);
         lines.add(hud("library_members", controller.members().size()));
         counts.entrySet().stream()
                 .sorted(Map.Entry.<Block, Integer>comparingByValue().reversed())
-                .limit(MAX_LINES - 1)
                 .forEach(entry -> lines.add(hud("library_member", entry.getValue(), entry.getKey().getName())));
-        return lines;
+        return lines.size() > MAX_LINES ? lines.subList(0, MAX_LINES) : lines;
     }
 
     // <R extends Resource>: a generic method, so the handler's resources and the type's describeAmount agree

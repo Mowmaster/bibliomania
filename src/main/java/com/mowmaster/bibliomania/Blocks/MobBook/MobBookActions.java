@@ -1,5 +1,7 @@
 package com.mowmaster.bibliomania.Blocks.MobBook;
 
+import com.mowmaster.bibliomania.LeftClickCooldown;
+
 import com.mowmaster.bibliomania.BibliomaniaReferences;
 import com.mowmaster.bibliomania.BibliomaniaTags;
 import com.mowmaster.bibliomania.Blocks.EssenceBook.EssenceBookBlock;
@@ -297,6 +299,8 @@ public final class MobBookActions
         Player player = event.getEntity();
         if (!isKillWeapon(player.getMainHandItem())) return;
         event.setCanceled(true);
+        // Held down, a click comes every tick: only act at right-click's pace (LeftClickCooldown)
+        if (!LeftClickCooldown.ready(player, level)) return;
         if (!(level instanceof ServerLevel serverLevel)) return;
         if (block instanceof MobBookBlock) MobBookBlock.killAction(serverLevel, event.getPos(), player);
         else EssenceBookBlock.killAction(serverLevel, event.getPos(), player);
