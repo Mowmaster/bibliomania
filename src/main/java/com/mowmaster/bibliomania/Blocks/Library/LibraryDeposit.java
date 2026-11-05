@@ -7,6 +7,8 @@ import com.mowmaster.bibliomania.Blocks.Bookcase.ShelvedBook;
 import java.util.List;
 import java.util.ArrayList;
 import net.minecraft.core.component.DataComponents;
+import com.mowmaster.mowlib.transport.AmountResource;
+import com.mowmaster.mowlib.transport.EnergyTransportType;
 import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import net.minecraft.world.item.BucketItem;
@@ -327,12 +329,13 @@ public final class LibraryDeposit
             };
         }
 
-        // Callers only ask for indices below size(), and it's 0 with no library, so the others always have a handler
-        protected ResourceHandler<R> handler()
+        // The library's handler if `index` is one of its slots, else null. Callers should only ask for indices below
+        // size() (0 with no library), but not every mod does (MowLib's EnergyView always asks for slot 0), so a slot
+        // that isn't there reads as empty and takes nothing instead of crashing.
+        protected @Nullable ResourceHandler<R> handler(int index)
         {
             ResourceHandler<R> handler = target.get();
-            if (handler == null) throw new IndexOutOfBoundsException("No library storage");
-            return handler;
+            return handler == null || index < 0 || index >= handler.size() ? null : handler;
         }
 
         @Override
@@ -342,19 +345,46 @@ public final class LibraryDeposit
             return handler == null ? 0 : handler.size();
         }
 
-        @Override public R getResource(int index) { return handler().getResource(index); }
-        @Override public long getAmountAsLong(int index) { return handler().getAmountAsLong(index); }
-        @Override public long getCapacityAsLong(int index, R resource) { return handler().getCapacityAsLong(index, resource); }
-        @Override public boolean isValid(int index, R resource) { return handler().isValid(index, resource); }
+        // getResource has no "nothing" to give for a slot that isn't there (R could be anything), so that one still
+        // throws; the rest read as empty
+        @Override
+        public R getResource(int index)
+        {
+            ResourceHandler<R> handler = handler(index);
+            if (handler == null) throw new IndexOutOfBoundsException("No library storage slot " + index);
+            return handler.getResource(index);
+        }
+
+        @Override
+        public long getAmountAsLong(int index)
+        {
+            ResourceHandler<R> handler = handler(index);
+            return handler == null ? 0 : handler.getAmountAsLong(index);
+        }
+
+        @Override
+        public long getCapacityAsLong(int index, R resource)
+        {
+            ResourceHandler<R> handler = handler(index);
+            return handler == null ? 0 : handler.getCapacityAsLong(index, resource);
+        }
+
+        @Override
+        public boolean isValid(int index, R resource)
+        {
+            ResourceHandler<R> handler = handler(index);
+            return handler != null && handler.isValid(index, resource);
+        }
 
         @Override
         public int insert(int index, R resource, int amount, TransactionContext transaction)
         {
             LibraryControllerBlockEntity found = library.get();
-            if (found == null) return 0;
+            ResourceHandler<R> handler = handler(index);
+            if (found == null || handler == null) return 0;
             try (Transaction paid = Transaction.open(transaction))
             {
-                int inserted = handler().insert(index, resource, amount, paid);
+                int inserted = handler.insert(index, resource, amount, paid);
                 if (inserted <= 0 || !found.payFor(LibraryCosts.Operation.INSERT, type, resource, inserted, at, paid)) return 0;
                 paid.commit();
                 return inserted;
@@ -411,7 +441,8 @@ public final class LibraryDeposit
         public int extract(int index, R resource, int amount, TransactionContext transaction)
         {
             LibraryControllerBlockEntity found = library();
-            return found == null ? 0 : paidExtract(found, type(), handler(), index, resource, amount, at, transaction);
+            ResourceHandler<R> handler = handler(index);
+            return found == null || handler == null ? 0 : paidExtract(found, type(), handler, index, resource, amount, at, transaction);
         }
 
         @Override
@@ -420,6 +451,62 @@ public final class LibraryDeposit
             LibraryControllerBlockEntity found = library();
             ResourceHandler<R> handler = books.get();
             return found == null || handler == null ? 0 : paidExtract(found, type(), handler, -1, resource, amount, at, transaction);
+        }
+    }
+
+    // Energy as one pool: what the Deposit and Access Point offer as a NeoForge energy handler. MowLib's EnergyView
+    // (which makes a ResourceHandler of energy into an EnergyHandler) only looks at slot 0, which would be the first
+    // energy book alone (or nothing, with none). This shows it one slot holding all the library's energy; putting in
+    // and taking out go the library's way (paid, highest priority first) through the wrapped handler.
+    // Can go once MowLib's EnergyView adds up every slot itself (see mowlib-from-bibliomania).
+    public record EnergyPool(ResourceHandler<AmountResource> library) implements ResourceHandler<AmountResource>
+    {
+        @Override
+        public int size()
+        {
+            return 1;
+        }
+
+        @Override
+        public AmountResource getResource(int index)
+        {
+            return index == 0 && getAmountAsLong(0) > 0 ? EnergyTransportType.ENERGY : AmountResource.EMPTY;
+        }
+
+        @Override
+        public long getAmountAsLong(int index)
+        {
+            if (index != 0) return 0;
+            long total = 0;
+            for (int slot = 0; slot < library.size(); slot++) total += library.getAmountAsLong(slot);
+            return total;
+        }
+
+        @Override
+        public long getCapacityAsLong(int index, AmountResource resource)
+        {
+            if (index != 0) return 0;
+            long total = 0;
+            for (int slot = 0; slot < library.size(); slot++) total += library.getCapacityAsLong(slot, EnergyTransportType.ENERGY);
+            return total;
+        }
+
+        @Override
+        public boolean isValid(int index, AmountResource resource)
+        {
+            return index == 0 && EnergyTransportType.ENERGY.equals(resource);
+        }
+
+        @Override
+        public int insert(int index, AmountResource resource, int amount, TransactionContext transaction)
+        {
+            return index != 0 || amount <= 0 ? 0 : library.insert(resource, amount, transaction);
+        }
+
+        @Override
+        public int extract(int index, AmountResource resource, int amount, TransactionContext transaction)
+        {
+            return index != 0 || amount <= 0 ? 0 : library.extract(resource, amount, transaction);
         }
     }
 }
