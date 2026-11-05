@@ -1,5 +1,6 @@
 package com.mowmaster.bibliomania.Blocks;
 
+import com.mowmaster.bibliomania.Blocks.Detector.StorageDetectorBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Deposit.StorageAccessPointBlockEntity;
 import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingBookBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
@@ -90,6 +91,10 @@ public class libBlockEntityRegistry
     // Both Storage Deposits (half and full)
     public static final Supplier<BlockEntityType<StorageDepositBlockEntity>> STORAGE_DEPOSIT = CBBLOCKENTITIES.register("storage_deposit",
             () -> new BlockEntityType<>(StorageDepositBlockEntity::new, BlockRegistry.STORAGE_DEPOSIT.get(), BlockRegistry.STORAGE_DEPOSIT_FULL.get()));
+
+    // The Storage Detector
+    public static final Supplier<BlockEntityType<StorageDetectorBlockEntity>> STORAGE_DETECTOR = CBBLOCKENTITIES.register("storage_detector",
+            () -> new BlockEntityType<>(StorageDetectorBlockEntity::new, BlockRegistry.STORAGE_DETECTOR.get()));
 
     // The Storage Access Point
     public static final Supplier<BlockEntityType<StorageAccessPointBlockEntity>> STORAGE_ACCESS_POINT = CBBLOCKENTITIES.register("storage_access_point",

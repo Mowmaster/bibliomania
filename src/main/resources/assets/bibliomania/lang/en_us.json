@@ -193,6 +193,7 @@
   "tooltip.bibliomania.compacting.tier": "%1$s %2$s",
   "tooltip.bibliomania.compacting.capacity": "Holds up to %1$s %2$s",
   "block.bibliomania.storage_access_point": "Storage Access Point",
+  "block.bibliomania.storage_detector": "Storage Detector",
   "hud.bibliomania.no_library": "Not part of a library",
   "hud.bibliomania.library_no_storage": "The library has no storage books",
   "hud.bibliomania.library_type_total": "%1$s: %2$s / %3$s",

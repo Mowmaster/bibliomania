@@ -39,6 +39,7 @@ import com.mowmaster.mowlib.transport.TransportType;
 import com.mowmaster.mowlib.transport.TransportTypes;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookItem;
 import com.mowmaster.bibliomania.Items.ItemRegistry;
+import com.mowmaster.bibliomania.Blocks.Detector.StorageDetectorBlock;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -151,6 +152,9 @@ public class BlockRegistry
             properties -> new StorageDepositBlock(properties.strength(2.5f).sound(SoundType.WOOD).ignitedByLava(), true));
 
     // The Storage Access Point: automation in and out of a library (see StorageAccessPointBlock). Dyeable stone
+    // The Storage Detector: a redstone signal from each face whose item the library has run out of
+    public static final DeferredBlock<StorageDetectorBlock> STORAGE_DETECTOR = registerBlock("storage_detector",
+            properties -> new StorageDetectorBlock(properties.strength(3.5f).requiresCorrectToolForDrops().sound(SoundType.STONE)));
     public static final DeferredBlock<StorageAccessPointBlock> STORAGE_ACCESS_POINT = registerBlock("storage_access_point",
             properties -> new StorageAccessPointBlock(properties.strength(3.5f).requiresCorrectToolForDrops().sound(SoundType.STONE)));
 

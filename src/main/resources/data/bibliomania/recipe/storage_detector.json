@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": [
+    "SRS",
+    "RBR",
+    "SCS"
+  ],
+  "key": {
+    "S": "minecraft:smooth_stone",
+    "R": "minecraft:redstone",
+    "B": "minecraft:book",
+    "C": "minecraft:comparator"
+  },
+  "result": {
+    "id": "bibliomania:storage_detector",
+    "count": 1
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "bibliomania:block/detector/storage_detector_top"
+  }
+}

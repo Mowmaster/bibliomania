@@ -2,6 +2,7 @@
   "values": [
     "bibliomania:storage_requestor",
     "bibliomania:storage_dispenser",
-    "bibliomania:storage_access_point"
+    "bibliomania:storage_access_point",
+    "bibliomania:storage_detector"
   ]
 }

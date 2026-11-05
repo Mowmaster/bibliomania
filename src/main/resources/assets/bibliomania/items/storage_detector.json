@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "bibliomania:block/detector/storage_detector"
+  }
+}

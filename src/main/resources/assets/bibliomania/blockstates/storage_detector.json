@@ -1,0 +1,163 @@
+{
+  "multipart": [
+    {
+      "when": {
+        "north": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none"
+      }
+    },
+    {
+      "when": {
+        "north": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off"
+      }
+    },
+    {
+      "when": {
+        "north": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on"
+      }
+    },
+    {
+      "when": {
+        "east": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "east": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "east": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on",
+        "y": 90
+      }
+    },
+    {
+      "when": {
+        "south": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "south": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "south": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on",
+        "y": 180
+      }
+    },
+    {
+      "when": {
+        "west": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "west": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "west": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on",
+        "y": 270
+      }
+    },
+    {
+      "when": {
+        "up": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "up": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "up": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on",
+        "x": 270
+      }
+    },
+    {
+      "when": {
+        "down": "none"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_none",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "down": "off"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_off",
+        "x": 90
+      }
+    },
+    {
+      "when": {
+        "down": "on"
+      },
+      "apply": {
+        "model": "bibliomania:block/detector/storage_detector_face_on",
+        "x": 90
+      }
+    }
+  ]
+}

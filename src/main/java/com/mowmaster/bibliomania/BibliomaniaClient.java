@@ -3,6 +3,7 @@ package com.mowmaster.bibliomania;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageDispenserBlockEntity;
 import com.mowmaster.bibliomania.Blocks.Requestor.StorageRequestorBlockEntity;
 import com.mowmaster.bibliomania.ClientSide.RequestorRenderer;
+import com.mowmaster.bibliomania.ClientSide.StorageDetectorRenderer;
 import com.mowmaster.bibliomania.ClientSide.LibraryControllerRenderer;
 import com.mowmaster.bibliomania.Blocks.libBlockEntityRegistry;
 import com.mowmaster.bibliomania.Blocks.MobBook.MobBookTooltip;
@@ -84,6 +85,7 @@ public class BibliomaniaClient {
         // made for each block entity type: the <...> says which)
         event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_REQUESTOR.get(), context -> new RequestorRenderer<StorageRequestorBlockEntity>(context));
         event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_DISPENSER.get(), context -> new RequestorRenderer<StorageDispenserBlockEntity>(context));
+        event.registerBlockEntityRenderer(libBlockEntityRegistry.STORAGE_DETECTOR.get(), StorageDetectorRenderer::new);
     }
 
     // The Bestiary's and Book of Essence's tooltip data -> the class that draws it

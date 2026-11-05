@@ -51,6 +51,7 @@ public class CreativeTabRegistry
                 output.accept(BlockRegistry.STORAGE_DEPOSIT.get());
                 output.accept(BlockRegistry.STORAGE_DEPOSIT_FULL.get());
                 output.accept(BlockRegistry.STORAGE_ACCESS_POINT.get());
+                output.accept(BlockRegistry.STORAGE_DETECTOR.get());
                 output.accept(BlockRegistry.STORAGE_REQUESTOR.get());
                 output.accept(BlockRegistry.STORAGE_DISPENSER.get());
                 // var: the compiler works out the type (DeferredItem<? extends Item>) from the list
