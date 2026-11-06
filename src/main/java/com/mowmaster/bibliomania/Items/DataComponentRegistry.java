@@ -1,7 +1,6 @@
 package com.mowmaster.bibliomania.Items;
 
 import com.mowmaster.bibliomania.Atlas.AtlasData;
-import com.mowmaster.bibliomania.Blocks.CompactingBook.CompactingContents;
 import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.ItemStack;
 import java.util.UUID;
@@ -42,6 +41,9 @@ public class DataComponentRegistry
                 Identifier.fromNamespaceAndPath("mowlib", "held_filter"));
         COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "activated"),
                 Identifier.fromNamespaceAndPath("mowlib", "activated"));
+        // Moved to MowLib after 0.0.4: a Compacting Book's contents (compacting/CompactingContents)
+        COMPONENTS.addAlias(Identifier.fromNamespaceAndPath(BibliomaniaReferences.MODID, "compacting_contents"),
+                Identifier.fromNamespaceAndPath("mowlib", "compacting_contents"));
     }
 
     // What a Bestiary holds (mob type, counts, breeding cooldown). persistent = saved with the item;
@@ -57,10 +59,6 @@ public class DataComponentRegistry
     // item. Codec.INT saves a number; VAR_INT sends it in as few bytes as it needs.
     public static final Supplier<DataComponentType<Integer>> PRIORITY = COMPONENTS.registerComponentType(
             "priority", builder -> builder.persistent(Codec.INT).networkSynchronized(ByteBufCodecs.VAR_INT));
-
-    // What a Compacting Book holds (CompactingContents: its chain of tiers and one pool)
-    public static final Supplier<DataComponentType<CompactingContents>> COMPACTING_CONTENTS = COMPONENTS.registerComponentType(
-            "compacting_contents", builder -> builder.persistent(CompactingContents.CODEC).networkSynchronized(CompactingContents.STREAM_CODEC));
 
     // An Atlas's zoom and markers (AtlasData); its explored map is kept by the world (AtlasSavedData)
     public static final Supplier<DataComponentType<AtlasData>> ATLAS = COMPONENTS.registerComponentType(

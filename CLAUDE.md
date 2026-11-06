@@ -14,12 +14,12 @@ Port of the 1.20 Forge branch (`1.20`) is done for everything I want kept, and t
   - Item (`BookItem`, a MowLib `IPagedStorageItem`): contents in `mowlib:paged_contents`. Bundle-style clicks,
     scroll / page keys to select a page, page-grid tooltip, `mowlib:paged_fullness` item model property.
   - Dyeing in crafting: MowLib's `mowlib:colorable_dye` (wool and leather books are in `#mowlib:dyeable_in_crafting`).
-- **Compacting Book** (`Blocks/CompactingBook/`): one item family in one pool counted in its lowest tier
-  (`CompactingContents`, `bibliomania:compacting_contents`); every tier is a view of the pool (no crafting). Holds
-  `CAPACITY` (1024) of the top tier. Chains come from the `bibliomania:compacting` item data map first, then two-way
-  crafting recipes (`CompactingChains`, server, cached until datapacks reload); the chain is stored on the book.
-  A MowLib filter in it (MowLib `HeldFilters`, offhand right-click; Filter Tool takes it out) limits which chains an
-  empty book may start (`CompactingFilter#allowsChain`).
+- **Compacting Book** (`Blocks/CompactingBook/`): one item family in one pool counted in its lowest tier; every tier
+  is a view of the pool (no crafting). Holds `CompactingBookItem.CAPACITY` (1024) of the top tier. The storage itself is
+  MowLib's `compacting/` (`CompactingContents` in `mowlib:compacting_contents`, old `bibliomania:compacting_contents`
+  aliased; chains from the `mowlib:compacting` item data map, then two-way crafting recipes: `CompactingChains`;
+  `Compacting` insert / extract / tooltip; `CompactingItemHandler` on a Bookcase). A MowLib filter in it (`HeldFilters`)
+  limits which chains an empty book may start (`CompactingChains.filterAllows`).
 - **Atlas** (`Atlas/`, handheld): while carried, a live map in the top right (`ClientSide/AtlasHud`), uncovered
   round the player as they go (`ServerConfig` `[atlas] exploreRadius`, default 64) (`AtlasExplorer`, server; tiles in `AtlasSavedData` per dimension and layer, by the
   book's `bibliomania:book_id`, sent with `AtlasPayloads`). Layers (`AtlasLayers`): the surface, or 32-block slices

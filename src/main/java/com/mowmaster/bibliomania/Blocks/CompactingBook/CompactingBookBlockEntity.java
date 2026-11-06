@@ -1,5 +1,8 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
+import com.mowmaster.mowlib.compacting.Compacting;
+import com.mowmaster.mowlib.compacting.CompactingChains;
+import com.mowmaster.mowlib.compacting.CompactingContents;
 import com.mowmaster.mowlib.blockentity.CBSyncedBlockEntity;
 import com.mowmaster.mowlib.registry.MowLibDataComponents;
 import com.mowmaster.mowlib.filter.HeldFilters;
@@ -59,36 +62,22 @@ public class CompactingBookBlockEntity extends CBSyncedBlockEntity implements Pi
 
     // ---- In and out (server) ----
 
-    // As much of the stack as fits; an empty book first takes the stack's chain. Returns how many went in.
+    // As much of the stack as fits; an empty book first takes the stack's chain, if its filter allows it (MowLib
+    // Compacting.insert). Returns how many went in.
     public int insert(ItemStack stack)
     {
-        if (stack.isEmpty() || !stack.getComponentsPatch().isEmpty()) return 0;
-        CompactingContents working = contents;
-        if (!working.isSet())
-        {
-            List<CompactingContents.Tier> chain = CompactingChains.find(stack.getItem());
-            if (chain == null || !CompactingFilter.allowsChain(filter, chain)) return 0;
-            working = CompactingContents.of(chain, contents.page());
-        }
-        int tier = working.tierOf(ItemResource.of(stack));
-        if (tier < 0) return 0;
-        int inserted = Math.min(stack.getCount(), working.room(tier));
-        if (inserted <= 0) return 0;
-        // A new chain opens at the tier that went in
-        if (!contents.isSet()) working = working.withPage(tier);
-        setContents(working.plus(tier, inserted));
-        return inserted;
+        Compacting.Inserted result = Compacting.insert(contents, ItemResource.of(stack), stack.getCount(), CompactingBookItem.CAPACITY,
+                chain -> CompactingChains.filterAllows(filter, chain));
+        if (result.count() > 0) setContents(result.contents());
+        return result.count();
     }
 
     // Up to `max` of the open tier (no more than a stack)
     public ItemStack extractOpenTier(int max)
     {
-        int tier = contents.page();
-        int taken = Math.min(Math.min(max, contents.amount(tier)), contents.stack(tier, 1).getMaxStackSize());
-        if (taken <= 0) return ItemStack.EMPTY;
-        ItemStack out = contents.stack(tier, taken);
-        setContents(contents.plus(tier, -taken));
-        return out;
+        Compacting.Extracted result = Compacting.extract(contents, contents.page(), max);
+        if (!result.stack().isEmpty()) setContents(result.contents());
+        return result.stack();
     }
 
     private void setContents(CompactingContents changed)
@@ -117,7 +106,7 @@ public class CompactingBookBlockEntity extends CBSyncedBlockEntity implements Pi
     @Override public double getDisplayHeight() { return (getBlockState().getValue(BookBlock.THICKNESS) + 4) / 16.0; }
     @Override public float getDisplayScale() { return 1.5f; }
 
-    // ---- Filter (IFilterHolder): see CompactingFilter#allowsChain ----
+    // ---- Filter (IFilterHolder): which chains an empty book may start (MowLib CompactingChains.filterAllows) ----
 
     @Override
     public ItemStack getFilter()
@@ -184,7 +173,7 @@ public class CompactingBookBlockEntity extends CBSyncedBlockEntity implements Pi
     protected void applyImplicitComponents(DataComponentGetter components)
     {
         super.applyImplicitComponents(components);
-        CompactingContents saved = components.get(DataComponentRegistry.COMPACTING_CONTENTS.get());
+        CompactingContents saved = components.get(MowLibDataComponents.COMPACTING_CONTENTS.get());
         contents = saved == null ? CompactingContents.EMPTY : saved;
         Integer itemPriority = components.get(DataComponentRegistry.PRIORITY.get());
         priority = itemPriority == null ? 0 : itemPriority;
@@ -196,7 +185,7 @@ public class CompactingBookBlockEntity extends CBSyncedBlockEntity implements Pi
     protected void collectImplicitComponents(DataComponentMap.Builder components)
     {
         super.collectImplicitComponents(components);
-        if (contents.isSet()) components.set(DataComponentRegistry.COMPACTING_CONTENTS.get(), contents);
+        if (contents.isSet()) components.set(MowLibDataComponents.COMPACTING_CONTENTS.get(), contents);
         if (priority > 0) components.set(DataComponentRegistry.PRIORITY.get(), priority);
         if (!filter.isEmpty()) components.set(MowLibDataComponents.HELD_FILTER.get(), ItemStackTemplate.fromNonEmptyStack(filter));
     }

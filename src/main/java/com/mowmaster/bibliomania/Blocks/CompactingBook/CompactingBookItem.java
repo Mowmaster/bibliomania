@@ -1,5 +1,9 @@
 package com.mowmaster.bibliomania.Blocks.CompactingBook;
 
+import com.mowmaster.mowlib.compacting.Compacting;
+import com.mowmaster.mowlib.compacting.CompactingItemHandler;
+import com.mowmaster.mowlib.compacting.ICompactingItem;
+import com.mowmaster.mowlib.compacting.CompactingContents;
 import com.mowmaster.mowlib.keys.IKeyPlaceable;
 import com.mowmaster.mowlib.filter.HeldFilters;
 import com.mowmaster.bibliomania.BibliomaniaReferences;
@@ -31,24 +35,27 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 // The Compacting Book as an item: its contents in bibliomania:compacting_contents. On a Bookcase its tiers are the
-// bookcase's (and the library's) item storage (CompactingShelfHandler); its tiers are pages for the page keys and
+// bookcase's (and the library's) item storage (MowLib CompactingItemHandler); its tiers are pages for the page keys and
 // scrolling (MowLib IPageable). The tooltip lists every tier with how many of it the book makes.
-public class CompactingBookItem extends BlockItem implements ShelvedBook, IPageable, IKeyPlaceable
+public class CompactingBookItem extends BlockItem implements ShelvedBook, IPageable, IKeyPlaceable, ICompactingItem
 {
     public CompactingBookItem(Block block, Properties properties)
     {
         super(block, properties);
     }
 
+    // The book's contents (MowLib's mowlib:compacting_contents)
     public static CompactingContents contents(ItemStack stack)
     {
-        CompactingContents contents = stack.get(DataComponentRegistry.COMPACTING_CONTENTS.get());
-        return contents == null ? CompactingContents.EMPTY : contents;
+        return ICompactingItem.contents(stack);
     }
+
+    // How many of the top tier a Compacting Book holds (MowLib ICompactingItem; MowLib's default, 1024)
+    public static final int CAPACITY = CompactingContents.DEFAULT_CAPACITY;
 
     // ---- Filters: right-click the air with the book in the main hand (as other item books, BookItem#use) ----
     // A filter in the offhand goes in (one at a time); MowLib's Filter Tool in the offhand takes it out again.
-    // The filter decides which chains an empty book may start (CompactingFilter#allowsChain).
+    // The filter decides which chains an empty book may start (MowLib ICompactingItem#allowsChain: CompactingChains.filterAllows).
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand)
     {
@@ -66,7 +73,7 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
     public <R extends Resource> @Nullable ResourceHandler<R> shelfHandler(TransportType<R> type, ItemAccess access)
     {
         if (type != TransportTypes.ITEMS.get()) return null;
-        return (ResourceHandler<R>) new CompactingShelfHandler(access);
+        return (ResourceHandler<R>) new CompactingItemHandler(access);
     }
 
     @Override
@@ -93,7 +100,7 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
     public void setPage(ItemStack stack, int page)
     {
         CompactingContents contents = contents(stack);
-        if (contents.isSet()) stack.set(DataComponentRegistry.COMPACTING_CONTENTS.get(), contents.withPage(page));
+        if (contents.isSet()) ICompactingItem.setContents(stack, contents.withPage(page));
     }
 
     // "1,000 Gold Nugget", "111 Gold Ingot", "12 Block of Gold" (the open tier first), or how to start one
@@ -103,20 +110,9 @@ public class CompactingBookItem extends BlockItem implements ShelvedBook, IPagea
     {
         super.appendHoverText(stack, context, display, tooltip, flag);
         CompactingContents contents = contents(stack);
-        String key = "tooltip." + BibliomaniaReferences.MODID + ".compacting.";
         ItemStack filter = HeldFilters.get(stack);
         if (!filter.isEmpty()) tooltip.accept(Component.translatable("hud." + BibliomaniaReferences.MODID + ".book_filter", filter.getHoverName()).withStyle(ChatFormatting.GRAY));
-        if (!contents.isSet())
-        {
-            tooltip.accept(Component.translatable(key + "empty", CompactingContents.CAPACITY).withStyle(ChatFormatting.GRAY));
-            return;
-        }
-        for (int tier = contents.size() - 1; tier >= 0; tier--)
-        {
-            Component line = Component.translatable(key + "tier", contents.amount(tier), contents.stack(tier, 1).getHoverName());
-            tooltip.accept(tier == contents.page() ? line.copy().withStyle(ChatFormatting.WHITE) : line.copy().withStyle(ChatFormatting.GRAY));
-        }
-        tooltip.accept(Component.translatable(key + "capacity", CompactingContents.CAPACITY, contents.stack(contents.size() - 1, 1).getHoverName())
-                .withStyle(ChatFormatting.DARK_GRAY));
+        // MowLib's lines: each tier's amount (the open one white) and the capacity, or how to start one
+        Compacting.tooltip(contents, CAPACITY, tooltip);
     }
 }
